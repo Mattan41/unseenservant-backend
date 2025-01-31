@@ -1,5 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import {createRouter, createWebHistory} from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import RegisterComponent from "@/components/RegisterComponent.vue";
+import LoginComponent from "@/components/LoginComponent.vue";
+import {useAuthStore} from "@/stores/authStore.js";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,10 +15,36 @@ const router = createRouter({
     {
       path: '/about',
       name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue'),
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginComponent,
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterComponent,
+    },
+    {
+      path: '/logout',
+      name: 'logout',
+      beforeEnter: (to, from, next) => {
+        const authStore = useAuthStore();
+        authStore.logout();
+        next({name: 'home'});
+      },
+    },
+    {
+      path: '/redirect',
+      name: 'redirect',
+      beforeEnter: (to, from, next) => {
+        const authStore = useAuthStore();
+        authStore.loadUserFromLocalStorage();
+        next({name: 'home'});
+      },
+
     },
   ],
 })

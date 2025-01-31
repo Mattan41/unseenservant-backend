@@ -1,35 +1,142 @@
 @import './base.css';
 
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+body {
+    color: darkolivegreen;
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+h1,
+h2,
+h3,
+h4 {
+    font-family: "Oswald", sans-serif;
+    text-transform: uppercase;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
+h1 {
+    font-size: 48px;
+    line-height: 1.1em;
+}
+
+h2 {
+    font-size: 30px;
+    line-height: 1.2em;
+}
+
+h3 {
+    font-size: 17px;
+    line-height: 1.2em;
+}
+
+h4 {
+    font-size: 15px;
+}
+
+
+@media screen and (min-width: 640px) {
+    h1 {
+        font-size: 50px;
+    }
+
+    h2 {
+        font-size: 34px;
+    }
+
+    h3 {
+        font-size: 26px;
+    }
+
+    h4 {
+        font-size: 20px;
+    }
+
+    body {
+        font-size: 16px;
+        line-height: 1.8em;
+    }
+
+    h5 {
+        font-size: 15px;
+    }
+}
+
+
+@media screen and (min-width: 768px) {
+    h1 {
+        font-size: 54px;
+    }
+
+    h2 {
+        font-size: 48px;
   }
+
+    h3 {
+        font-size: 36px;
+    }
+
+    h4 {
+        font-size: 26px;
+    }
+
+    body {
+        font-size: 18px;
+        line-height: 1.7em;
+    }
+
+    h5 {
+        font-size: 16px;
+    }
 }
 
-@media (min-width: 1024px) {
+
+@media screen and (min-width: 1024px) {
+    h1 {
+        font-size: 56px;
+    }
+
+    h2 {
+        font-size: 56px;
+    }
+
+    h3 {
+        font-size: 42px;
+        line-height: 1.3em;
+    }
+
+    h4 {
+        font-size: 30px;
+    }
+
   body {
-    display: flex;
-    place-items: center;
+      font-size: 20px;
   }
 
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
+    h5 {
+        font-size: 16px;
+    }
+}
+
+@media screen and (min-width: 1280px) {
+    h1 {
+        font-size: 56px;
+    }
+
+    h2 {
+        font-size: 60px;
+    }
+
+    h3 {
+        font-size: 44px;
+        line-height: 1.3em;
+    }
+
+    h4 {
+        font-size: 34px;
+  }
+
+    body {
+        font-size: 20px;
   }
 }
+
