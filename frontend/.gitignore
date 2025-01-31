@@ -20,8 +20,7 @@ coverage
 /cypress/screenshots/
 
 # Editor directories and files
-# .vscode/* temporary disabled to be able to remove .vscode from the repo
-.idea
+.vscode/*
 *.suo
 *.ntvs*
 *.njsproj
