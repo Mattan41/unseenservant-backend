@@ -11,11 +11,9 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
     public User find(String id) {
@@ -40,8 +38,8 @@ public class UserService {
         User admin = new User();
         admin.setUserName(userName);
         admin.setEmail(email);
-        admin.setPassword(passwordEncoder.encode(password));
-        admin.setRole("ADMIN");
+        admin.setPassword(password);
+        admin.setRole("ROLE_ADMIN");
         return userRepository.save(admin);
     }
 

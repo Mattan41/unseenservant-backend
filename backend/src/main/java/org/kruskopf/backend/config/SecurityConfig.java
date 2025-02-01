@@ -1,11 +1,11 @@
 package org.kruskopf.backend.config;
 
 import jakarta.servlet.http.HttpServletResponse;
-import org.kruskopf.backend.component.CustomAuthenticationFailureHandler;
 import org.kruskopf.backend.component.CustomAuthenticationSuccessHandler;
 import org.kruskopf.backend.component.CustomOAuth2SuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -28,16 +28,13 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
     private final CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
-    private final CustomAuthenticationFailureHandler customAuthenticationFailureHandler;
 
     public SecurityConfig(UserDetailsService userDetailsService,
                           CustomOAuth2SuccessHandler customOAuth2SuccessHandler,
-                          CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler,
-                          CustomAuthenticationFailureHandler customAuthenticationFailureHandler) {
+                          CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler) {
         this.userDetailsService = userDetailsService;
         this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
         this.customAuthenticationSuccessHandler = customAuthenticationSuccessHandler;
-        this.customAuthenticationFailureHandler = customAuthenticationFailureHandler;
     }
 
     @Bean
@@ -54,7 +51,7 @@ public class SecurityConfig {
     }
 
 
-    //todo: remove csrf.(AbstractHttpConfigurer::disable)
+
 //    @Bean
 //    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 //        http.cors(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable).authorizeHttpRequests(auth -> {
@@ -83,7 +80,7 @@ public class SecurityConfig {
 //        return http.build();
 //    }
 
-    // SecurityConfig.java
+    // SecurityConfig.java //todo: remove csrf.(AbstractHttpConfigurer::disable)
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable).authorizeHttpRequests(auth -> {
@@ -120,7 +117,7 @@ public class SecurityConfig {
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
-            public void addCorsMappings(CorsRegistry registry) {
+            public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins("http://localhost:5173", "https://unseenservant.se")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
@@ -130,19 +127,5 @@ public class SecurityConfig {
         };
     }
 
-//    @Bean
-//    public UserDetailsService users() {
-//        UserDetails user = User.builder()
-//                .username("user")
-//                .password("{bcrypt}$2a$10$GRLdNijSQMUvl/au9ofL.eDwmoohzzS7.rmNSJZ.0FxO/BTk76klW")
-//                .roles("USER")
-//                .build();
-//        UserDetails admin = User.builder()
-//                .username("admin")
-//                .password("{bcrypt}$2a$10$GRLdNijSQMUvl/au9ofL.eDwmoohzzS7.rmNSJZ.0FxO/BTk76klW")
-//                .roles("USER", "ADMIN")
-//                .build();
-//        return new InMemoryUserDetailsManager(user, admin);
-//    }
 }
 

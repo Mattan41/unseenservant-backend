@@ -60,6 +60,7 @@ public class AuthController {
         response.put("message", "Login successful");
         response.put("username", user.getUserName());
         response.put("email", user.getEmail());
+        response.put("role", user.getRole());
         return ResponseEntity.ok(response);
     }
 }
