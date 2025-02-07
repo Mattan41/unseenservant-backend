@@ -34,8 +34,9 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User createAdminUser(String userName, String email, String password) {
+    public User createAdminUser(String userName, String email, String password, String googleId) {
         User admin = new User();
+        admin.setGoogleId(googleId);
         admin.setUserName(userName);
         admin.setEmail(email);
         admin.setPassword(password);

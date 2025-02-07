@@ -31,6 +31,14 @@ const handleSubmit = async () => {
     }
   }
 };
+const handleGoogleLogin = async () => {
+  try {
+    await authStore.loginWithGoogle();
+  } catch (error) {
+    console.error('Google login failed', error);
+  }
+};
+
 </script>
 
 <template>
@@ -63,6 +71,10 @@ const handleSubmit = async () => {
       >
         Login
       </button>
+      <p class="text-center mt-4">
+        Sign in with Google <a @click.prevent="handleGoogleLogin"
+                               class="text-blue-500 cursor-pointer">here</a>
+      </p>
     </form>
   </div>
 </template>

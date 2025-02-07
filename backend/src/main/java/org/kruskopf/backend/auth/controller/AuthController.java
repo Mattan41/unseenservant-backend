@@ -63,5 +63,15 @@ public class AuthController {
         response.put("role", user.getRole());
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/google-login")
+    public ResponseEntity<User> one(@RequestParam String googleId) {
+        return ResponseEntity.ok().body(userService.find(googleId));
+    }
+
+    @PostMapping("/google-login")
+    public ResponseEntity<User> save(@RequestBody User user) {
+        return ResponseEntity.ok().body(userService.save(user));
+    }
 }
 

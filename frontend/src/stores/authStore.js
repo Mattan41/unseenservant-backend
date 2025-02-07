@@ -14,6 +14,14 @@ export const useAuthStore = defineStore('auth', {
         window.dispatchEvent(new Event('storage'));
       }
     },
+    async loginWithGoogle(idToken) {
+      const response = await AuthService.loginWithGoogle(idToken);
+      if (response.data) {
+        this.user = response.data;
+        localStorage.setItem('userData', JSON.stringify(this.user));
+        window.dispatchEvent(new Event('storage'));
+      }
+    },
     logout() {
       this.user = null;
       localStorage.removeItem('userData');

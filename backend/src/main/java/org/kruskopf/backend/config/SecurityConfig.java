@@ -1,6 +1,7 @@
 package org.kruskopf.backend.config;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.kruskopf.backend.component.CustomAuthenticationFailureHandler;
 import org.kruskopf.backend.component.CustomAuthenticationSuccessHandler;
 import org.kruskopf.backend.component.CustomOAuth2SuccessHandler;
 import org.springframework.context.annotation.Bean;
@@ -28,13 +29,16 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
     private final CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
+    private final CustomAuthenticationFailureHandler customAuthenticationFailureHandler;
 
     public SecurityConfig(UserDetailsService userDetailsService,
                           CustomOAuth2SuccessHandler customOAuth2SuccessHandler,
-                          CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler) {
+                          CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler,
+                          CustomAuthenticationFailureHandler customAuthenticationFailureHandler) {
         this.userDetailsService = userDetailsService;
         this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
         this.customAuthenticationSuccessHandler = customAuthenticationSuccessHandler;
+        this.customAuthenticationFailureHandler = customAuthenticationFailureHandler;
     }
 
     @Bean
@@ -51,42 +55,15 @@ public class SecurityConfig {
     }
 
 
-
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//        http.cors(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable).authorizeHttpRequests(auth -> {
-//                    auth.requestMatchers("/admin").hasRole("ADMIN");
-//                    auth.requestMatchers("/api/users/data").authenticated();
-//                    auth.requestMatchers("/api/login", "/api/users","/home").permitAll();
-//                    auth.anyRequest().denyAll();
-//                }).exceptionHandling(exceptionHandling ->
-//                        exceptionHandling
-//                                .accessDeniedHandler((request, response, accessDeniedException) -> {
-//                                    if (request.getUserPrincipal() != null) {
-//                                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied");
-//                                    } else {
-//                                        response.sendRedirect("/login");
-//                                    }
-//                                }))
-//                .logout(logout -> logout
-//                        .logoutUrl("/logout")
-//                        .logoutSuccessUrl("http://localhost:5173/")
-//                        .invalidateHttpSession(true)
-//                        .deleteCookies("JSESSIONID"))
-//                .oauth2Login(oauth2 -> oauth2
-//                        .successHandler(customOAuth2SuccessHandler))
-//                .formLogin(form -> form
-//                        .successHandler(customFormLoginSuccessHandler));
-//        return http.build();
-//    }
-
-    // SecurityConfig.java //todo: remove csrf.(AbstractHttpConfigurer::disable)
+    // SecurityConfig.java //todo: remove csrf.(AbstractHttpConfigurer::disable) and change to authenticated() from permitAll() after authentication is implemented
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable).authorizeHttpRequests(auth -> {
+        http.cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable) // enable csrf protection with .csrf(Customizer.withDefaults())
+                .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/admin").hasRole("ADMIN");
-                    auth.requestMatchers("/api/auth/**").permitAll(); //.anyRequest().authenticated() Temporarily allow access without authentication
-                    auth.requestMatchers("/api/login", "/api/users", "/home").permitAll();
+                    auth.requestMatchers("/api/auth/**").permitAll(); //.authenticated() // Temporarily allow access without authentication
+                    auth.requestMatchers("/api/auth/login", "/api/users").permitAll();
                     auth.anyRequest().denyAll();
                 }).exceptionHandling(exceptionHandling ->
                         exceptionHandling
@@ -102,12 +79,12 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID"))
-
-//                .oauth2Login(oauth2 -> oauth2
-//                        .successHandler(customOAuth2SuccessHandler))
-//                        .loginProcessingUrl("/api/auth/login")
                 .formLogin(form -> form
-                        .successHandler(customAuthenticationSuccessHandler));
+                        .successHandler(customAuthenticationSuccessHandler)
+                        .failureHandler(customAuthenticationFailureHandler)
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(customOAuth2SuccessHandler));
 
         return http.build();
     }

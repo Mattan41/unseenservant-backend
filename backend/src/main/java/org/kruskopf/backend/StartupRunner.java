@@ -22,7 +22,7 @@ public class StartupRunner implements CommandLineRunner {
             user.setUserName("Mattan");
             user.setPassword("password");
             user.setFullName("Mats Kruskopf");
-            user.setEmail("knishopf@gmail.com");
+            user.setEmail("krishopf@gmail.com");
             user.setRole("ROLE_USER");
             user.setGoogleId("123456");
             userService.save(user);
@@ -33,14 +33,14 @@ public class StartupRunner implements CommandLineRunner {
             user2.setUserName("Mats");
             user2.setPassword("password");
             user2.setFullName("Mats Kruskopf Eriksson");
-            user2.setEmail("mats.kruskopf@gmail.com");
+            user2.setEmail("mats.fpoksurk@gmail.com");
             user2.setRole("ROLE_USER");
             user2.setGoogleId("654321");
             userService.save(user2);
         }
 
         if (userService.findByUserName("admin") == null) {
-            userService.createAdminUser("admin", "admin@admin.se", "admin");
+            userService.createAdminUser("admin", "admin@admin.se", "admin", "000000");
         }
     }
 }

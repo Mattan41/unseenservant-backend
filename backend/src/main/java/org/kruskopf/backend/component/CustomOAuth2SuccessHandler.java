@@ -1,5 +1,6 @@
 package org.kruskopf.backend.component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,17 +12,19 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
 public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
-    UserRepository userRepository;
+    private final UserRepository userRepository;
 
     public CustomOAuth2SuccessHandler(UserRepository userRepository) {
         this.userRepository = userRepository;
-    }
 
+    }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
@@ -31,16 +34,20 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         String email = oidcUser.getEmail();
         String name = oidcUser.getFullName();
 
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-        String userData = "{ \"googleId\": \"" + googleId + "\", \"email\": \"" + email + "\", \"fullName\": \"" + name + "\" }";
-        response.getWriter().write(userData);
         Optional<User> existingUser = userRepository.findByGoogleId(googleId);
-
         if (existingUser.isEmpty()) {
             userRepository.save(new User(googleId, email, name));
         }
-        response.sendRedirect("http://localhost:5173/redirect?redirected=true");
-//todo: redirect to frontend url dynamically instead of hardcoding
+
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        Map<String, String> userData = new HashMap<>();
+        userData.put("googleId", googleId);
+        userData.put("email", email);
+        userData.put("fullName", name);
+
+        response.getWriter().write(new ObjectMapper().writeValueAsString(userData));
+        response.getWriter().flush();
     }
 }
