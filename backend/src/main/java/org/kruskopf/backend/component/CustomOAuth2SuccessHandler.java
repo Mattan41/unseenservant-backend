@@ -1,7 +1,5 @@
 package org.kruskopf.backend.component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.user.entity.User;
@@ -12,9 +10,6 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 @Component
 public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler {
@@ -27,27 +22,23 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     }
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                                        Authentication authentication) throws IOException {
         OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
 
-        String googleId = oidcUser.getSubject();
-        String email = oidcUser.getEmail();
-        String name = oidcUser.getFullName();
+        // Save user to database if not exists
+        User user = userRepository.findByGoogleId(oidcUser.getSubject())
+                .orElseGet(() -> userRepository.save(new User(
+                        oidcUser.getSubject(),
+                        oidcUser.getEmail(),
+                        oidcUser.getFullName()
+                )));
 
-        Optional<User> existingUser = userRepository.findByGoogleId(googleId);
-        if (existingUser.isEmpty()) {
-            userRepository.save(new User(googleId, email, name));
-        }
+        // Create session and JSESSIONID cookie is created automatically
+        request.getSession().setAttribute("user", user);
 
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
+        // todo replace hardcoded url with env variable or investigate if possibble to use relative path and configure spring/vue
+        response.sendRedirect("http://localhost:5173/oauth-redirect");
 
-        Map<String, String> userData = new HashMap<>();
-        userData.put("googleId", googleId);
-        userData.put("email", email);
-        userData.put("fullName", name);
-
-        response.getWriter().write(new ObjectMapper().writeValueAsString(userData));
-        response.getWriter().flush();
     }
 }

@@ -9,7 +9,7 @@ onMounted(() => {
   authStore.loadUserFromLocalStorage();
 });
 
-const username = computed(() => authStore.getUser?.username || '');
+const username = computed(() => authStore.getUser?.fullName || '');
 </script>
 
 <template>

@@ -46,6 +46,11 @@ const router = createRouter({
       },
 
     },
+    {
+      path: '/oauth-redirect',
+      name: 'oauth-redirect',
+      component: () => import('../components/OAuthRedirect.vue')
+    },
   ],
 })
 

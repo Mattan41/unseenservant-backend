@@ -5,6 +5,7 @@ import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -24,6 +25,16 @@ public class AuthController {
     public AuthController(UserService userService) {
         this.userService = userService;
     }
+
+
+    @GetMapping("/me")
+    public ResponseEntity<User> getCurrentUser(@SessionAttribute(name = "user", required = false) User user) {
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(user);
+    }
+
 
     @GetMapping("/login")
     public ResponseEntity<Map<String, String>> loggedInUserData(Authentication authentication) {
@@ -64,6 +75,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    //thees two are safe to remove
     @GetMapping("/google-login")
     public ResponseEntity<User> one(@RequestParam String googleId) {
         return ResponseEntity.ok().body(userService.find(googleId));

@@ -3,9 +3,23 @@ import AuthService from '../AuthService';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null,
+    user: null
   }),
   actions: {
+    async checkAuth() {
+      try {
+        const user = await AuthService.getCurrentUser();
+        this.user = user;
+        return user;
+      } catch (error) {
+        this.user = null;
+        return null;
+      }
+    },
+    async logout() {
+      await AuthService.logout();
+    },
+
     async login(user) {
       const response = await AuthService.login(user);
       if (response.data) {
@@ -22,17 +36,14 @@ export const useAuthStore = defineStore('auth', {
         window.dispatchEvent(new Event('storage'));
       }
     },
-    logout() {
-      this.user = null;
-      localStorage.removeItem('userData');
-      window.dispatchEvent(new Event('storage'));
-    },
+
     loadUserFromLocalStorage() {
       const userData = JSON.parse(localStorage.getItem('userData'));
       if (userData) {
         this.user = userData;
+        this.token = userData.token;
       }
-    }
+    },
   },
   getters: {
     isLoggedIn: (state) => !!state.user,

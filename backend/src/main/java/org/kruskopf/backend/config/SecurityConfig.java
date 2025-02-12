@@ -13,7 +13,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -55,11 +55,12 @@ public class SecurityConfig {
     }
 
 
-    // SecurityConfig.java //todo: remove csrf.(AbstractHttpConfigurer::disable) and change to authenticated() from permitAll() after authentication is implemented
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable) // enable csrf protection with .csrf(Customizer.withDefaults())
+                .csrf(Customizer.withDefaults()) // eller .csrf(csrf -> csrf
+                //.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                //      )
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/admin").hasRole("ADMIN");
                     auth.requestMatchers("/api/auth/**").permitAll(); //.authenticated() // Temporarily allow access without authentication
@@ -74,6 +75,10 @@ public class SecurityConfig {
                                         response.sendRedirect("/login");
                                     }
                                 }))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
+                        .maximumSessions(1)
+                        .expiredUrl("/login"))
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/")
@@ -99,10 +104,10 @@ public class SecurityConfig {
                         .allowedOrigins("http://localhost:5173", "https://unseenservant.se")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
-                        .allowCredentials(true);
+                        .allowCredentials(true)
+                        .exposedHeaders("Set-Cookie");
             }
         };
     }
-
 }
 
