@@ -1,11 +1,14 @@
 package org.kruskopf.backend.user.service;
 
+import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+
+import static org.kruskopf.backend.user.UserRole.ROLE_ADMIN;
 
 @Service
 public class UserService {
@@ -17,7 +20,7 @@ public class UserService {
     }
 
     public User find(String id) {
-        Optional<User> user = userRepository.findByGoogleId(id);
+        Optional<User> user = userRepository.findByProviderId(id);
         return user.orElseThrow(() -> new RuntimeException("No such ID " + id));
 
     }
@@ -34,13 +37,14 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User createAdminUser(String userName, String email, String password, String googleId) {
+    public User createAdminUser(String userName, String email, String password, String providerId, ProviderType providerType) {
         User admin = new User();
-        admin.setGoogleId(googleId);
+        admin.setProviderId(providerId);
+        admin.setProviderType(providerType);
         admin.setUserName(userName);
         admin.setEmail(email);
         admin.setPassword(password);
-        admin.setRole("ROLE_ADMIN");
+        admin.setRole(ROLE_ADMIN);
         return userRepository.save(admin);
     }
 

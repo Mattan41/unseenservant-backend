@@ -1,9 +1,12 @@
 package org.kruskopf.backend;
 
+import org.kruskopf.backend.user.UserRole;
+import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+
 
 @Component
 public class StartupRunner implements CommandLineRunner {
@@ -23,8 +26,9 @@ public class StartupRunner implements CommandLineRunner {
             user.setPassword("password");
             user.setFullName("Mats Kruskopf");
             user.setEmail("krishopf@gmail.com");
-            user.setRole("ROLE_USER");
-            user.setGoogleId("123456");
+            user.setRole(UserRole.ROLE_USER);
+            user.setProviderType(ProviderType.GOOGLE);
+            user.setProviderId("123456");
             userService.save(user);
         }
 
@@ -34,13 +38,14 @@ public class StartupRunner implements CommandLineRunner {
             user2.setPassword("password");
             user2.setFullName("Mats Kruskopf Eriksson");
             user2.setEmail("mats.fpoksurk@gmail.com");
-            user2.setRole("ROLE_USER");
-            user2.setGoogleId("654321");
+            user2.setRole(UserRole.ROLE_USER);
+            user2.setProviderType(ProviderType.GOOGLE);
+            user2.setProviderId("654321");
             userService.save(user2);
         }
 
         if (userService.findByUserName("admin") == null) {
-            userService.createAdminUser("admin", "admin@admin.se", "admin", "000000");
+            userService.createAdminUser("admin", "admin@admin.se", "admin", "000000", ProviderType.GOOGLE);
         }
     }
 }
