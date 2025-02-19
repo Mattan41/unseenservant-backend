@@ -18,6 +18,3 @@ ALTER TABLE user
 
 ALTER TABLE user
     ADD CONSTRAINT uc_user_user_name UNIQUE (user_name);
-
-SELECT *
-FROM user;
