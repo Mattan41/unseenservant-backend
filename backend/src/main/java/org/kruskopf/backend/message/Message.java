@@ -1,13 +1,22 @@
 package org.kruskopf.backend.message;
 
 import jakarta.persistence.*;
-import org.kruskopf.backend.campaign.Campaign;
+import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.user.entity.User;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
+@Table(name = "messages", indexes = {
+        @Index(name = "idx_message_campaign_id", columnList = "campaign_id"),
+        @Index(name = "idx_message_user_id", columnList = "user_id"),
+        @Index(name = "idx_message_created_at", columnList = "createdAt")
+})
 public class Message {
 
     @Id
@@ -29,7 +38,12 @@ public class Message {
     @CreatedDate
     private LocalDateTime createdAt;
 
+    @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    @LastModifiedBy
+    private String lastModifiedBy;
+
 
     // Constructors
     public Message() {
@@ -46,10 +60,6 @@ public class Message {
 
     public Long getId() {
         return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public Campaign getCampaign() {
@@ -76,6 +86,10 @@ public class Message {
         this.messageBody = messageBody;
     }
 
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -86,5 +100,13 @@ public class Message {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getLastModifiedBy() {
+        return lastModifiedBy;
+    }
+
+    public void setLastModifiedBy(String lastModifiedBy) {
+        this.lastModifiedBy = lastModifiedBy;
     }
 }

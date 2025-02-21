@@ -2,16 +2,15 @@ package org.kruskopf.backend.component;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.hibernate.Hibernate;
-import org.kruskopf.backend.user.UserRole;
+import org.kruskopf.backend.auth.dto.AuthDTO;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
+import org.kruskopf.backend.user.entity.UserRole;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 
@@ -22,15 +21,20 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
     public CustomOAuth2SuccessHandler(UserRepository userRepository) {
         this.userRepository = userRepository;
-
     }
 
     @Override
-    @Transactional
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
         OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
 
+        // Handle role with whitelist todo add a email to whitelist and to env variable
+        String adminWhitelist = System.getenv("ADMIN_WHITELIST"); // T.ex. "admin@example.com"
+        boolean isAdmin = adminWhitelist != null && adminWhitelist.contains(oidcUser.getEmail());
+
+        UserRole role = isAdmin ? UserRole.ADMIN : UserRole.USER;
+
+        // Hämta eller skapa ny användare
         User user = userRepository.findByProviderId(oidcUser.getSubject())
                 .orElseGet(() -> userRepository.save(new User(
                         oidcUser.getSubject(),
@@ -38,19 +42,29 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                         oidcUser.getEmail(),
                         oidcUser.getFullName(),
                         oidcUser.getEmail(),
-                        UserRole.ROLE_USER, // Default role
-                        "password" // Default password
+                        role,
+                        "password"
                 )));
 
-        // Initialize lazy loaded collections
-        Hibernate.initialize(user.getCharacters());
-        Hibernate.initialize(user.getMessages());
+        // Skapa AuthDTO för session
+        AuthDTO authDTO = new AuthDTO(
+                user.getId(),
+                user.getUserName(),
+                user.getEmail(),
+                user.getRole().toString()
+        );
+        request.getSession().setAttribute("user", authDTO);
 
-        // Create session and JSESSIONID cookie is created automatically Todo: migrate to UserDTO, MessageDTO and CharacterDTO, remove Transactional annotation
-        request.getSession().setAttribute("user", user);
-
-        // todo replace hardcoded url with env variable or investigate if possibble to use relative path and configure spring/vue
-        response.sendRedirect("http://localhost:5173/oauth-redirect");
-
+        // Dynamisk redirect
+        String redirectUrl = System.getenv("FRONTEND_REDIRECT_URL");
+        if (redirectUrl == null) {
+            redirectUrl = "http://localhost:5173";
+        }
+        response.sendRedirect(redirectUrl + "/oauth-redirect");
     }
 }
+
+//
+// todo: Is password really needed? Using social login, password is not needed. Investigate if possible to remove password from User entity
+//
+// todo replace hardcoded url with env variable or investigate if possibble to use relative path and configure spring/vue

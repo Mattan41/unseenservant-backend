@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.component.CustomAuthenticationFailureHandler;
 import org.kruskopf.backend.component.CustomAuthenticationSuccessHandler;
 import org.kruskopf.backend.component.CustomOAuth2SuccessHandler;
+import org.kruskopf.backend.user.entity.UserRole;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
@@ -54,17 +55,23 @@ public class SecurityConfig {
         return authProvider;
     }
 
+    //Todo review securityFilterChain, perhaps need to store OICDs access-token/identity-token in session somehow
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-                .csrf(Customizer.withDefaults()) // eller .csrf(csrf -> csrf
-                //.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                //      )
+                .csrf(Customizer.withDefaults()) // eller
+//                .csrf(csrf -> csrf
+//                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+//                     )
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/admin").hasRole("ADMIN");
-                    auth.requestMatchers("/api/auth/**").permitAll(); //.authenticated() // Temporarily allow access without authentication
-                    auth.requestMatchers("/api/auth/login", "/api/users").permitAll();
+                    auth.requestMatchers("/admin").hasRole(UserRole.ADMIN.name());
+                    auth.requestMatchers("/api/auth/**").permitAll();
+                    auth.requestMatchers("/api/auth/login", "api/auth/me").permitAll();
+                    auth.requestMatchers("/api/users/**").permitAll();//authenticated(); // todo: change to authenticated();
+                    auth.requestMatchers("/api/campaigns/**").permitAll(); // todo change to authenticated();
+//                    auth.requestMatchers("/api/characters/**").authenticated(); // todo: implement endpoints
+//                    auth.requestMatchers("/api/messages/**").authenticated(); // todo: implement endpoints
                     auth.anyRequest().denyAll();
                 }).exceptionHandling(exceptionHandling ->
                         exceptionHandling

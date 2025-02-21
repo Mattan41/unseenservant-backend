@@ -1,4 +1,4 @@
-package org.kruskopf.backend.campaign;
+package org.kruskopf.backend.campaign.entity;
 
 public enum CampaignRole {
     GM,

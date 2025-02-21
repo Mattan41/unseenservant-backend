@@ -24,6 +24,8 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json");
 
+        // todo: solve form login , DTO ??
+
         Set<String> roles = AuthorityUtils.authorityListToSet(authentication.getAuthorities());
         Map<String, String> userData = new HashMap<>();
 

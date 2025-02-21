@@ -27,10 +27,16 @@ const handleSubmit = async () => {
       await authStore.login({username: username.value, password: password.value});
       console.log('Login successful');
     } catch (error) {
-      console.error('Login failed', error);
+      if (error.response && error.response.status === 401) {
+        errors.value.password = 'Invalid username or password'; // Visa felet till användaren
+      } else {
+        console.error('Login failed', error);
+        errors.value.general = 'Something went wrong. Please try again later.';
+      }
     }
   }
 };
+
 const handleGoogleLogin = async () => {
   try {
     await authStore.loginWithGoogle();

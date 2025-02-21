@@ -1,8 +1,16 @@
 package org.kruskopf.backend.user.controller;
 
+import org.kruskopf.backend.user.dto.UserDTO;
+import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -15,52 +23,57 @@ public class UserController {
         this.userService = userService;
     }
 
-//These endpoints might be redundant because of auth controller endpoints
-//    @GetMapping
-//    public ResponseEntity<User> one(@RequestParam String googleId) {
-//        return ResponseEntity.ok().body(userService.find(googleId));
-//    }
-//
-//    @PostMapping
-//    public ResponseEntity<User> save(@RequestBody User user) {
-//        return ResponseEntity.ok().body(userService.save(user));
-//    }
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @GetMapping("/me")
+    public ResponseEntity<UserDTO> getLoggedInUser(@AuthenticationPrincipal OidcUser oidcUser) {
+        if (oidcUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-//    @GetMapping("/data")
-//    public ResponseEntity<Map<String, String>> loggedInUserData(Authentication authentication) {
-//        if (authentication == null)
-//            return ResponseEntity.badRequest().build();
-//        Map<String, String> data = new HashMap<>();
-//        OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
-//
-//        String googleId = oidcUser.getSubject();
-//        String email = oidcUser.getEmail();
-//        String name = oidcUser.getFullName();
-//
-//        data.put("googleId", googleId);
-//        data.put("email", email);
-//        data.put("name", name);
-//        return ResponseEntity.ok(data);
-//    }
+        String providerId = oidcUser.getSubject();
+        User user = userService.find(providerId);
 
-//    @GetMapping("/data")
-//    public ResponseEntity<Map<String, String>> loggedInUserData(Authentication authentication) {
-//        if (authentication == null)
-//            return ResponseEntity.badRequest().build();
-//        Map<String, String> data = new HashMap<>();
-//        OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
-//
-//        String providerId = oidcUser.getSubject();
-//        String email = oidcUser.getEmail();
-//        String fullName = oidcUser.getFullName();
-//        String userName = oidcUser.getEmail(); // Assuming username is the email
-//        String role = UserRole.ROLE_USER.name(); // Default role
-//
-//        data.put("providerId", providerId);
-//        data.put("email", email);
-//        data.put("fullName", fullName);
-//        data.put("userName", userName);
-//        data.put("role", role);
-//        return ResponseEntity.ok(data);
-//    }
+        // Kontrollera om användaren finns i databasen
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        // Convert User to UserDTO before returning
+        UserDTO userDTO = userService.toDTO(user);
+        return ResponseEntity.ok(userDTO);
+
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDTO> getUser(@PathVariable Long id, @AuthenticationPrincipal OidcUser oidcUser) {
+        if (oidcUser == null)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        User user = userService.findById(id).orElse(null);
+
+        if (user == null || !user.getEmail().equals(oidcUser.getEmail())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        UserDTO userDTO = userService.toDTO(user);
+        return ResponseEntity.ok(userDTO);
+    }
+
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+        return userService.partialUpdate(id, updates)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateProfile(@PathVariable Long id, @RequestBody User user) {
+        return userService.update(id, user)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+
+
 }

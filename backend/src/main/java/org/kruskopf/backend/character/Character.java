@@ -1,14 +1,19 @@
 package org.kruskopf.backend.character;
 
 import jakarta.persistence.*;
-import org.kruskopf.backend.campaign.Campaign;
+import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.user.entity.User;
+import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "game_character")
+@EntityListeners(AuditingEntityListener.class)
+@Table(name = "game_character", indexes = {@Index(name = "idx_character_owner_id", columnList = "owner_id")})
 public class Character {
 
     @Id
@@ -29,8 +34,14 @@ public class Character {
     @CreatedDate
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", columnDefinition = "DATETIME(6)")
+    @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    @CreatedBy
+    private String createdBy;
+
+    @LastModifiedBy
+    private String lastModifiedBy;
 
     // Constructors
     public Character() {
@@ -82,6 +93,22 @@ public class Character {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public String getLastModifiedBy() {
+        return lastModifiedBy;
+    }
+
+    public void setLastModifiedBy(String lastModifiedBy) {
+        this.lastModifiedBy = lastModifiedBy;
     }
 }
 

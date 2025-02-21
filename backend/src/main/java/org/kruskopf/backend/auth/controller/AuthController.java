@@ -1,16 +1,21 @@
 package org.kruskopf.backend.auth.controller;
 
-import org.hibernate.Hibernate;
+import jakarta.servlet.http.HttpServletResponse;
+import org.kruskopf.backend.auth.dto.AuthDTO;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -18,76 +23,61 @@ public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
+    private BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
     private final UserService userService;
 
     public AuthController(UserService userService) {
         this.userService = userService;
     }
 
-
     @GetMapping("/me")
-    public ResponseEntity<User> getCurrentUser(@SessionAttribute(name = "user", required = false) User user) {
-        if (user == null) {
+    public ResponseEntity<AuthDTO> getCurrentUser(@SessionAttribute(name = "user", required = false) AuthDTO authDTO) {
+        if (authDTO == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        Hibernate.initialize(user.getCharacters());
-        Hibernate.initialize(user.getMessages());
-
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(authDTO);
     }
 
-//Todo remove the unused endpoints below
+    @GetMapping("/login")
+    public ResponseEntity<Map<String, String>> loggedInUserData(@AuthenticationPrincipal OidcUser oidcUser, Authentication authentication) {
+        if (authentication == null) {
+            logger.warn("Authentication is null");
+            return ResponseEntity.badRequest().build();
+        }
+        logger.info("Fetching logged-in user data for: {}", authentication.getName());
+        Map<String, String> data = new HashMap<>();
 
-    //
-//    @GetMapping("/login")
-//    public ResponseEntity<Map<String, String>> loggedInUserData(Authentication authentication) {
-//        if (authentication == null) {
-//            logger.warn("Authentication is null");
-//            return ResponseEntity.badRequest().build();
-//        }
-//        logger.info("Fetching logged-in user data for: {}", authentication.getName());
-//        Map<String, String> data = new HashMap<>();
-//        OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
-//
-//        String providerId = oidcUser.getSubject();
-//        String email = oidcUser.getEmail();
-//        String name = oidcUser.getFullName();
-//
-//        data.put("providerId", providerId);
-//        data.put("email", email);
-//        data.put("name", name);
-//        return ResponseEntity.ok(data);
-//    }
-//
-//
-//    @PostMapping("/login")
-//    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> loginRequest) {
-//        String username = loginRequest.get("username");
-//        String password = loginRequest.get("password");
-//
-//        User user = userService.findByUserName(username);
-//        if (user == null || !userService.passwordEncoder().matches(password, user.getPassword())) {
-//            return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(Map.of("message", "Invalid credentials"));
-//        }
-//
-//        Map<String, String> response = new HashMap<>();
-//        response.put("message", "Login successful");
-//        response.put("username", user.getUserName());
-//        response.put("email", user.getEmail());
-//        response.put("role", user.getRole().name());
-//        return ResponseEntity.ok(response);
-//    }
-//
-//    // thees two are safe to remove ??
-//    @GetMapping("/google-login")
-//    public ResponseEntity<User> one(@RequestParam String providerId) {
-//        return ResponseEntity.ok().body(userService.find(providerId));
-//    }
-//
-//    @PostMapping("/google-login")
-//    public ResponseEntity<User> save(@RequestBody User user) {
-//        return ResponseEntity.ok().body(userService.save(user));
-//    }
+        String providerId = oidcUser.getSubject();
+        String email = oidcUser.getEmail();
+        String name = oidcUser.getFullName();
+
+        data.put("providerId", providerId);
+        data.put("email", email);
+        data.put("name", name);
+        return ResponseEntity.ok(data);
+    }
+
+
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> loginRequest) {
+        String username = loginRequest.get("username");
+        String password = loginRequest.get("password");
+
+        User user = userService.findByUserName(username);
+        if (user == null || !passwordEncoder().matches(password, user.getPassword())) {
+            return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(Map.of("message", "Invalid credentials"));
+        }
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Login successful");
+        response.put("id", String.valueOf(user.getId())); // Lägg till användarens ID
+        response.put("username", user.getUserName());
+        response.put("email", user.getEmail());
+        response.put("role", user.getRole().name());
+        return ResponseEntity.ok(response);
+    }
 }
 

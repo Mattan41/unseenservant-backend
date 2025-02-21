@@ -1,10 +1,12 @@
 CREATE TABLE campaign
 (
-    id            BIGINT AUTO_INCREMENT NOT NULL,
-    name          VARCHAR(255) NULL,
-    `description` VARCHAR(255) NULL,
-    created_at    datetime NULL,
-    updated_at    datetime NULL,
+    id               BIGINT AUTO_INCREMENT NOT NULL,
+    name             VARCHAR(255) NULL,
+    `description`    VARCHAR(255) NULL,
+    created_at       datetime NULL,
+    updated_at       datetime NULL,
+    created_by       VARCHAR(255) NULL,
+    last_modified_by VARCHAR(255) NULL,
     CONSTRAINT pk_campaign PRIMARY KEY (id)
 );
 
@@ -19,71 +21,82 @@ CREATE TABLE campaign_user
 
 CREATE TABLE game_character
 (
-    id             BIGINT AUTO_INCREMENT NOT NULL,
-    owner_id       BIGINT NOT NULL,
-    campaign_id    BIGINT NULL,
-    character_data JSON NULL,
-    created_at     datetime NULL,
-    updated_at     datetime(6)           NULL,
+    id               BIGINT AUTO_INCREMENT NOT NULL,
+    owner_id         BIGINT NOT NULL,
+    campaign_id      BIGINT NULL,
+    character_data   JSON NULL,
+    created_at       datetime NULL,
+    updated_at       datetime NULL,
+    created_by       VARCHAR(255) NULL,
+    last_modified_by VARCHAR(255) NULL,
     CONSTRAINT pk_game_character PRIMARY KEY (id)
 );
 
-CREATE TABLE message
+CREATE TABLE messages
 (
-    id           BIGINT AUTO_INCREMENT NOT NULL,
-    campaign_id  BIGINT NULL,
-    user_id      BIGINT NULL,
-    message_body LONGTEXT NULL,
-    created_at   datetime NULL,
-    updated_at   datetime NULL,
-    CONSTRAINT pk_message PRIMARY KEY (id)
+    id               BIGINT AUTO_INCREMENT NOT NULL,
+    campaign_id      BIGINT NULL,
+    user_id          BIGINT NULL,
+    message_body     LONGTEXT NULL,
+    created_at       datetime NULL,
+    updated_at       datetime NULL,
+    last_modified_by VARCHAR(255) NULL,
+    CONSTRAINT pk_messages PRIMARY KEY (id)
 );
 
-ALTER TABLE user
-    ADD created_at datetime NULL;
+CREATE TABLE users
+(
+    id            BIGINT AUTO_INCREMENT NOT NULL,
+    provider_id   VARCHAR(255) NOT NULL,
+    provider_type VARCHAR(255) NOT NULL,
+    email         VARCHAR(255) NOT NULL,
+    full_name     VARCHAR(255) NULL,
+    user_name     VARCHAR(255) NOT NULL,
+    display_name  VARCHAR(50) NULL,
+    `role`        VARCHAR(255) NULL,
+    password      VARCHAR(255) NULL,
+    created_at    datetime NULL,
+    updated_at    datetime NULL,
+    CONSTRAINT pk_users PRIMARY KEY (id)
+);
 
-ALTER TABLE user
-    ADD provider_id VARCHAR(255) NULL;
+ALTER TABLE users
+    ADD CONSTRAINT uc_users_email UNIQUE (email);
 
-ALTER TABLE user
-    ADD provider_type VARCHAR(255) NULL;
+ALTER TABLE users
+    ADD CONSTRAINT uc_users_provider UNIQUE (provider_id);
 
-ALTER TABLE user
-    ADD updated_at datetime NULL;
+ALTER TABLE users
+    ADD CONSTRAINT uc_users_username UNIQUE (user_name);
 
-ALTER TABLE user
-    MODIFY provider_id VARCHAR (255) NOT NULL;
+CREATE INDEX idx_message_created_at ON messages (created_at);
 
-ALTER TABLE user
-    MODIFY provider_type VARCHAR (255) NOT NULL;
+CREATE INDEX idx_user_email ON users (email);
 
-ALTER TABLE user
-    ADD CONSTRAINT uc_user_provider UNIQUE (provider_id);
+CREATE INDEX idx_user_provider_id ON users (provider_id);
+
+CREATE INDEX idx_user_username ON users (user_name);
 
 ALTER TABLE campaign_user
     ADD CONSTRAINT FK_CAMPAIGN_USER_ON_CAMPAIGN FOREIGN KEY (campaign_id) REFERENCES campaign (id);
 
 ALTER TABLE campaign_user
-    ADD CONSTRAINT FK_CAMPAIGN_USER_ON_USER FOREIGN KEY (user_id) REFERENCES user (id);
+    ADD CONSTRAINT FK_CAMPAIGN_USER_ON_USER FOREIGN KEY (user_id) REFERENCES users (id);
 
 ALTER TABLE game_character
     ADD CONSTRAINT FK_GAME_CHARACTER_ON_CAMPAIGN FOREIGN KEY (campaign_id) REFERENCES campaign (id);
 
 ALTER TABLE game_character
-    ADD CONSTRAINT FK_GAME_CHARACTER_ON_OWNER FOREIGN KEY (owner_id) REFERENCES user (id);
+    ADD CONSTRAINT FK_GAME_CHARACTER_ON_OWNER FOREIGN KEY (owner_id) REFERENCES users (id);
 
-ALTER TABLE message
-    ADD CONSTRAINT FK_MESSAGE_ON_CAMPAIGN FOREIGN KEY (campaign_id) REFERENCES campaign (id);
+CREATE INDEX idx_character_owner_id ON game_character (owner_id);
 
-ALTER TABLE message
-    ADD CONSTRAINT FK_MESSAGE_ON_USER FOREIGN KEY (user_id) REFERENCES user (id);
+ALTER TABLE messages
+    ADD CONSTRAINT FK_MESSAGES_ON_CAMPAIGN FOREIGN KEY (campaign_id) REFERENCES campaign (id);
 
-ALTER TABLE user
-DROP
-COLUMN google_id;
+CREATE INDEX idx_message_campaign_id ON messages (campaign_id);
 
-ALTER TABLE user
-    MODIFY email VARCHAR (255) NOT NULL;
+ALTER TABLE messages
+    ADD CONSTRAINT FK_MESSAGES_ON_USER FOREIGN KEY (user_id) REFERENCES users (id);
 
-ALTER TABLE user
-    MODIFY user_name VARCHAR (255) NOT NULL;
+CREATE INDEX idx_message_user_id ON messages (user_id);

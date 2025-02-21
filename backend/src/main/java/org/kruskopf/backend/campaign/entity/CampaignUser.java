@@ -1,4 +1,4 @@
-package org.kruskopf.backend.campaign;
+package org.kruskopf.backend.campaign.entity;
 
 import jakarta.persistence.*;
 import org.kruskopf.backend.user.entity.User;

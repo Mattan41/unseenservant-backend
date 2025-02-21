@@ -1,11 +1,11 @@
 package org.kruskopf.backend.user.entity;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.kruskopf.backend.character.Character;
 import org.kruskopf.backend.message.Message;
-import org.kruskopf.backend.user.UserRole;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -13,6 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
+@Table(name = "users", indexes = {
+        @Index(name = "idx_user_email", columnList = "email"),
+        @Index(name = "idx_user_username", columnList = "userName"),
+        @Index(name = "idx_user_provider_id", columnList = "provider_id")
+})
 public class User {
 
     @Id
@@ -20,7 +26,6 @@ public class User {
     private Long id;
 
     @Column(name = "provider_id", unique = true, nullable = false)
-    //@jakarta.persistence.Column(unique = true, name = "provider_id")
     private String providerId;
 
     @Column(nullable = false)
@@ -28,25 +33,26 @@ public class User {
     private ProviderType providerType;
 
     @Column(nullable = false, unique = true)
-    //@jakarta.persistence.Column(unique = true, name = "email")
     private String email;
 
     @Column(name = "full_name")
     private String fullName;
 
     @Column(nullable = false, unique = true)
-    //@jakarta.persistence.Column(unique = true, name = "user_name")
     private String userName;
 
+    @Column(name = "display_name", nullable = true, length = 50)
+    private String displayName;
+
     @Enumerated(EnumType.STRING)
-    private UserRole role; // Enum: USER/ADMIN
+    private UserRole role;
 
     private String password;
 
-    @CreationTimestamp
+    @CreatedDate
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -66,10 +72,16 @@ public class User {
         this.email = email;
         this.fullName = fullName;
         this.userName = username;
+        this.displayName = displayName;
         this.role = role;
         setPassword(password);
     }
     // getters and setters
+    // todo: remove setters that are unnesesary and could be a security risk
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public Long getId() {
         return id;
@@ -113,6 +125,14 @@ public class User {
 
     public void setUserName(String username) {
         this.userName = username;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public UserRole getRole() {
@@ -164,99 +184,3 @@ public class User {
         this.messages = messages;
     }
 }
-//@Entity
-//public class User {
-//
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
-//    private Long id;
-//
-//
-//    @jakarta.persistence.Column(unique = true, name = "google_id")
-//    private String googleId;
-//
-//    @jakarta.persistence.Column(unique = true, name = "user_name")
-//    private String userName;
-//
-//    @Column(name = "full_name")
-//    private String fullName;
-//
-//    @jakarta.persistence.Column(unique = true, name = "email")
-//    private String email;
-//
-//    @Column(name = "role")
-//    private String role;
-//
-//    @Column(name = "password")
-//    private String password;
-//
-//    public User() {
-//    }
-//
-//    // Parameterized constructor
-//    public User(String googleId, String email, String fullName) {
-//        this.googleId = googleId;
-//        this.email = email;
-//        this.fullName = fullName;
-//        this.userName = email;
-//        this.password = new BCryptPasswordEncoder().encode("password"); // Set a default password
-//        this.role = "USER"; // Set a default role
-//    }
-//
-//    public String getGoogleId() {
-//        return googleId;
-//    }
-//
-//    public void setGoogleId(String googleId) {
-//        this.googleId = googleId;
-//    }
-//
-//    public Long getId() {
-//        return id;
-//    }
-//
-//    public void setId(Long id) {
-//        this.id = id;
-//    }
-//
-//    public String getUserName() {
-//        return userName;
-//    }
-//
-//    public void setUserName(String userName) {
-//        this.userName = userName;
-//    }
-//
-//    public String getFullName() {
-//        return fullName;
-//    }
-//
-//    public void setFullName(String fullName) {
-//        this.fullName = fullName;
-//    }
-//
-//    public String getEmail() {
-//        return email;
-//    }
-//
-//    public void setEmail(String email) {
-//        this.email = email;
-//    }
-//
-//    public String getRole() {
-//        return role;
-//    }
-//
-//    public void setRole(String role) {
-//        this.role = role;
-//    }
-//
-//    public String getPassword() {
-//        return password;
-//    }
-//
-//    public void setPassword(String password) {
-//        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-//        this.password = passwordEncoder.encode(password);
-//    }
-//}
