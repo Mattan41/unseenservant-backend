@@ -11,7 +11,7 @@ onMounted(async () => {
   authStore.loadUserFromLocalStorage();
 
   if (authStore.isLoggedIn) {
-    //await userStore.fetchUserInfo(authStore.getUser.id);
+    // await userStore.fetchUserInfo(authStore.getUser.id);
     await userStore.fetchCurrentUser();
   }
 

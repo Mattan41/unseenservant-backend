@@ -23,7 +23,7 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PreAuthorize("hasRole('ROLE_USER')")
+    //@PreAuthorize("hasRole('ROLE_USER')")  // Todo: add this back when login is working
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getLoggedInUser(@AuthenticationPrincipal OidcUser oidcUser) {
         if (oidcUser == null) {
