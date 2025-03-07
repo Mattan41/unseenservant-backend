@@ -4,6 +4,11 @@ import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
 import org.kruskopf.backend.campaign.service.CampaignService;
+import org.kruskopf.backend.message.dto.MessageDTO;
+import org.kruskopf.backend.message.service.MessageService;
+import org.kruskopf.backend.playercharacter.PlayerCharacterStats;
+import org.kruskopf.backend.playercharacter.dto.PlayerCharacterInputDTO;
+import org.kruskopf.backend.playercharacter.service.PlayerCharacterService;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
@@ -17,12 +22,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class StartupRunner implements CommandLineRunner {
 
 
+
     private final UserService userService;
     private final CampaignService campaignService;
+    private final MessageService messageService;
+    private final PlayerCharacterService playerCharacterService;
 
-    public StartupRunner(UserService userService, CampaignService campaignService) {
+    public StartupRunner(UserService userService, CampaignService campaignService, MessageService messageService, PlayerCharacterService playerCharacterService) {
         this.userService = userService;
         this.campaignService = campaignService;
+        this.messageService = messageService;
+        this.playerCharacterService = playerCharacterService;
     }
 
     @Override
@@ -67,6 +77,57 @@ public class StartupRunner implements CommandLineRunner {
             campaignService.save(campaign1);
             campaignService.save(campaign2);
         }
+
+        // Create and save messages
+        if (messageService.getAllMessages().isEmpty()) {
+            messageService.createMessage(new MessageDTO(1L, 1L, "Wow this campaign is great!"));
+            messageService.createMessage(new MessageDTO(1L, 2L, "I agree! What character are you going to play?"));
+            messageService.createMessage(new MessageDTO(1L, 3L, "I am going to play a wizard!"));
+            messageService.createMessage(new MessageDTO(2L, 2L, "Hello, I am new to this campaign!"));
+            messageService.createMessage(new MessageDTO(2L, 4L, "Welcome! Any questions?"));
+        }
+
+        // Create and save characters
+        if (playerCharacterService.getAllCharacters().isEmpty()) {
+            // Characters for campaign 1
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(
+                    1L, 1L, "Gandalf", 10, "Wizard", "Human",
+                    new PlayerCharacterStats(11, 11, 11, 11, 15, 13)
+            ));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(
+                    2L, 1L, "Frodo", 8, "Rogue", "Halfling",
+                    new PlayerCharacterStats(10, 18, 12, 12, 13, 10)
+            ));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(
+                    3L, 1L, "Galadriel", 10, "Cleric", "Elf",
+                    new PlayerCharacterStats(10, 10, 10, 14, 18, 16)
+            ));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(
+                    4L, 1L, "Gimli", 8, "Fighter", "Dwarf",
+                    new PlayerCharacterStats(19, 8, 16, 9, 11, 8)
+            ));
+
+            // Character for campaign 2
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(
+                    1L, 2L, "Rincewind", 1, "Wizard", "Human",
+                    new PlayerCharacterStats(9, 9, 9, 14, 9, 9)
+            ));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(
+                    2L, 2L, "Twoflower", 1, "Rogue", "Halfling",
+                    new PlayerCharacterStats(9, 14, 9, 9, 9, 14)
+            ));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(
+                    3L, 2L, "Mightily Oats", 1, "Cleric", "Human",
+                    new PlayerCharacterStats(10, 10, 10, 10, 16, 10)
+            ));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(
+                    4L, 2L, "Carrot Ironfoundersson", 1, "Fighter", "Dwarf",
+                    new PlayerCharacterStats(16, 10, 14, 10, 14, 12)
+            ));
+        }
+
+
+
     }
 
     private void createUserIfNotExists(String userName, String password, String fullName, String email, String providerId) {

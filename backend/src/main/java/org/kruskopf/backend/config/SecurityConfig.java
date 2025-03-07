@@ -14,6 +14,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -60,18 +61,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-                .csrf(Customizer.withDefaults()) // eller
+                .csrf(AbstractHttpConfigurer::disable)  // disable csrf when testing with postman
+//                .csrf(Customizer.withDefaults()) // eller
 //                .csrf(csrf -> csrf
 //                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
 //                     )
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/admin").hasRole(UserRole.ADMIN.name());
                     auth.requestMatchers("/api/auth/**").permitAll();
-                    auth.requestMatchers("/api/auth/login", "api/auth/me").permitAll();
+                    auth.requestMatchers("/api/auth/login", "/api/auth/me").permitAll();
                     auth.requestMatchers("/api/users/**").permitAll();//authenticated(); // todo: change to authenticated();
                     auth.requestMatchers("/api/campaigns/**").permitAll(); // todo change to authenticated();
-//                    auth.requestMatchers("/api/characters/**").authenticated(); // todo: implement endpoints
-//                    auth.requestMatchers("/api/messages/**").authenticated(); // todo: implement endpoints
+                    auth.requestMatchers("/api/characters/**").permitAll(); // .authenticated();
+                    auth.requestMatchers("/api/messages/**").permitAll(); // .authenticated();
                     auth.anyRequest().denyAll();
                 }).exceptionHandling(exceptionHandling ->
                         exceptionHandling

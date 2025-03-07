@@ -1,7 +1,9 @@
-package org.kruskopf.backend.character;
+package org.kruskopf.backend.playercharacter.entity;
 
 import jakarta.persistence.*;
 import org.kruskopf.backend.campaign.entity.Campaign;
+import org.kruskopf.backend.playercharacter.PlayerCharacterStats;
+import org.kruskopf.backend.playercharacter.PlayerCharacterStatsConverter;
 import org.kruskopf.backend.user.entity.User;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
@@ -14,7 +16,7 @@ import java.time.LocalDateTime;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "game_character", indexes = {@Index(name = "idx_character_owner_id", columnList = "owner_id")})
-public class Character {
+public class PlayerCharacter {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,8 +30,22 @@ public class Character {
     @JoinColumn(name = "campaign_id")
     private Campaign campaign;
 
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private int level;
+
+    @Column(nullable = false)
+    private String characterClass;
+
+    @Column(nullable = false)
+    private String race;
+
+    //@Embedded ??
     @Column(columnDefinition = "JSON")
-    private String characterData;
+    @Convert(converter = PlayerCharacterStatsConverter.class)
+    private PlayerCharacterStats characterData;
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -44,12 +60,16 @@ public class Character {
     private String lastModifiedBy;
 
     // Constructors
-    public Character() {
+    public PlayerCharacter() {
     }
 
-    public Character(User owner, Campaign campaign, String characterData) {
+    public PlayerCharacter(User owner, Campaign campaign, String name, int level, String characterClass, String race, PlayerCharacterStats characterData) {
         this.owner = owner;
         this.campaign = campaign;
+        this.name = name;
+        this.level = level;
+        this.characterClass = characterClass;
+        this.race = race;
         this.characterData = characterData;
         this.createdAt = LocalDateTime.now();
     }
@@ -75,11 +95,43 @@ public class Character {
         this.campaign = campaign;
     }
 
-    public String getCharacterData() {
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public void setLevel(int level) {
+        this.level = level;
+    }
+
+    public String getCharacterClass() {
+        return characterClass;
+    }
+
+    public void setCharacterClass(String characterClass) {
+        this.characterClass = characterClass;
+    }
+
+    public String getRace() {
+        return race;
+    }
+
+    public void setRace(String race) {
+        this.race = race;
+    }
+
+    public PlayerCharacterStats getCharacterData() {
         return characterData;
     }
 
-    public void setCharacterData(String characterData) {
+    public void setCharacterData(PlayerCharacterStats characterData) {
         this.characterData = characterData;
     }
 

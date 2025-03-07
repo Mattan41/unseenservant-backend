@@ -22,8 +22,12 @@ CREATE TABLE campaign_user
 CREATE TABLE game_character
 (
     id               BIGINT AUTO_INCREMENT NOT NULL,
-    owner_id         BIGINT NOT NULL,
+    owner_id        BIGINT       NOT NULL,
     campaign_id      BIGINT NULL,
+    name            VARCHAR(255) NOT NULL,
+    level           INT          NOT NULL,
+    character_class VARCHAR(255) NOT NULL,
+    race            VARCHAR(255) NOT NULL,
     character_data   JSON NULL,
     created_at       datetime NULL,
     updated_at       datetime NULL,

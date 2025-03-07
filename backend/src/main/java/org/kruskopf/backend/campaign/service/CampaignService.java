@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class CampaignService {
@@ -36,7 +35,7 @@ public class CampaignService {
         campaignRepository.deleteById(id);
     }
 
-    @Transactional(readOnly = true) // Endast läsa data
+    @Transactional(readOnly = true) // Only read operations
     public List<CampaignDTO> getAllCampaigns() {
         return campaignRepository.findAll().stream()
                 .map(campaign -> new CampaignDTO(
@@ -49,9 +48,9 @@ public class CampaignService {
                                         participant.getUser().getId(),
                                         participant.getUser().getUserName()
                                 ))
-                                .collect(Collectors.toList())
+                                .toList()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
 

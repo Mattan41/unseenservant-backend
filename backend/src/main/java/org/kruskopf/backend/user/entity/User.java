@@ -1,8 +1,8 @@
 package org.kruskopf.backend.user.entity;
 
 import jakarta.persistence.*;
-import org.kruskopf.backend.character.Character;
-import org.kruskopf.backend.message.Message;
+import org.kruskopf.backend.message.entity.Message;
+import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -56,7 +56,7 @@ public class User {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Character> characters = new ArrayList<>();
+    private List<PlayerCharacter> playerCharacters = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Message> messages = new ArrayList<>();
@@ -168,12 +168,12 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
-    public List<Character> getCharacters() {
-        return characters;
+    public List<PlayerCharacter> getCharacters() {
+        return playerCharacters;
     }
 
-    public void setCharacters(List<Character> characters) {
-        this.characters = characters;
+    public void setCharacters(List<PlayerCharacter> playerCharacters) {
+        this.playerCharacters = playerCharacters;
     }
 
     public List<Message> getMessages() {

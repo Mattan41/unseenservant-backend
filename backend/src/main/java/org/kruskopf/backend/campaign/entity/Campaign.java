@@ -1,7 +1,7 @@
 package org.kruskopf.backend.campaign.entity;
 
 import jakarta.persistence.*;
-import org.kruskopf.backend.message.Message;
+import org.kruskopf.backend.message.entity.Message;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
