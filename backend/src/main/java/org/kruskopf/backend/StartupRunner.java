@@ -48,7 +48,7 @@ public class StartupRunner implements CommandLineRunner {
 
         // Create admin user
         if (userService.findByUserName("admin") == null) {
-            userService.createAdminUser("admin", "admin@admin.se", "admin", "000000", ProviderType.GOOGLE);
+            userService.createAdminUser("admin", "admin@admin.se", "admin", "000000", ProviderType.GITHUB);
         }
 
         // Create and save campaigns

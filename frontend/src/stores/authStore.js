@@ -19,23 +19,20 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       await AuthService.logout();
     },
-    async login(user) {
-      try {
-        const userData = await AuthService.login(user); // AuthService returnerar direkt data
-        this.user = userData;
-        localStorage.setItem('userData', JSON.stringify(this.user));
-        window.dispatchEvent(new Event('storage')); // Synkronisera event
-      } catch (error) {
-        console.error("Login failed in authStore:", error);
-        throw error; // Bubblar upp felet till `handleSubmit`
-      }
-    },
     async loginWithGoogle(idToken) {
       const response = await AuthService.loginWithGoogle(idToken);
       if (response.data) {
         this.user = response.data;
         localStorage.setItem('userData', JSON.stringify(this.user));
         window.dispatchEvent(new Event('storage'));
+      }
+    },
+    async loginWithGithub() {
+      try {
+        // Omdirigera användaren till GitHub för autentisering
+        AuthService.loginWithGithub(); // Detta kommer att omdirigera användaren
+      } catch (error) {
+        console.error('GitHub login failed', error);
       }
     },
     loadUserFromLocalStorage() {
