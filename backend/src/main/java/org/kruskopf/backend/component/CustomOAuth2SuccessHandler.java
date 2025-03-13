@@ -3,11 +3,14 @@ package org.kruskopf.backend.component;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.auth.dto.AuthDTO;
+import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
 import org.kruskopf.backend.user.repository.UserRepository;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -28,13 +31,13 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                                         Authentication authentication) throws IOException {
         OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
 
-        // Handle role with whitelist todo add a email to whitelist and to env variable
-        String adminWhitelist = System.getenv("ADMIN_WHITELIST"); // T.ex. "admin@example.com"
+        // Check for admin role in whitelist
+        String adminWhitelist = System.getenv("ADMIN_WHITELIST");
         boolean isAdmin = adminWhitelist != null && adminWhitelist.contains(oidcUser.getEmail());
 
         UserRole role = isAdmin ? UserRole.ADMIN : UserRole.USER;
 
-        // Hämta eller skapa ny användare
+        // Find or Create the user in the database
         User user = userRepository.findByProviderId(oidcUser.getSubject())
                 .orElseGet(() -> userRepository.save(new User(
                         oidcUser.getSubject(),
@@ -46,7 +49,15 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                         "password"
                 )));
 
-        // Skapa AuthDTO för session
+        // Update Spring Security Context with new Authentication (using the user from DB)
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+        authToken.setDetails(authentication.getDetails());
+
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        // Set user data (AuthDTO) into session for easy frontend communication
         AuthDTO authDTO = new AuthDTO(
                 user.getId(),
                 user.getUserName(),
@@ -55,7 +66,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         );
         request.getSession().setAttribute("user", authDTO);
 
-        // Dynamisk redirect
+        // Redirect to frontend
         String redirectUrl = System.getenv("FRONTEND_REDIRECT_URL");
         if (redirectUrl == null) {
             redirectUrl = "http://localhost:5173";
@@ -64,7 +75,5 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     }
 }
 
-//
-// todo: Is password really needed? Using social login, password is not needed. Investigate if possible to remove password from User entity
-//
-// todo replace hardcoded url with env variable or investigate if possibble to use relative path and configure spring/vue
+// todo replace hardcoded url with env variable or investigate if possibble to use relative path and configure spring/vue.
+//  verify that System.getenv works for email whitelist and frontendurl or find another way

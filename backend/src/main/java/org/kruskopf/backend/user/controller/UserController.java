@@ -1,5 +1,6 @@
 package org.kruskopf.backend.user.controller;
 
+import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
@@ -7,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -18,22 +18,18 @@ public class UserController {
 
     public UserService userService;
 
-
+    // todo: add @PreAuthorize on endponints after testing with Postman is done
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
-    //@PreAuthorize("hasRole('ROLE_USER')")  // Todo: add this back when login is working
+    @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/me")
-    public ResponseEntity<UserDTO> getLoggedInUser(@AuthenticationPrincipal OidcUser oidcUser) {
-        if (oidcUser == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+    public ResponseEntity<UserDTO> getLoggedInUser(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
 
-        String providerId = oidcUser.getSubject();
-        User user = userService.find(providerId);
+        String email = customUserDetails.getUsername(); // uses the email which is unique
+        User user = userService.findByUserName(email);
 
-        // Kontrollera om användaren finns i databasen
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
@@ -41,24 +37,20 @@ public class UserController {
         // Convert User to UserDTO before returning
         UserDTO userDTO = userService.toDTO(user);
         return ResponseEntity.ok(userDTO);
-
     }
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getUser(@PathVariable Long id, @AuthenticationPrincipal OidcUser oidcUser) {
-        if (oidcUser == null)
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    public ResponseEntity<UserDTO> getUser(@PathVariable Long id) {
 
         User user = userService.findById(id).orElse(null);
 
-        if (user == null || !user.getEmail().equals(oidcUser.getEmail())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-
         UserDTO userDTO = userService.toDTO(user);
         return ResponseEntity.ok(userDTO);
     }
-
 
     @PatchMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {

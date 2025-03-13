@@ -2,6 +2,7 @@ package org.kruskopf.backend.auth.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.auth.dto.AuthDTO;
+import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
 import org.slf4j.Logger;
@@ -34,10 +35,20 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<AuthDTO> getCurrentUser(@SessionAttribute(name = "user", required = false) AuthDTO authDTO) {
-        if (authDTO == null) {
+    public ResponseEntity<AuthDTO> getCurrentUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+
+        AuthDTO authDTO = new AuthDTO(
+                userDetails.user().getId(),
+                userDetails.getUsername(),
+                userDetails.user().getEmail(),
+                userDetails.getAuthorities().iterator().next().getAuthority()
+        );
+
         return ResponseEntity.ok(authDTO);
     }
 
