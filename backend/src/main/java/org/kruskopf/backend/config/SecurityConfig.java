@@ -1,44 +1,45 @@
 package org.kruskopf.backend.config;
 
 import jakarta.servlet.http.HttpServletResponse;
-import org.kruskopf.backend.component.CustomAuthenticationFailureHandler;
-import org.kruskopf.backend.component.CustomAuthenticationSuccessHandler;
 import org.kruskopf.backend.component.CustomOAuth2SuccessHandler;
+import org.kruskopf.backend.user.entity.UserRole;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@EnableRetry
 public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
-    private final CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
-    private final CustomAuthenticationFailureHandler customAuthenticationFailureHandler;
 
     public SecurityConfig(UserDetailsService userDetailsService,
-                          CustomOAuth2SuccessHandler customOAuth2SuccessHandler,
-                          CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler,
-                          CustomAuthenticationFailureHandler customAuthenticationFailureHandler) {
+                          CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
         this.userDetailsService = userDetailsService;
         this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
-        this.customAuthenticationSuccessHandler = customAuthenticationSuccessHandler;
-        this.customAuthenticationFailureHandler = customAuthenticationFailureHandler;
     }
 
     @Bean
@@ -47,24 +48,23 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
-
-
-    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-                .csrf(Customizer.withDefaults()) // eller .csrf(csrf -> csrf
-                //.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                //      )
+                //.csrf(AbstractHttpConfigurer::disable)  // disable csrf when testing with postman
+                //.csrf(Customizer.withDefaults()) // OR use this to enable csrf
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                )
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/admin").hasRole("ADMIN");
-                    auth.requestMatchers("/api/auth/**").permitAll(); //.authenticated() // Temporarily allow access without authentication
-                    auth.requestMatchers("/api/auth/login", "/api/users").permitAll();
+                    auth.requestMatchers("/", "/oauth2/**").permitAll();
+                    auth.requestMatchers("/admin").hasRole(UserRole.ADMIN.name());
+                    auth.requestMatchers("/api/auth/**").permitAll();
+                    auth.requestMatchers("/api/auth/login").permitAll();
+                    auth.requestMatchers("/api/auth/me").authenticated();
+                    auth.requestMatchers("/api/users/**").hasRole(UserRole.USER.name()); //.permitAll();//authenticated(); // todo: change to authenticated() or hasRole(UserRole.USER.name());
+                    auth.requestMatchers("/api/campaigns/**").permitAll(); // todo change to authenticated();
+                    auth.requestMatchers("/api/characters/**").permitAll(); // .authenticated();
+                    auth.requestMatchers("/api/messages/**").permitAll(); // .authenticated();
                     auth.anyRequest().denyAll();
                 }).exceptionHandling(exceptionHandling ->
                         exceptionHandling
@@ -84,9 +84,10 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID"))
-                .formLogin(form -> form
-                        .successHandler(customAuthenticationSuccessHandler)
-                        .failureHandler(customAuthenticationFailureHandler)
+                .formLogin(AbstractHttpConfigurer::disable
+//                        form -> form
+//                        .successHandler(customAuthenticationSuccessHandler)
+//                        .failureHandler(customAuthenticationFailureHandler)
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(customOAuth2SuccessHandler));
@@ -108,6 +109,29 @@ public class SecurityConfig {
                         .exposedHeaders("Set-Cookie");
             }
         };
+    }
+
+    @Bean
+    static RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.withDefaultRolePrefix()
+                .role("ADMIN").implies("USER")
+                .role("USER").implies("GUEST")
+                .build();
+    }
+
+    // and, if using pre-post method security also add
+    @Bean
+    static MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
+        DefaultMethodSecurityExpressionHandler expressionHandler = new DefaultMethodSecurityExpressionHandler();
+        expressionHandler.setRoleHierarchy(roleHierarchy);
+        return expressionHandler;
+    }
+
+    @Bean
+    public RestClient restClient() {
+        RestClient restClient = RestClient.create();
+        customOAuth2SuccessHandler.setRestClient(restClient);
+        return restClient;
     }
 }
 

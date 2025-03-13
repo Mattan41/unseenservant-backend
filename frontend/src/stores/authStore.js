@@ -1,9 +1,9 @@
 import {defineStore} from 'pinia';
-import AuthService from '../AuthService';
+import AuthService from '../services/AuthService.js';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null
+    user: null,
   }),
   actions: {
     async checkAuth() {
@@ -19,15 +19,6 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       await AuthService.logout();
     },
-
-    async login(user) {
-      const response = await AuthService.login(user);
-      if (response.data) {
-        this.user = response.data;
-        localStorage.setItem('userData', JSON.stringify(this.user));
-        window.dispatchEvent(new Event('storage'));
-      }
-    },
     async loginWithGoogle(idToken) {
       const response = await AuthService.loginWithGoogle(idToken);
       if (response.data) {
@@ -36,12 +27,18 @@ export const useAuthStore = defineStore('auth', {
         window.dispatchEvent(new Event('storage'));
       }
     },
-
+    async loginWithGithub() {
+      try {
+        // Omdirigera användaren till GitHub för autentisering
+        AuthService.loginWithGithub(); // Detta kommer att omdirigera användaren
+      } catch (error) {
+        console.error('GitHub login failed', error);
+      }
+    },
     loadUserFromLocalStorage() {
       const userData = JSON.parse(localStorage.getItem('userData'));
       if (userData) {
         this.user = userData;
-        this.token = userData.token;
       }
     },
   },
