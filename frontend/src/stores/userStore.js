@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import {defineStore} from 'pinia'
 import UserService from '../services/UserService' // Importera UserService
 
 export const useUserStore = defineStore('user', {
@@ -25,7 +25,7 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    //fetch user information by user id, could be used to fetch other users' information
+    //fetch user information by user id, could be used to fetch other users' information such as invites to campaigns, or by admin to view/edit user information
     async fetchUserInfo(userId) {
       this.isLoading = true
       this.error = null
@@ -70,10 +70,15 @@ export const useUserStore = defineStore('user', {
         this.isLoading = false
       }
     },
+    clearUserInfo() {
+      this.userInfo = null;
+      this.error = null;
+      this.isLoading = false;
+    },
   },
 
   getters: {
-    getDisplayName: (state) => state.userInfo?.displayName || state.userInfo?.username || 'Guest',
+    getDisplayName: (state) => state.userInfo?.displayName || state.userInfo?.username || 'Traveler',
 
     isLoadingProfile: (state) => state.isLoading,
   },

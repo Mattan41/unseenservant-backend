@@ -4,9 +4,11 @@ import AuthService from '../services/AuthService.js';
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
+    isAuthenticating: false, // new flag to indicate if the user is in process of authentication
   }),
   actions: {
     async checkAuth() {
+      this.isAuthenticating = true;
       try {
         const user = await AuthService.getCurrentUser();
         this.user = user;
@@ -14,6 +16,8 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         this.user = null;
         return null;
+      } finally {
+        this.isAuthenticating = false;
       }
     },
     async logout() {
@@ -30,7 +34,7 @@ export const useAuthStore = defineStore('auth', {
     async loginWithGithub() {
       try {
         // Omdirigera användaren till GitHub för autentisering
-        AuthService.loginWithGithub(); // Detta kommer att omdirigera användaren
+        await AuthService.loginWithGithub(); // Detta kommer att omdirigera användaren
       } catch (error) {
         console.error('GitHub login failed', error);
       }
@@ -38,7 +42,11 @@ export const useAuthStore = defineStore('auth', {
     loadUserFromLocalStorage() {
       const userData = JSON.parse(localStorage.getItem('userData'));
       if (userData) {
+        console.log('Loading user from localStorage:', userData);
         this.user = userData;
+      } else {
+        console.log('No user data in localStorage');
+        this.user = null;
       }
     },
   },

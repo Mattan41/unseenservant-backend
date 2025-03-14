@@ -7,7 +7,7 @@ const UserService = {
     const response = await axios.get(`${API_BASE_URL}/me`, {
       withCredentials: true, // session-cookies is automatically sent with the request
     });
-    return response.data; // UserDTO eller AuthDTO
+    return response.data;
   },
 
   async fetchUser(userId) {
