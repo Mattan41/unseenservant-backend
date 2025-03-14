@@ -79,16 +79,37 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
                         .maximumSessions(1)
                         .expiredUrl("/login"))
+//                .logout(logout -> logout
+//                        .logoutUrl("/logout")
+//                        .logoutSuccessHandler((request, response, authentication) -> {
+//                            if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
+//                                // get OAuth2-provider name
+//                                String registrationId = oauthToken.getAuthorizedClientRegistrationId();
+//
+//                                if ("google".equals(registrationId)) {
+//                                    // Google has its own logout portal
+//                                    response.sendRedirect("https://accounts.google.com/logout");
+//                                } else if ("github".equals(registrationId)) {
+//                                    // GitHub requires that we use this URL to log out
+//                                    response.sendRedirect("https://github.com/logout");
+//                                } else {
+//                                    // Standard if we don't know the provider
+//                                     response.sendRedirect("/");
+//                                }
+//                            } else {
+//                                // If user is not logged in with OAuth2
+//                                response.sendRedirect("/");
+//                            }
+//                        })
+//                        .invalidateHttpSession(true)
+//                        .deleteCookies("JSESSIONID")
+//                )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID"))
-                .formLogin(AbstractHttpConfigurer::disable
-//                        form -> form
-//                        .successHandler(customAuthenticationSuccessHandler)
-//                        .failureHandler(customAuthenticationFailureHandler)
-                )
+                .formLogin(AbstractHttpConfigurer::disable)
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(customOAuth2SuccessHandler));
 
