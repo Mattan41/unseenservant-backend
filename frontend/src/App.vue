@@ -5,12 +5,20 @@ import Footer from './components/Footer.vue'
 import {useUserStore} from "@/stores/userStore.js";
 import {useAuthStore} from "@/stores/authStore.js";
 import {onMounted, ref, watch} from "vue";
+import router from "@/router/index.js";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
 const isLoading = ref(true);
 
 onMounted(async () => {
+
+  window.addEventListener("storage", (event) => {
+    if (!localStorage.getItem("userData")) {
+      router.push("/");
+    }
+  });
+
   console.log('App mounted. Checking authentication...');
 
   // Start an authentication check

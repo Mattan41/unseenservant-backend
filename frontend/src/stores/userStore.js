@@ -74,6 +74,8 @@ export const useUserStore = defineStore('user', {
       this.userInfo = null;
       this.error = null;
       this.isLoading = false;
+      localStorage.removeItem('userData');
+      console.log('User info cleared and localStorage cleaned.');
     },
   },
 

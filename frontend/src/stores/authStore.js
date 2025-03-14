@@ -33,8 +33,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async loginWithGithub() {
       try {
-        // Omdirigera användaren till GitHub för autentisering
-        await AuthService.loginWithGithub(); // Detta kommer att omdirigera användaren
+        await AuthService.loginWithGithub();
       } catch (error) {
         console.error('GitHub login failed', error);
       }
@@ -45,7 +44,7 @@ export const useAuthStore = defineStore('auth', {
         console.log('Loading user from localStorage:', userData);
         this.user = userData;
       } else {
-        console.log('No user data in localStorage');
+        console.log('No user data in localStorage, fallback to checkAuth');
         this.user = null;
       }
     },
