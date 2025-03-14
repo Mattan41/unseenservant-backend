@@ -56,15 +56,12 @@ public class SecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/", "/oauth2/**").permitAll();
+                    auth.requestMatchers("/", "/oauth2/**", "/logout").permitAll();
                     auth.requestMatchers("/admin").hasRole(UserRole.ADMIN.name());
-                    auth.requestMatchers("/api/auth/**").permitAll();
-                    auth.requestMatchers("/api/auth/login").permitAll();
+                    auth.requestMatchers("/api/auth/**", "/api/auth/login").permitAll();
                     auth.requestMatchers("/api/auth/me").authenticated();
-                    auth.requestMatchers("/api/users/**").hasRole(UserRole.USER.name()); //.permitAll();//authenticated(); // todo: change to authenticated() or hasRole(UserRole.USER.name());
-                    auth.requestMatchers("/api/campaigns/**").permitAll(); // todo change to authenticated();
-                    auth.requestMatchers("/api/characters/**").permitAll(); // .authenticated();
-                    auth.requestMatchers("/api/messages/**").permitAll(); // .authenticated();
+                    auth.requestMatchers("/api/users/**").authenticated(); // todo: change to authenticated() or hasRole(UserRole.USER.name()); add endpoints to search for other users and invite them to campaigns
+                    auth.requestMatchers("/api/campaigns/**", "/api/characters/**", "api/messages/**").permitAll(); // todo change to authenticated(); after testing
                     auth.anyRequest().denyAll();
                 }).exceptionHandling(exceptionHandling ->
                         exceptionHandling
@@ -76,34 +73,9 @@ public class SecurityConfig {
                                     }
                                 }))
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .maximumSessions(1)
                         .expiredUrl("/login"))
-//                .logout(logout -> logout
-//                        .logoutUrl("/logout")
-//                        .logoutSuccessHandler((request, response, authentication) -> {
-//                            if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
-//                                // get OAuth2-provider name
-//                                String registrationId = oauthToken.getAuthorizedClientRegistrationId();
-//
-//                                if ("google".equals(registrationId)) {
-//                                    // Google has its own logout portal
-//                                    response.sendRedirect("https://accounts.google.com/logout");
-//                                } else if ("github".equals(registrationId)) {
-//                                    // GitHub requires that we use this URL to log out
-//                                    response.sendRedirect("https://github.com/logout");
-//                                } else {
-//                                    // Standard if we don't know the provider
-//                                     response.sendRedirect("/");
-//                                }
-//                            } else {
-//                                // If user is not logged in with OAuth2
-//                                response.sendRedirect("/");
-//                            }
-//                        })
-//                        .invalidateHttpSession(true)
-//                        .deleteCookies("JSESSIONID")
-//                )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/")
