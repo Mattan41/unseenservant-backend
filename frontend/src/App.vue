@@ -8,17 +8,16 @@ import {onMounted, ref, watch} from "vue";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
-// Loading status (for loading UI at startup)
 const isLoading = ref(true);
 
 onMounted(async () => {
   console.log('App mounted. Checking authentication...');
 
-  // Sätt igång en autentiseringskontroll
+  // Start an authentication check
   await authStore.checkAuth();
   console.log('AuthStore after checkAuth:', authStore.user);
 
-  // Om användaren redan är inloggad, hämta deras användardata
+  // If the user is authenticated, fetch the user info
   if (authStore.isLoggedIn) {
     console.log('Fetching user info after authentication.');
     await userStore.fetchCurrentUser();
@@ -27,7 +26,7 @@ onMounted(async () => {
     userStore.clearUserInfo();
   }
 
-  // Flagga så att sidan inte längre är i "loading"-läge
+  // Flag that the app is no longer loading
   isLoading.value = false;
 });
 
@@ -45,7 +44,7 @@ watch(
       }
     }
   },
-  {immediate: false} // Kör inte detta direkt, eftersom onMounted redan har hanterat det
+  {immediate: false} // Do not run the watcher immediately, as we already did that in onMounted
 );
 
 </script>
