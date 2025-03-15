@@ -50,8 +50,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-                //.csrf(AbstractHttpConfigurer::disable)  // disable csrf when testing with postman
-                //.csrf(Customizer.withDefaults()) // OR use this to enable csrf
+//                .csrf(AbstractHttpConfigurer::disable)  // disable csrf when testing with postman
+                .csrf(Customizer.withDefaults()) // OR use this to enable csrf
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
@@ -61,7 +61,7 @@ public class SecurityConfig {
                     auth.requestMatchers("/api/auth/**", "/api/auth/login").permitAll();
                     auth.requestMatchers("/api/auth/me").authenticated();
                     auth.requestMatchers("/api/users/**").authenticated(); // todo: change to authenticated() or hasRole(UserRole.USER.name()); add endpoints to search for other users and invite them to campaigns
-                    auth.requestMatchers("/api/campaigns/**", "/api/characters/**", "api/messages/**").permitAll(); // todo change to authenticated(); after testing
+                    auth.requestMatchers("/api/campaigns/**", "/api/characters/**", "/api/messages/**").permitAll(); // todo change to authenticated(); after testing
                     auth.anyRequest().denyAll();
                 }).exceptionHandling(exceptionHandling ->
                         exceptionHandling
@@ -95,8 +95,8 @@ public class SecurityConfig {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:5173", "https://unseenservant.se")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedOrigins("http://localhost:5173", "https://unseenservant.se", "http://192.168.50.29:5173")
+                        .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true)
                         .exposedHeaders("Set-Cookie");

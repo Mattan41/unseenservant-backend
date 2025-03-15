@@ -45,6 +45,12 @@ const router = createRouter({
       name: 'oauth-redirect',
       component: () => import('../components/OAuthRedirect.vue')
     },
+    {
+      path: '/user-profile',
+      name: 'user-profile',
+      component: () => import('../views/UserProfileView.vue'),
+    },
+
   ],
 })
 

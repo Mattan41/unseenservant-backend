@@ -62,13 +62,12 @@ public class UserService {
 
         User user = existingUserOpt.get();
 
-        // update the fields based on input
+        // update the fields based on input // todo review fields here - which should user be able to update? and how to solve Admin has more rights? preauthorize?
         updates.forEach((key, value) -> {
             switch (key) {
                 case "userName" -> user.setUserName((String) value);
                 case "email" -> user.setEmail((String) value);
                 case "displayName" -> user.setDisplayName((String) value);
-                // todo add more fields here
                 default -> throw new IllegalArgumentException("Field " + key + " not supported for update");
             }
         });

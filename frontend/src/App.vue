@@ -57,9 +57,9 @@ watch(
 
 </script>
 <template>
-  <div class="flex flex-col min-h-screen">
+  <div class="flex flex-col min-h-screen overflow-x-hidden">
     <Header/>
-    <main class="flex-grow">
+    <main class="flex-grow bg-gradient-to-b from-primary-100 via-primary-300 to-primary-100">
       <RouterView/>
     </main>
     <Footer/>
