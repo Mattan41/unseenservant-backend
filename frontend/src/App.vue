@@ -13,6 +13,8 @@ const isLoading = ref(true);
 
 onMounted(async () => {
 
+  await authStore.fetchCsrfToken();
+
   window.addEventListener("storage", (event) => {
     if (!localStorage.getItem("userData")) {
       router.push("/");
@@ -21,11 +23,9 @@ onMounted(async () => {
 
   console.log('App mounted. Checking authentication...');
 
-  // Start an authentication check
   await authStore.checkAuth();
   console.log('AuthStore after checkAuth:', authStore.user);
 
-  // If the user is authenticated, fetch the user info
   if (authStore.isLoggedIn) {
     console.log('Fetching user info after authentication.');
     await userStore.fetchCurrentUser();
@@ -34,7 +34,6 @@ onMounted(async () => {
     userStore.clearUserInfo();
   }
 
-  // Flag that the app is no longer loading
   isLoading.value = false;
 });
 

@@ -1,13 +1,24 @@
-import axios from 'axios';
+import axios from '@/lib/axios.js';
 import {useAuthStore} from '../stores/authStore.js';
 import router from '../router/index.js';
 import {useUserStore} from "@/stores/userStore.js";
 
-const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/auth`;
 const API_GOOGLE_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
 const API_GITHUB_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/github`;
 
 class AuthService {
+
+
+  async fetchCsrfToken() {
+    try {
+      await axios.get('/api/auth/csrf-token', {});
+      console.log('CSRF token successfully fetched.');
+      return true;
+    } catch (error) {
+      console.error('Error fetching csrf-token', error);
+      return false;
+    }
+  }
 
   async loginWithGoogle() {
     window.location.href = API_GOOGLE_LOGIN_URL;
@@ -17,11 +28,9 @@ class AuthService {
     window.location.href = API_GITHUB_LOGIN_URL;
   }
 
-
   async getCurrentUser() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/me`, {
-        withCredentials: true, //  session-cookies is automatically sent with the request
+      const response = await axios.get(`/api/auth/me`, {
       });
       return response.data;
     } catch (error) {
@@ -32,9 +41,7 @@ class AuthService {
 
   async logout() {
     return axios
-      .post(`${import.meta.env.VITE_API_BASE_URL}/logout`, {}, {
-        withCredentials: true,
-      })
+      .post(`/logout`, {}, {})
       .then(() => {
         const authStore = useAuthStore();
         const userStore = useUserStore();

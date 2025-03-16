@@ -7,6 +7,11 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticating: false, // new flag to indicate if the user is in process of authentication
   }),
   actions: {
+
+    async fetchCsrfToken() {
+      return await AuthService.fetchCsrfToken();
+    },
+
     async checkAuth() {
       this.isAuthenticating = true;
       try {
