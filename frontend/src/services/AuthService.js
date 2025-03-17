@@ -8,18 +8,6 @@ const API_GITHUB_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/author
 
 class AuthService {
 
-
-  async fetchCsrfToken() {
-    try {
-      await axios.get('/api/auth/csrf-token', {});
-      console.log('CSRF token successfully fetched.');
-      return true;
-    } catch (error) {
-      console.error('Error fetching csrf-token', error);
-      return false;
-    }
-  }
-
   async loginWithGoogle() {
     window.location.href = API_GOOGLE_LOGIN_URL;
   }
@@ -47,7 +35,7 @@ class AuthService {
         const userStore = useUserStore();
 
         // Clear the user data from the stores
-        authStore.user = null;
+        authStore.user = null; // todo: clearUser() method in authStore
         userStore.clearUserInfo();
 
         // Clear the user data from the local storage

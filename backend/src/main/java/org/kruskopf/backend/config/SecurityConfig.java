@@ -17,10 +17,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -32,12 +32,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableRetry
 public class SecurityConfig {
 
-    private final UserDetailsService userDetailsService;
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
 
-    public SecurityConfig(UserDetailsService userDetailsService,
-                          CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
-        this.userDetailsService = userDetailsService;
+    public SecurityConfig(
+            CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
         this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
     }
 
@@ -49,12 +47,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)  // todo: disable csrf when fixing the csrf-token not register by Spring
-//                .csrf(csrf -> csrf
-//                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-//                )
+                .csrf((csrf) -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
+                )
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/", "/oauth2/**", "/logout", "/api/auth/csrf-token").permitAll();
+                    auth.requestMatchers("/", "/oauth2/**", "/logout").permitAll();
                     auth.requestMatchers("/admin").hasRole(UserRole.ADMIN.name());
                     auth.requestMatchers("/api/auth/**", "/api/auth/login").permitAll();
                     auth.requestMatchers("/api/auth/me").authenticated();
@@ -97,8 +95,7 @@ public class SecurityConfig {
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true)
-                        .exposedHeaders("X-XSRF-TOKEN", "Set-Cookie")
-                        .allowPrivateNetwork(true);// todo: possibly remove this when deploying to production
+                        .exposedHeaders("Set-Cookie"); // possibly remove the x-xsrf-token if it is not needed
             }
         };
     }
@@ -111,7 +108,7 @@ public class SecurityConfig {
                 .build();
     }
 
-    // and, if using pre-post method security also add
+    // this is for using Pre and PostAuthorize annotations, it is needed for Role hierarchy to work with these annotations
     @Bean
     static MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
         DefaultMethodSecurityExpressionHandler expressionHandler = new DefaultMethodSecurityExpressionHandler();

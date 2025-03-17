@@ -13,7 +13,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
-import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -51,11 +50,6 @@ public class AuthController {
         );
 
         return ResponseEntity.ok(authDTO);
-    }
-
-    @GetMapping("/csrf-token")
-    public CsrfToken getCsrfToken(CsrfToken token) {
-        return token; // Spring will automatically serialize and return the values
     }
 
     @GetMapping("/login")

@@ -8,10 +8,6 @@ export const useAuthStore = defineStore('auth', {
   }),
   actions: {
 
-    async fetchCsrfToken() {
-      return await AuthService.fetchCsrfToken();
-    },
-
     async checkAuth() {
       this.isAuthenticating = true;
       try {
@@ -19,6 +15,7 @@ export const useAuthStore = defineStore('auth', {
         this.user = user;
         return user;
       } catch (error) {
+        console.error('Error fetching current user:', error);
         this.user = null;
         return null;
       } finally {

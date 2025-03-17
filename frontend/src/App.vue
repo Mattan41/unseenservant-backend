@@ -13,9 +13,8 @@ const isLoading = ref(true);
 
 onMounted(async () => {
 
-  await authStore.fetchCsrfToken();
 
-  window.addEventListener("storage", (event) => {
+  window.addEventListener("storage", () => {
     if (!localStorage.getItem("userData")) {
       router.push("/");
     }

@@ -53,5 +53,6 @@ const router = createRouter({
 
   ],
 })
+// todo: add navigation guards to protect routes that require authentication, redirect to home page if not authenticated
 
 export default router
