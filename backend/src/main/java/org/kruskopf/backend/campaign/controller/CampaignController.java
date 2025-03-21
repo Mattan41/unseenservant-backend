@@ -1,9 +1,15 @@
 package org.kruskopf.backend.campaign.controller;
 
-import org.kruskopf.backend.campaign.dto.CampaignDTO;
-import org.kruskopf.backend.campaign.entity.Campaign;
+import org.kruskopf.backend.campaign.dto.CampaignCreationDTO;
+import org.kruskopf.backend.campaign.dto.CampaignResponseDTO;
+import org.kruskopf.backend.campaign.dto.CampaignUpdateDTO;
+import org.kruskopf.backend.campaign.dto.UpdateParticipantsDTO;
 import org.kruskopf.backend.campaign.service.CampaignService;
+import org.kruskopf.backend.user.CustomUserDetails;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,43 +25,50 @@ public class CampaignController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CampaignDTO>> getAllCampaigns() {
-        List<CampaignDTO> campaigns = campaignService.getAllCampaigns();
+    public ResponseEntity<List<CampaignResponseDTO>> getAllCampaigns() {
+        List<CampaignResponseDTO> campaigns = campaignService.getAllCampaigns();
+        return ResponseEntity.ok(campaigns);
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<List<CampaignResponseDTO>> getAllCampaignsForCurrentUser(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId(); // Assuming CustomUserDetails has a method to get the user ID
+        List<CampaignResponseDTO> campaigns = campaignService.getAllCampaignsForCurrentUser(userId);
         return ResponseEntity.ok(campaigns);
     }
 
 
     @GetMapping("/{id}")
-    public ResponseEntity<Campaign> getCampaignById(@PathVariable Long id) {
-        return campaignService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CampaignResponseDTO> getCampaignById(@PathVariable Long id) {
+        return ResponseEntity.ok(campaignService.getCampaignById(id));
     }
 
     @PostMapping
-    public Campaign createCampaign(@RequestBody Campaign campaign) {
-        return campaignService.save(campaign);
+    public ResponseEntity<CampaignResponseDTO> createCampaign(@RequestBody CampaignCreationDTO campaignDTO) {
+        CampaignResponseDTO createdCampaign = campaignService.createCampaign(campaignDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCampaign);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Campaign> updateCampaign(@PathVariable Long id, @RequestBody Campaign campaignDetails) {
-        return campaignService.findById(id)
-                .map(campaign -> {
-                    campaign.setName(campaignDetails.getName());
-                    campaign.setDescription(campaignDetails.getDescription());
-                    Campaign updatedCampaign = campaignService.save(campaign);
-                    return ResponseEntity.ok(updatedCampaign);
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CampaignResponseDTO> updateCampaign(
+            @PathVariable Long id,
+            @RequestBody CampaignUpdateDTO campaignDTO) {
+        CampaignResponseDTO updatedCampaign = campaignService.updateCampaign(id, campaignDTO);
+        return ResponseEntity.ok(updatedCampaign);
+    }
+
+    @PatchMapping("/{id}/participants")
+    public ResponseEntity<CampaignResponseDTO> updateParticipants(
+            @PathVariable Long id,
+            @RequestBody UpdateParticipantsDTO updateDTO) {
+        CampaignResponseDTO updatedCampaign = campaignService.updateParticipants(id, updateDTO);
+        return ResponseEntity.ok(updatedCampaign);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCampaign(@PathVariable Long id) {
-        return campaignService.findById(id)
-                .map(campaign -> {
-                    campaignService.deleteById(id);
-                    return ResponseEntity.ok().<Void>build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+        campaignService.deleteCampaign(id);
+        return ResponseEntity.noContent().build();
     }
 }

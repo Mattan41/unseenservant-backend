@@ -44,6 +44,37 @@ h4 {
 }
 
 
+/* Base button styles */
+.button {
+    @apply px-4 py-2 rounded font-semibold text-center cursor-pointer transition duration-300 ease-in-out;
+}
+
+/* Primary button (light gray) */
+.button-primary {
+    @apply ml-3 bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500;
+}
+
+/* Secondary button (gray) */
+.button-secondary {
+    @apply ml-3 bg-gray-300 text-black hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300;
+}
+
+/* save button */
+.button-add {
+    @apply ml-3 bg-green-500 text-white hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500;
+}
+
+/* Delete button (red) */
+.button-remove {
+    @apply bg-red-500 text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500;
+}
+
+.button-retry {
+    @apply mt-2 text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 px-4 py-2 rounded;
+}
+
+
+
 @media screen and (min-width: 640px) {
     h1 {
         font-size: 50px;

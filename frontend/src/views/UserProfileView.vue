@@ -1,6 +1,8 @@
 <script setup>
 import {computed, onMounted, ref} from 'vue';
 import {useUserStore} from '../stores/userStore';
+import CampaignList from '@/components/CampaignList.vue';
+
 
 const userStore = useUserStore();
 const displayName = ref('');
@@ -60,9 +62,9 @@ const saveDisplayName = async () => {
 
 <template>
   <div class="container mx-auto p-6 max-w-4xl">
-    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-      <div class="bg-primary-500 p-6 text-white">
-        <h1 class="text-2xl font-bold">User Profile</h1>
+    <div class="rounded-lg shadow-lg overflow-hidden">
+      <div class="bg-primary-500 p-6">
+        <h2>User Profile</h2>
       </div>
 
       <div class="p-6">
@@ -78,7 +80,7 @@ const saveDisplayName = async () => {
              class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           <p>{{ userStore.error }}</p>
           <button @click="userStore.fetchCurrentUser()"
-                  class="mt-2 text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded">
+                  class="button button-retry">
             Try Again
           </button>
         </div>
@@ -98,14 +100,12 @@ const saveDisplayName = async () => {
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
-
                 <div v-if="!isEditing" class="flex justify-between items-center">
                   <div class="bg-gray-100 p-3 rounded flex-grow">{{
                       userStore.getDisplayName
                     }}
                   </div>
-                  <button @click="startEditing"
-                          class="ml-3 bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                  <button @click="startEditing" class="button button-primary">
                     Edit
                   </button>
                 </div>
@@ -124,7 +124,7 @@ const saveDisplayName = async () => {
                   <div class="flex space-x-2">
                     <button
                       @click="saveDisplayName"
-                      class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                      class="button button-add"
                       :disabled="isSaving"
                     >
                       <span v-if="isSaving">Saving...</span>
@@ -133,7 +133,7 @@ const saveDisplayName = async () => {
 
                     <button
                       @click="cancelEditing"
-                      class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      class="button button-primary"
                       :disabled="isSaving"
                     >
                       Cancel
@@ -156,10 +156,16 @@ const saveDisplayName = async () => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
-                <div class="bg-gray-100 p-3 rounded">{{ user.role || 'Standard User' }}</div>
+                <div class="bg-gray-100 p-3 rounded">{{ userStore.getRole }}</div>
               </div>
             </div>
           </section>
+
+          <!-- Campaigns section -->
+          <section class="bg-primary-500 p-4 rounded-lg">
+            <CampaignList/>
+          </section>
+
         </div>
       </div>
     </div>

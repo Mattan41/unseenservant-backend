@@ -31,8 +31,7 @@ export const useUserStore = defineStore('user', {
       this.error = null
 
       try {
-        const user = await UserService.fetchUser(userId)
-        this.userInfo = user
+        this.userInfo = await UserService.fetchUser(userId)
       } catch (error) {
         console.error('Failed to fetch user info:', error)
         this.error = 'Failed to fetch user.'
@@ -61,8 +60,7 @@ export const useUserStore = defineStore('user', {
       this.error = null
 
       try {
-        const updatedUser = await UserService.updateProfile(this.userInfo.id, data)
-        this.userInfo = updatedUser
+        this.userInfo = await UserService.updateProfile(this.userInfo.id, data)
       } catch (error) {
         console.error('Failed to update profile:', error)
         this.error = 'Failed to update profile.'
@@ -81,7 +79,7 @@ export const useUserStore = defineStore('user', {
 
   getters: {
     getDisplayName: (state) => state.userInfo?.displayName || state.userInfo?.username || 'Traveler',
-
+    getRole: (state) => state.userInfo?.role || 'Standard user',
     isLoadingProfile: (state) => state.isLoading,
   },
 })

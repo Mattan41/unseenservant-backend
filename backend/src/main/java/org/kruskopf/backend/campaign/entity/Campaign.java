@@ -36,11 +36,13 @@ public class Campaign {
     @LastModifiedBy
     private String lastModifiedBy;
 
-    @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CampaignUser> participants = new ArrayList<>();
 
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL)
     private List<Message> messages = new ArrayList<>();
+
+    // todo: add campaign owner
 
     public Campaign() {
     }
