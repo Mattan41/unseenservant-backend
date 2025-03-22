@@ -50,21 +50,34 @@ const router = createRouter({
       path: '/user-profile',
       name: 'user-profile',
       component: () => import('../views/UserProfileView.vue'),
+      meta: {requiresAuth: true}
     },
     {
       path: '/campaign/:id',
       name: 'CampaignView',
       component: CampaignView,
-      props: true
+      props: true,
+      meta: {requiresAuth: true}
     },
     {
       path: '/campaigns',
       name: 'CampaignsView',
-      component: () => import('../views/CampaignsView.vue')
-    }
-
+      component: () => import('../views/CampaignsView.vue'),
+      meta: {requiresAuth: true}
+    },
+    {
+      path: '/:catchAll(.*)*',
+      name: 'notFound',
+      component: () => import('../views/NotFoundView.vue'),
+    },
   ],
 })
-// todo: add navigation guards to protect routes that require authentication, redirect to home page if not authenticated
-// /Should be protected and refdirected: /user-profile, /campaigns, /campaign/:id
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore();
+  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
+    next({name: 'home'});
+  } else {
+    next();
+  }
+});
 export default router
