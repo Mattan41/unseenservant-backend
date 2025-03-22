@@ -57,9 +57,14 @@ const router = createRouter({
       component: CampaignView,
       props: true
     },
+    {
+      path: '/campaigns',
+      name: 'CampaignsView',
+      component: () => import('../views/CampaignsView.vue')
+    }
 
   ],
 })
 // todo: add navigation guards to protect routes that require authentication, redirect to home page if not authenticated
-
+// /Should be protected and refdirected: /user-profile, /campaigns, /campaign/:id
 export default router

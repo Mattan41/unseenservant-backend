@@ -42,7 +42,11 @@ watch(() => route.params.id, (newId) => {
   if (newId) loadCampaignData();
 });
 
+const isCharactersListVisible = ref(false);
 
+const toggleCharactersList = () => {
+  isCharactersListVisible.value = !isCharactersListVisible.value;
+};
 </script>
 
 <template>
@@ -107,8 +111,8 @@ watch(() => route.params.id, (newId) => {
         <h4 class="text-xl font-bold font-serif mb-2">Message board</h4>
 
         <div class="mb-3">
-          <h3 class="font-medium">› Characters</h3>
-          <ul class="ml-2 mt-1">
+          <h3 class="font-medium cursor-pointer" @click="toggleCharactersList">› Participants</h3>
+          <ul v-if="isCharactersListVisible" class="ml-2 mt-1">
             <li
               v-for="(participant, index) in campaign?.participants || [{nickname: 'Gusten'}, {nickname: 'Tengi'}]"
               :key="index"
