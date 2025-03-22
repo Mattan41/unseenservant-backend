@@ -13,6 +13,7 @@
     --color-primary-900: #3D3D3D;
 
     --color-secondary: #820000;
+    --color-secondary-highlight: #4E0808;
 
 
 }
@@ -46,31 +47,30 @@ h4 {
 
 /* Base button styles */
 .button {
-    @apply px-4 py-2 rounded font-semibold text-center cursor-pointer transition duration-300 ease-in-out;
+    @apply ml-1.5 px-2 py-1 mt-2 sm:mt-0 text-sm rounded font-semibold text-center cursor-pointer transition duration-300 ease-in-out;
 }
-
 /* Primary button (light gray) */
 .button-primary {
-    @apply ml-3 bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500;
+    @apply bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500;
 }
 
 /* Secondary button (gray) */
 .button-secondary {
-    @apply ml-3 bg-gray-300 text-black hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300;
+    @apply bg-gray-300 text-black hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300;
 }
 
 /* save button */
 .button-add {
-    @apply ml-3 bg-green-500 text-white hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500;
+    @apply bg-green-800 text-gray-100 hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-900;
 }
 
 /* Delete button (red) */
 .button-remove {
-    @apply bg-red-500 text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500;
+    @apply bg-secondary text-gray-200 hover:bg-secondary-highlight focus:outline-none focus:ring-2 focus:ring-secondary;
 }
 
 .button-retry {
-    @apply mt-2 text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 px-4 py-2 rounded;
+    @apply text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 px-4 py-2 rounded;
 }
 
 

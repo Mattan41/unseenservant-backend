@@ -1,18 +1,21 @@
 <script setup>
 import {onMounted} from 'vue';
 import {useCampaignStore} from '@/stores/campaignStore';
+import CreateCampaign from '@/components/CreateCampaign.vue';
 
 const campaignStore = useCampaignStore();
 
 onMounted(async () => {
-  // await campaignStore.fetchAllCampaigns();
   await campaignStore.fetchAllCampaignsForCurrentUser();
 });
 </script>
 
 <template>
   <div>
-    <h2 class="text-xl font-semibold mb-4">Campaigns</h2>
+    <h2 class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+      Campaigns
+      <CreateCampaign/>
+    </h2>
     <div v-if="campaignStore.isLoading" class="text-center p-8">
       <div
         class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>

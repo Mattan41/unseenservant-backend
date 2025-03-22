@@ -47,7 +47,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-                .csrf((csrf) -> csrf
+                //.csrf(AbstractHttpConfigurer::disable) // Disable CSRF protection for testing with postman
+                .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
                 )
@@ -56,9 +57,10 @@ public class SecurityConfig {
                     auth.requestMatchers("/admin").hasRole(UserRole.ADMIN.name());
                     auth.requestMatchers("/api/auth/**", "/api/auth/login").permitAll();
                     auth.requestMatchers("/api/auth/me").authenticated();
-                    auth.requestMatchers("/api/users/**").authenticated(); // todo: change to authenticated() or hasRole(UserRole.USER.name()); add endpoints to search for other users and invite them to campaigns
-                    auth.requestMatchers("/api/campaigns/**", "/api/characters/**", "/api/messages/**").permitAll(); // todo change to authenticated(); after testing
+                    auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**").authenticated();
+                    // auth.anyRequest().permitAll(); // switch for postman testing
                     auth.anyRequest().denyAll();
+
                 }).exceptionHandling(exceptionHandling ->
                         exceptionHandling
                                 .accessDeniedHandler((request, response, accessDeniedException) -> {

@@ -9,6 +9,10 @@ const CampaignService = {
     const response = await axios.get('api/campaigns/me');
     return response.data;
   },
+  async createCampaign(name, description) {
+    const response = await axios.post('api/campaigns', {name, description});
+    return response.data;
+  },
 };
 
 export default CampaignService;

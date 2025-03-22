@@ -20,6 +20,7 @@ import java.util.List;
 public class CampaignService {
 
     private static final Logger logger = LoggerFactory.getLogger(CampaignService.class);
+    public static final String USER_NOT_FOUND = "User not found with id: ";
 
     private final CampaignRepository campaignRepository;
     private final UserService userService;
@@ -50,8 +51,21 @@ public class CampaignService {
     }
 
     @Transactional
-    public CampaignResponseDTO createCampaign(CampaignCreationDTO dto) {
+    public CampaignResponseDTO createCampaign(CampaignCreationDTO dto, Long ownerId) {
         Campaign campaign = new Campaign(dto.name(), dto.description());
+
+        // Add owner as participant
+        User owner = userService.findById(ownerId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + ownerId));
+
+        // define nickname, with fallback to user's display name
+
+        campaign.getParticipants().add(new CampaignUser(
+                campaign,
+                owner,
+                CampaignRole.GM, // Setting owner as GM per default
+                "Game Master (" + owner.getDisplayName() + ")" // Assuming getDisplayName() returns the owner's display name
+        ));
 
         // Add initial participants if provided
         if (dto.participants() != null && !dto.participants().isEmpty()) {

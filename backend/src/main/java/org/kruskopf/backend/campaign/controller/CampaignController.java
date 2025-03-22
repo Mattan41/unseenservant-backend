@@ -33,7 +33,7 @@ public class CampaignController {
     @GetMapping("/me")
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<List<CampaignResponseDTO>> getAllCampaignsForCurrentUser(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
-        Long userId = customUserDetails.user().getId(); // Assuming CustomUserDetails has a method to get the user ID
+        Long userId = customUserDetails.user().getId();
         List<CampaignResponseDTO> campaigns = campaignService.getAllCampaignsForCurrentUser(userId);
         return ResponseEntity.ok(campaigns);
     }
@@ -45,8 +45,9 @@ public class CampaignController {
     }
 
     @PostMapping
-    public ResponseEntity<CampaignResponseDTO> createCampaign(@RequestBody CampaignCreationDTO campaignDTO) {
-        CampaignResponseDTO createdCampaign = campaignService.createCampaign(campaignDTO);
+    public ResponseEntity<CampaignResponseDTO> createCampaign(@AuthenticationPrincipal CustomUserDetails customUserDetails, @RequestBody CampaignCreationDTO campaignDTO) {
+        Long userId = customUserDetails.user().getId();
+        CampaignResponseDTO createdCampaign = campaignService.createCampaign(campaignDTO, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdCampaign);
     }
 

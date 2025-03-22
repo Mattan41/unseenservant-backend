@@ -35,7 +35,28 @@ export const useCampaignStore = defineStore('campaign', {
       } finally {
         this.isLoading = false;
       }
+    },
+
+    async createCampaign(name, description) {
+      this.isLoading = true;
+      this.error = null;
+
+      try {
+        const newCampaign = await CampaignService.createCampaign(name, description);
+
+        await this.fetchAllCampaignsForCurrentUser();
+
+
+        return newCampaign;
+      } catch (error) {
+        console.error('Failed to create campaign:', error);
+        this.error = 'Could not create campaign.';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
     }
+
 
   },
 
