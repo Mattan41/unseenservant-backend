@@ -40,7 +40,9 @@ public class CampaignController {
 
 
     @GetMapping("/{id}")
-    public ResponseEntity<CampaignResponseDTO> getCampaignById(@PathVariable Long id) {
+    public ResponseEntity<CampaignResponseDTO> getCampaignById(@AuthenticationPrincipal CustomUserDetails customUserDetails, @PathVariable Long id) {
+        Long userId = customUserDetails.user().getId();
+        CampaignResponseDTO campaignResponse = campaignService.getCampaignByIdIfAuthorized(id, userId);
         return ResponseEntity.ok(campaignService.getCampaignById(id));
     }
 

@@ -5,7 +5,9 @@ import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
+import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
+import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
@@ -24,30 +26,12 @@ public class CampaignService {
 
     private final CampaignRepository campaignRepository;
     private final UserService userService;
+    private final CampaignUserRepository campaignUserRepository;
 
-    public CampaignService(CampaignRepository campaignRepository, UserService userService) {
+    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignUserRepository campaignUserRepository) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
-    }
-
-    @Transactional(readOnly = true)
-    public List<CampaignResponseDTO> getAllCampaigns() {
-        return campaignRepository.findAll().stream()
-                .map(this::mapToResponseDTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<CampaignResponseDTO> getAllCampaignsForCurrentUser(Long userId) {
-        return campaignRepository.findAllByParticipantsUserId(userId).stream()
-                .map(this::mapToResponseDTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public CampaignResponseDTO getCampaignById(Long id) {
-        Campaign campaign = findCampaignOrThrow(id);
-        return mapToResponseDTO(campaign);
+        this.campaignUserRepository = campaignUserRepository;
     }
 
     @Transactional
@@ -71,7 +55,7 @@ public class CampaignService {
         if (dto.participants() != null && !dto.participants().isEmpty()) {
             dto.participants().forEach(participant -> {
                 User user = userService.findById(participant.id())
-                        .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + participant.id()));
+                        .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + participant.id()));
 
                 // Define nickname, with fallback to user's display name
                 String effectiveNickname = getEffectiveNickname(participant, user);
@@ -90,6 +74,43 @@ public class CampaignService {
         Campaign savedCampaign = campaignRepository.save(campaign);
         return mapToResponseDTO(savedCampaign);
     }
+
+    @Transactional(readOnly = true)
+    public List<CampaignResponseDTO> getAllCampaigns() {
+        return campaignRepository.findAll().stream()
+                .map(this::mapToResponseDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CampaignResponseDTO> getAllCampaignsForCurrentUser(Long userId) {
+        return campaignRepository.findAllByParticipantsUserId(userId).stream()
+                .map(this::mapToResponseDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public CampaignResponseDTO getCampaignById(Long id) {
+        Campaign campaign = findCampaignOrThrow(id);
+        return mapToResponseDTO(campaign);
+    }
+
+    @Transactional(readOnly = true)
+    public CampaignResponseDTO getCampaignByIdIfAuthorized(Long campaignId, Long userId) {
+
+        Campaign campaign = findCampaignOrThrow(campaignId);
+
+        // check if user is participant by searching thh campaign_user table
+        boolean isParticipant = campaignUserRepository.existsByCampaignIdAndUserId(campaignId, userId);
+
+        if (isParticipant)
+            return mapToResponseDTO(campaign);
+
+        // If user is not a participant, throw exception
+        throw new UnauthorizedAccessException("User is not authorized to access this campaign");
+
+    }
+
 
     @Transactional
     public CampaignResponseDTO updateCampaign(Long id, CampaignUpdateDTO dto) {
@@ -115,7 +136,7 @@ public class CampaignService {
         if (!(updateDTO.participantsToAdd() == null || updateDTO.participantsToAdd().isEmpty())) {
             updateDTO.participantsToAdd().forEach(participantDTO -> {
                 User user = userService.findById(participantDTO.id())
-                        .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + participantDTO.id()));
+                        .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + participantDTO.id()));
 
                 // Check if user is already a participant
                 boolean isExistingParticipant = campaign.getParticipants().stream()
@@ -165,6 +186,15 @@ public class CampaignService {
         return mapToResponseDTO(savedCampaign);
     }
 
+    @Transactional
+    public void deleteCampaign(Long id) {
+        Campaign campaign = findCampaignOrThrow(id);
+        campaignRepository.delete(campaign);
+    }
+
+
+    // Helper methods
+
     private static CampaignRole getCampaignRole(ParticipantResponseDTO participantDTO) {
         CampaignRole effectiveRole;
         try {
@@ -183,14 +213,6 @@ public class CampaignService {
                 ? UserDTO.fromUser(user).displayName()
                 : participantDTO.nickname();
     }
-
-    @Transactional
-    public void deleteCampaign(Long id) {
-        Campaign campaign = findCampaignOrThrow(id);
-        campaignRepository.delete(campaign);
-    }
-
-    // Helper methods
 
     private Campaign findCampaignOrThrow(Long id) {
         return campaignRepository.findById(id)
@@ -224,8 +246,7 @@ public class CampaignService {
      * For data initialization and testing only
      */
     @Transactional
-    public Campaign createCampaignRaw(Campaign campaign) {
-        return campaignRepository.save(campaign);
+    public void createCampaignRaw(Campaign campaign) {
+        campaignRepository.save(campaign);
     }
-
 }

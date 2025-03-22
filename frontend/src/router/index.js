@@ -1,6 +1,7 @@
 import {createRouter, createWebHistory} from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginComponent from "@/components/LoginComponent.vue";
+import CampaignView from "@/views/CampaignView.vue";
 import {useAuthStore} from "@/stores/authStore.js";
 
 const router = createRouter({
@@ -49,6 +50,12 @@ const router = createRouter({
       path: '/user-profile',
       name: 'user-profile',
       component: () => import('../views/UserProfileView.vue'),
+    },
+    {
+      path: '/campaign/:id',
+      name: 'CampaignView',
+      component: CampaignView,
+      props: true
     },
 
   ],

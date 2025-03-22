@@ -74,6 +74,11 @@ h4 {
 }
 
 
+/* Links and list styles */
+.element-link {
+    @apply text-primary-900 hover:text-primary-700;
+}
+
 
 @media screen and (min-width: 640px) {
     h1 {

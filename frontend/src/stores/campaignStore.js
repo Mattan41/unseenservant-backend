@@ -46,7 +46,6 @@ export const useCampaignStore = defineStore('campaign', {
 
         await this.fetchAllCampaignsForCurrentUser();
 
-
         return newCampaign;
       } catch (error) {
         console.error('Failed to create campaign:', error);
@@ -55,9 +54,22 @@ export const useCampaignStore = defineStore('campaign', {
       } finally {
         this.isLoading = false;
       }
+    },
+
+    async fetchCampaign(id) {
+      this.isLoading = true;
+      this.error = null;
+
+      try {
+        return await CampaignService.fetchCampaign(id);
+      } catch (error) {
+        console.error('Failed to fetch campaign:', error);
+        this.error = 'Could not fetch campaign.';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
     }
 
-
-  },
-
+  }
 });

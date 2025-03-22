@@ -27,15 +27,23 @@ onMounted(async () => {
     </div>
     <ul v-else>
       <li v-for="campaign in campaignStore.campaigns" :key="campaign.id"
-          class="mb-4 p-4 bg-gray-100 rounded">
-        <h3 class="text-lg font-bold">{{ campaign.name }}</h3>
-        <p>{{ campaign.description }}</p>
-        <ul class="mt-2">
-          <li v-for="participant in campaign.participants" :key="participant.id">
-            {{ participant.nickname }} ( {{ participant.role }} )
-          </li>
-        </ul>
+          class="mb-4 p-4 bg-primary-100 rounded">
+
+        <RouterLink :to="{ name: 'CampaignView', params: { id: campaign.id } }"
+                    class="element-link">
+          <h3 class="text-lg font-bold">{{ campaign.name }}</h3>
+          <p>{{ campaign.description }}</p>
+          <ul class="mt-2">
+            <li v-for="participant in campaign.participants" :key="participant.id">
+              {{ participant.nickname }} ( {{ participant.role }} )
+            </li>
+          </ul>
+        </RouterLink>
+
       </li>
     </ul>
   </div>
 </template>
+
+<style scoped>
+</style>
