@@ -1,6 +1,7 @@
 @import './base.css';
 
 @theme {
+    /* Custom colors */
     --color-primary-50: #F5F5F5;
     --color-primary-100: #E0E0E0;
     --color-primary-200: #CCCCCC;
@@ -12,9 +13,21 @@
     --color-primary-800: #525252;
     --color-primary-900: #3D3D3D;
 
+    /* Red colors */
     --color-secondary: #820000;
     --color-secondary-highlight: #4E0808;
 
+    /* Grey colors */
+    --color-third-50: #F9FAFB;
+    --color-third-100: #F3F4F6;
+    --color-third-200: #E5E7EB;
+    --color-third-300: #D1D5DB;
+    --color-third-400: #9CA3AF;
+    --color-third-500: #6B7280;
+    --color-third-600: #4B5563;
+    --color-third-700: #374151;
+    --color-third-800: #1F2937;
+    --color-third-900: #111827;
 
 }
 h1,

@@ -71,5 +71,13 @@ export const useCampaignStore = defineStore('campaign', {
       }
     }
 
-  }
+  },
+  getters: {
+    getCampaignById: (state) => (id) => state.campaigns.find(campaign => campaign.id === id),
+    // Hämtar ägaren av en kampanj baserat på ID
+    ownerId: (state) => (id) => {
+      const campaign = state.campaigns.find(c => c.id === id);
+      return campaign ? campaign.ownerId : null;
+    }
+  },
 });

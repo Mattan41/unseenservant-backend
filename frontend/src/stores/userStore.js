@@ -81,5 +81,6 @@ export const useUserStore = defineStore('user', {
     getDisplayName: (state) => state.userInfo?.displayName || state.userInfo?.username || 'Traveler',
     getRole: (state) => state.userInfo?.role || 'Standard user',
     isLoadingProfile: (state) => state.isLoading,
+    getUserId: (state) => state.userInfo?.id || null,
   },
 })
