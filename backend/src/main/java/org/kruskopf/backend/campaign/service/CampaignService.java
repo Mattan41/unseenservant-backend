@@ -35,12 +35,15 @@ public class CampaignService {
     }
 
     @Transactional
-    public CampaignResponseDTO createCampaign(CampaignCreationDTO dto, Long ownerId) {
+    public CampaignResponseDTO createCampaign(CampaignCreationDTO dto) {
         Campaign campaign = new Campaign(dto.name(), dto.description());
 
         // Add owner as participant
-        User owner = userService.findById(ownerId)
-                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + ownerId));
+        User owner = userService.findById(dto.ownerId())
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + dto.ownerId()));
+
+        // set owner of campaign
+        campaign.setOwner(owner);
 
         // define nickname, with fallback to user's display name
 
@@ -48,7 +51,7 @@ public class CampaignService {
                 campaign,
                 owner,
                 CampaignRole.GM, // Setting owner as GM per default
-                "Game Master (" + owner.getDisplayName() + ")" // Assuming getDisplayName() returns the owner's display name
+                "Game Master (" + getEffectiveDisplayName(owner) + ")" //
         ));
 
         // Add initial participants if provided
@@ -113,8 +116,13 @@ public class CampaignService {
 
 
     @Transactional
-    public CampaignResponseDTO updateCampaign(Long id, CampaignUpdateDTO dto) {
+    public CampaignResponseDTO updateCampaign(Long id, CampaignUpdateDTO dto, Long currentUserId) {
         Campaign campaign = findCampaignOrThrow(id);
+
+        if (campaign.isOwnedBy(currentUserId)) {
+            throw new UnauthorizedAccessException("Only the campaign owner can delete the campaign");
+        }
+
 
         campaign.setName(dto.name());
         campaign.setDescription(dto.description());
@@ -124,12 +132,21 @@ public class CampaignService {
     }
 
     @Transactional
-    public CampaignResponseDTO updateParticipants(Long id, UpdateParticipantsDTO updateDTO) {
+    public CampaignResponseDTO updateParticipants(Long id, UpdateParticipantsDTO updateDTO, Long currentUserId) {
         Campaign campaign = findCampaignOrThrow(id);
+
+        // Kontrollera ägarskap
+        if (campaign.isOwnedBy(currentUserId))
+            throw new UnauthorizedAccessException("Only the campaign owner can update participants");
 
         // if no participants to add or remove, return the current state
         if (updateDTO.participantsToAdd() == null && updateDTO.participantIdsToRemove() == null) {
             return mapToResponseDTO(campaign);
+        }
+
+        // Prevent owner from being removed
+        if (updateDTO.participantIdsToRemove() != null && updateDTO.participantIdsToRemove().contains(campaign.getOwner().getId())) {
+            throw new UnauthorizedAccessException("Owner cannot be removed from campaign");
         }
 
 
@@ -187,8 +204,42 @@ public class CampaignService {
     }
 
     @Transactional
-    public void deleteCampaign(Long id) {
+    public CampaignResponseDTO transferOwnership(Long campaignId, Long newOwnerId, Long currentUserId) {
+        Campaign campaign = findCampaignOrThrow(campaignId);
+
+        // Validate ownership
+        if (campaign.isOwnedBy(currentUserId)) {
+            throw new UnauthorizedAccessException("Only the campaign owner can transfer ownership");
+        }
+
+        // find new owner
+        User newOwner = userService.findById(newOwnerId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + newOwnerId));
+
+        // Validate that new owner is a participant
+        boolean isParticipant = campaign.getParticipants().stream()
+                .anyMatch(p -> p.getUser().getId().equals(newOwnerId));
+
+        if (!isParticipant) {
+            throw new IllegalArgumentException("New owner must be a participant in the campaign");
+        }
+
+        // Transfer ownership
+        campaign.setOwner(newOwner);
+        Campaign savedCampaign = campaignRepository.save(campaign);
+
+        return mapToResponseDTO(savedCampaign);
+    }
+
+
+    @Transactional
+    public void deleteCampaign(Long id, Long currentUserId) {
+
         Campaign campaign = findCampaignOrThrow(id);
+
+        if (campaign.isOwnedBy(currentUserId)) {
+            throw new UnauthorizedAccessException("Only the campaign owner can update campaign details");
+        }
         campaignRepository.delete(campaign);
     }
 
@@ -224,6 +275,7 @@ public class CampaignService {
                 campaign.getId(),
                 campaign.getName(),
                 campaign.getDescription(),
+                campaign.getOwner() != null ? campaign.getOwner().getId() : null,
                 campaign.getParticipants().stream()
                         .map(participant -> new ParticipantResponseDTO(
                                 participant.getUser().getId(),
@@ -233,6 +285,11 @@ public class CampaignService {
         );
     }
 
+    private String getEffectiveDisplayName(User user) {
+        return user.getDisplayName() != null && !user.getDisplayName().isBlank()
+                ? user.getDisplayName()
+                : user.getFullName();
+    }
 
     /**
      * For data initialization and testing only
@@ -247,6 +304,16 @@ public class CampaignService {
      */
     @Transactional
     public void createCampaignRaw(Campaign campaign) {
+        // Kontrollera att kampanjen har en ägare
+        if (campaign.getOwner() == null) {
+            if (campaign.getParticipants().isEmpty()) {
+                throw new IllegalArgumentException("Campaign must have at least one participant to determine owner");
+            }
+            // Välj den första deltagaren som ägare
+            User firstParticipant = campaign.getParticipants().getFirst().getUser();
+            campaign.setOwner(firstParticipant);
+        }
         campaignRepository.save(campaign);
     }
+
 }

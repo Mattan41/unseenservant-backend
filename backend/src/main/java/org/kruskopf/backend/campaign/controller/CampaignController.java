@@ -24,6 +24,24 @@ public class CampaignController {
         this.campaignService = campaignService;
     }
 
+    @PostMapping
+    public ResponseEntity<CampaignResponseDTO> createCampaign(@AuthenticationPrincipal CustomUserDetails customUserDetails, @RequestBody CampaignCreationDTO campaignDTO) {
+        Long userId = customUserDetails.user().getId();
+
+        CampaignCreationDTO effectiveDTO = campaignDTO;
+        if (campaignDTO.ownerId() == null) {
+            effectiveDTO = new CampaignCreationDTO(
+                    campaignDTO.name(),
+                    campaignDTO.description(),
+                    userId,
+                    campaignDTO.participants()
+            );
+        }
+
+        CampaignResponseDTO createdCampaign = campaignService.createCampaign(effectiveDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCampaign);
+    }
+
     @GetMapping
     public ResponseEntity<List<CampaignResponseDTO>> getAllCampaigns() {
         List<CampaignResponseDTO> campaigns = campaignService.getAllCampaigns();
@@ -38,40 +56,50 @@ public class CampaignController {
         return ResponseEntity.ok(campaigns);
     }
 
-
     @GetMapping("/{id}")
     public ResponseEntity<CampaignResponseDTO> getCampaignById(@AuthenticationPrincipal CustomUserDetails customUserDetails, @PathVariable Long id) {
         Long userId = customUserDetails.user().getId();
         CampaignResponseDTO campaignResponse = campaignService.getCampaignByIdIfAuthorized(id, userId);
-        return ResponseEntity.ok(campaignService.getCampaignById(id));
+        return ResponseEntity.ok(campaignResponse);
     }
 
-    @PostMapping
-    public ResponseEntity<CampaignResponseDTO> createCampaign(@AuthenticationPrincipal CustomUserDetails customUserDetails, @RequestBody CampaignCreationDTO campaignDTO) {
-        Long userId = customUserDetails.user().getId();
-        CampaignResponseDTO createdCampaign = campaignService.createCampaign(campaignDTO, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdCampaign);
-    }
 
     @PutMapping("/{id}")
     public ResponseEntity<CampaignResponseDTO> updateCampaign(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long id,
             @RequestBody CampaignUpdateDTO campaignDTO) {
-        CampaignResponseDTO updatedCampaign = campaignService.updateCampaign(id, campaignDTO);
+        Long userId = customUserDetails.user().getId();
+        CampaignResponseDTO updatedCampaign = campaignService.updateCampaign(id, campaignDTO, userId);
         return ResponseEntity.ok(updatedCampaign);
     }
 
     @PatchMapping("/{id}/participants")
     public ResponseEntity<CampaignResponseDTO> updateParticipants(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long id,
             @RequestBody UpdateParticipantsDTO updateDTO) {
-        CampaignResponseDTO updatedCampaign = campaignService.updateParticipants(id, updateDTO);
+        Long userId = customUserDetails.user().getId();
+        CampaignResponseDTO updatedCampaign = campaignService.updateParticipants(id, updateDTO, userId);
+        return ResponseEntity.ok(updatedCampaign);
+    }
+
+    @PatchMapping("/{id}/owner")
+    public ResponseEntity<CampaignResponseDTO> transferOwnership(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long id,
+            @RequestParam Long newOwnerId) {
+        Long currentUserId = customUserDetails.user().getId();
+        CampaignResponseDTO updatedCampaign = campaignService.transferOwnership(id, newOwnerId, currentUserId);
         return ResponseEntity.ok(updatedCampaign);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCampaign(@PathVariable Long id) {
-        campaignService.deleteCampaign(id);
+    public ResponseEntity<Void> deleteCampaign(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long id) {
+        Long userId = customUserDetails.user().getId();
+        campaignService.deleteCampaign(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -2,6 +2,7 @@ package org.kruskopf.backend.campaign.entity;
 
 import jakarta.persistence.*;
 import org.kruskopf.backend.message.entity.Message;
+import org.kruskopf.backend.user.entity.User;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -42,7 +43,9 @@ public class Campaign {
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL)
     private List<Message> messages = new ArrayList<>();
 
-    // todo: add campaign owner
+    @ManyToOne
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 
     public Campaign() {
     }
@@ -118,5 +121,18 @@ public class Campaign {
 
     public void setMessages(List<Message> messages) {
         this.messages = messages;
+    }
+
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
+    }
+
+    @Transient
+    public boolean isOwnedBy(Long userId) {
+        return owner == null || !owner.getId().equals(userId);
     }
 }

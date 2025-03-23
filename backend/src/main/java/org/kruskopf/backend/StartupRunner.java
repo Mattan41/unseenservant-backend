@@ -53,18 +53,23 @@ public class StartupRunner implements CommandLineRunner {
 
         // Create and save campaigns
         if (campaignService.getAllCampaignsRaw().isEmpty()) {
-            Campaign campaign1 = new Campaign("Curse of Strahd", " Under the light of the full moon, the small town of Barovia is plagued by the evil forces of Count Strahd von Zarovich.");
-            campaign1.setCreatedBy("Mattan");
-            campaign1.setLastModifiedBy("Mattan");
-            Campaign campaign2 = new Campaign("Neptunus", "The University of Lundenwic has been robbed of its prized artifact, the Amulet of Taharka. The players are hired to track down the thief and retrieve the amulet.");
-            campaign2.setCreatedBy("Mats");
-            campaign2.setLastModifiedBy("Mats");
 
             // Retrieve users
             User user1 = userService.findByUserName("Mattan");
             User user2 = userService.findByUserName("Mats");
             User user3 = userService.findByUserName("User1");
             User user4 = userService.findByUserName("User2");
+
+            Campaign campaign1 = new Campaign("Curse of Strahd", " Under the light of the full moon, the small town of Barovia is plagued by the evil forces of Count Strahd von Zarovich.");
+            campaign1.setCreatedBy("Mattan");
+            campaign1.setLastModifiedBy("Mattan");
+            campaign1.setOwner(user1);
+
+            Campaign campaign2 = new Campaign("Neptunus", "The University of Lundenwic has been robbed of its prized artifact, the Amulet of Taharka. The players are hired to track down the thief and retrieve the amulet.");
+            campaign2.setCreatedBy("Mats");
+            campaign2.setLastModifiedBy("Mats");
+            campaign2.setOwner(user2);
+
 
             // Create and add participants
             campaign1.getParticipants().add(new CampaignUser(campaign1, user1, CampaignRole.PLAYER, "Mattan"));

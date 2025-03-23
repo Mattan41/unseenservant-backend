@@ -108,7 +108,7 @@ const toggleCharactersList = () => {
 
       <section class="mb-6">
         <!-- replace h4 with link to the MessageboardView -->
-        <h4 class="text-xl font-bold font-serif mb-2">Message board</h4>
+        <h4 class="text-xl font-bold font-serif mb-2">Group Chat</h4>
 
         <div class="mb-3">
           <h3 class="font-medium cursor-pointer" @click="toggleCharactersList">› Participants</h3>
