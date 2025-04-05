@@ -72,12 +72,30 @@ const router = createRouter({
     },
   ],
 })
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
+
+  //Initialize auth store if not already initialized
+  if (!authStore.authInitialized) {
+    console.log('Router guard: Auth not initialized, initializing...');
+    await authStore.checkAuth();
+  }
+
+  // Debugging
+  console.log('Current route:', to.name);
+  console.log('Auth status:', authStore.isLoggedIn);
+  console.log('Route requires auth:', to.meta.requiresAuth);
+
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
+    console.log('Redirecting to home - auth required but not logged in');
     next({name: 'home'});
+  } else if (to.name === 'login' && authStore.isLoggedIn) {
+    console.log('Already logged in, redirecting to campaigns');
+    next({name: 'CampaignsView'});
   } else {
+    console.log('Continuing to requested route');
     next();
   }
 });
+
 export default router

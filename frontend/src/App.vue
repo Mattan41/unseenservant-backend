@@ -12,8 +12,6 @@ const userStore = useUserStore();
 const isLoading = ref(true);
 
 onMounted(async () => {
-
-
   window.addEventListener("storage", () => {
     if (!localStorage.getItem("userData")) {
       router.push("/");
@@ -22,7 +20,9 @@ onMounted(async () => {
 
   console.log('App mounted. Checking authentication...');
 
-  await authStore.checkAuth();
+  if (!authStore.authInitialized) {
+    await authStore.checkAuth();
+  }
   console.log('AuthStore after checkAuth:', authStore.user);
 
   if (authStore.isLoggedIn) {

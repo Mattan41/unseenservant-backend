@@ -105,7 +105,7 @@ const handleParticipantsUpdated = () => {
         <h2>{{ campaign.name || 'Unseen Servant' }}</h2>
       </div>
       <section class="mb-6">
-        <!-- replace h4 with link to the MessageboardView -->
+        <!-- replace h4 with link to the GroupChatView -->
         <h4 class="text-xl font-bold font-serif mb-2">Group Chat</h4>
 
         <div class="mb-3">
