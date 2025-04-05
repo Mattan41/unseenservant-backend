@@ -12,7 +12,6 @@ const props = defineProps({
 
 const emit = defineEmits(['participants-updated']);
 
-
 const campaignStore = useCampaignStore();
 const userStore = useUserStore();
 
@@ -21,7 +20,6 @@ const nickname = ref('');
 const isEditingNickname = ref(false);
 const isSaving = ref(false);
 const errorMessage = ref('');
-const successMessage = ref('');
 const editingParticipantId = ref(null);
 
 // Load campaign data before rendering the component
@@ -62,7 +60,6 @@ watch(() => props.campaignId, loadCampaignData, {immediate: true});
 const startEditingNickname = () => {
   isEditingNickname.value = true;
   errorMessage.value = '';
-  successMessage.value = '';
 };
 
 const cancelEditingNickname = () => {
@@ -84,16 +81,9 @@ const saveParticipantNickname = async (participant) => {
     await campaignStore.updateParticipantNickname(props.campaignId, participant.id, participant.nickname.trim());
 
     editingParticipantId.value = null;
-    successMessage.value = 'Nickname updated successfully!';
 
-    emit('participants-updated');
+    emit('participants-updated', 'Nickname updated successfully!');
 
-    // await loadCampaignData();
-
-    // Clear success message after 3 seconds
-    setTimeout(() => {
-      successMessage.value = '';
-    }, 3000);
   } catch (error) {
     errorMessage.value = error.message || 'Failed to update participant nickname';
   } finally {
@@ -145,7 +135,6 @@ const transferOwnership = () => {
   <div>
     <h4>Campaign Settings</h4>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-    <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
     <div>
       <label class="block text-sm font-medium text-primary-800 mb-1">Update your Nickname</label>
       <div class="p-2">

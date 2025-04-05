@@ -6,8 +6,11 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     isAuthenticating: false, // new flag to indicate if the user is in process of authentication
     authInitialized: false // New flag to track if authentication is done
-
   }),
+  persist: {
+    key: 'auth-store',
+    paths: ['user'],
+  },
   actions: {
 
     async checkAuth() {
@@ -55,21 +58,39 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       await AuthService.logout();
     },
+    async processSuccessfulLogin(userData) {
+      this.user = userData; // Pinia-plugin handles the persistence
+      window.dispatchEvent(new Event('storage')); // keep for compatibility with other tabs
+    },
+
     async loginWithGoogle(idToken) {
-      const response = await AuthService.loginWithGoogle(idToken);
-      if (response.data) {
-        this.user = response.data;
-        localStorage.setItem('userData', JSON.stringify(this.user));
-        window.dispatchEvent(new Event('storage'));
+      try {
+        const response = await AuthService.loginWithGoogle(idToken);
+        if (response.data) {
+          await this.processSuccessfulLogin(response.data);
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error('Google login failed', error);
+        return false;
       }
     },
+
     async loginWithGithub() {
       try {
-        await AuthService.loginWithGithub();
+        const response = await AuthService.loginWithGithub();
+        if (response && response.data) {
+          await this.processSuccessfulLogin(response.data);
+          return true;
+        }
+        return false;
       } catch (error) {
         console.error('GitHub login failed', error);
+        return false;
       }
     },
+
   },
   getters: {
     isLoggedIn: (state) => !!state.user,

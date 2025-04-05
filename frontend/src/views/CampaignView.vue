@@ -9,6 +9,7 @@ const campaignStore = useCampaignStore();
 const campaign = ref(null);
 const isLoading = ref(true);
 const errorMessage = ref('');
+const successMessage = ref('');
 
 const loadCampaignData = async () => {
   isLoading.value = true;
@@ -57,8 +58,14 @@ const toggleCharactersList = () => {
 };
 
 // Listen for the participants-updated event
-const handleParticipantsUpdated = () => {
+const handleParticipantsUpdated = (message) => {
+  successMessage.value = message || 'Update successful!';
   loadCampaignData();
+
+  // Rensa meddelandet efter några sekunder
+  setTimeout(() => {
+    successMessage.value = '';
+  }, 3000);
 };
 </script>
 
@@ -134,6 +141,7 @@ const handleParticipantsUpdated = () => {
                               @participants-updated="handleParticipantsUpdated"/>
           </div>
         </div>
+        <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
 
       </section>
     </div>
