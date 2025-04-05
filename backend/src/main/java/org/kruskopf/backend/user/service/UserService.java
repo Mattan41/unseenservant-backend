@@ -6,6 +6,7 @@ import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -18,6 +19,17 @@ public class UserService {
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
+    }
+
+    // @Transactional(readOnly = true) ?? or does dto solve this?
+    public List<UserDTO> searchUsers(String query, Long currentUserId) {
+        List<User> users = userRepository.findByUserNameContainingOrEmailContainingOrFullNameContaining(
+                query, query, query);
+
+        return users.stream()
+                .filter(user -> !user.getId().equals(currentUserId))
+                .map(UserDTO::fromUser)
+                .toList();
     }
 
 
@@ -103,7 +115,7 @@ public class UserService {
 
     public UserDTO findUserDTOById(Long id) {
         return userRepository.findById(id)
-                .map(this::toDTO) // Konvertera User till UserDTO
+                .map(this::toDTO) // convert User to UserDTO
                 .orElse(null);
     }
 

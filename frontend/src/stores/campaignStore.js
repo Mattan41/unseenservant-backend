@@ -43,9 +43,7 @@ export const useCampaignStore = defineStore('campaign', {
 
       try {
         const newCampaign = await CampaignService.createCampaign(name, description);
-
         await this.fetchAllCampaignsForCurrentUser();
-
         return newCampaign;
       } catch (error) {
         console.error('Failed to create campaign:', error);
@@ -71,7 +69,7 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
-    // this fuction is used to update a field in the campaign object
+    // Update a field in the campaign object - can we use this to add participants? remove participants? edit roles?
     async updateCampaignField(campaignId, field, value) {
       console.log('Updating campaign field:', campaignId, field, value);
       try {
@@ -82,7 +80,6 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
-
     async updateParticipantNickname(campaignId, participantId, nickname) {
       try {
         await CampaignService.updateParticipantNickname(campaignId, participantId, nickname);
@@ -90,9 +87,20 @@ export const useCampaignStore = defineStore('campaign', {
         console.error('Failed to update participant nickname:', error);
         throw error;
       }
-    }
+    },
+
+    // New methods for participant management
+    async searchUsers(query) {
+      try {
+        return await CampaignService.searchUsers(query);
+      } catch (error) {
+        console.error('Failed to search users:', error);
+        throw error;
+      }
+    },
 
   },
+
   getters: {
     getCampaignById: (state) => (id) => state.campaigns.find(campaign => campaign.id === id),
     //Fetch the owner of a campaign based on ID

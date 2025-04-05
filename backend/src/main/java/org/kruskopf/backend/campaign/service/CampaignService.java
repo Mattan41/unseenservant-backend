@@ -136,7 +136,7 @@ public class CampaignService {
         Campaign campaign = findCampaignOrThrow(id);
 
         // control owner
-        if (campaign.isOwnedBy(currentUserId))
+        if (!campaign.isOwnedBy(currentUserId))
             throw new UnauthorizedAccessException("Only the campaign owner can update participants");
 
         // if no participants to add or remove, return the current state
@@ -304,12 +304,12 @@ public class CampaignService {
      */
     @Transactional
     public void createCampaignRaw(Campaign campaign) {
-        // Kontrollera att kampanjen har en ägare
+        // check if campaign has an owner
         if (campaign.getOwner() == null) {
             if (campaign.getParticipants().isEmpty()) {
                 throw new IllegalArgumentException("Campaign must have at least one participant to determine owner");
             }
-            // Välj den första deltagaren som ägare
+            // choose first participant as owner
             User firstParticipant = campaign.getParticipants().getFirst().getUser();
             campaign.setOwner(firstParticipant);
         }
@@ -321,7 +321,7 @@ public class CampaignService {
         Campaign campaign = findCampaignOrThrow(campaignId);
 
         if (!campaign.isOwnedBy(currentUserId) && !currentUserId.equals(participantId)) {
-            throw new UnauthorizedAccessException("Endast ägaren kan uppdatera andra deltagares nickname");
+            throw new UnauthorizedAccessException("Only owner of the campaign is allowed to update other participants nickname");
         }
 
         CampaignUser participant = campaign.getParticipants().stream()

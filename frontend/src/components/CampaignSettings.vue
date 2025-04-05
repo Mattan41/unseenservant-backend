@@ -22,6 +22,11 @@ const isSaving = ref(false);
 const errorMessage = ref('');
 const editingParticipantId = ref(null);
 
+// Search functionality
+const searchTerm = ref('');
+const searchResults = ref([]);
+const isSearching = ref(false);
+
 // Load campaign data before rendering the component
 const loadCampaignData = async () => {
   try {
@@ -55,6 +60,36 @@ const loadUserData = async () => {
 // Load data when the component is mounted and when the campaign ID changes
 loadUserData();
 watch(() => props.campaignId, loadCampaignData, {immediate: true});
+
+// Search for users by username or email
+const searchUsers = async () => {
+  if (!searchTerm.value.trim()) return;
+
+  try {
+    isSearching.value = true;
+    errorMessage.value = '';
+
+    const users = await campaignStore.searchUsers(searchTerm.value);
+
+    // Filter out users who are already participants
+    searchResults.value = users.filter(user =>
+      !campaign.value.participants.some(p => p.id === user.id)
+    );
+    // If no users found, set an error message - display for  3 seconds
+    if (searchResults.value.length === 0) {
+      errorMessage.value = `No users found matching "${searchTerm.value}"`;
+      setTimeout(() => {
+        errorMessage.value = '';
+      }, 3000);
+    }
+
+  } catch (error) {
+    errorMessage.value = error.message || 'Failed to search users';
+    console.error('Search error:', error);
+  } finally {
+    isSearching.value = false;
+  }
+};
 
 
 const startEditingNickname = () => {
@@ -108,13 +143,108 @@ const updateNicknameForParticipant = (participant) => {
   editingParticipantId.value = participant.id;
 };
 
-const toggleRole = (participant) => {
-  // Logic to toggle role between player and GM
-};
+// const toggleRole = async (participant) => {
+//   // Toggle between PLAYER and GM
+//   const newRole = participant.role === 'PLAYER' ? 'GM' : 'PLAYER';
+//
+//   try {
+//     isSaving.value = true;
+//     errorMessage.value = '';
+//
+//     // Create a participant update object
+//     const updatedParticipant = {
+//       ...participant,
+//       role: newRole
+//     };
+//
+//     // Use the updateParticipantRole method (you'll need to create this in campaignStore)
+//     await campaignStore.updateParticipantRole(props.campaignId, participant.id, newRole);
+//
+//     // Update local state
+//     const index = campaign.value.participants.findIndex(p => p.id === participant.id);
+//     if (index !== -1) {
+//       campaign.value.participants[index].role = newRole;
+//     }
+//
+//     emit('participants-updated', 'Role updated successfully');
+//   } catch (error) {
+//     errorMessage.value = error.message || 'Failed to update role';
+//     console.error('Toggle role error:', error);
+//   } finally {
+//     isSaving.value = false;
+//   }
+// };
 
 const addParticipant = () => {
   // Logic to add a new participant to the campaign
 };
+
+
+// const addParticipant = async (user) => {
+//   try {
+//     isSaving.value = true;
+//     errorMessage.value = '';
+//
+//     // Create a participant object to add
+//     const participantToAdd = {
+//       id: user.id,
+//       nickname: user.displayName || user.username,
+//       role: 'PLAYER' // Default role
+//     };
+//
+//     // Use the updateParticipants method in campaignService
+//     const updateDTO = {
+//       participantsToAdd: [participantToAdd],
+//       participantIdsToRemove: null
+//     };
+//
+//     // Call the backend
+//     const updatedCampaign = await campaignStore.updateParticipants(props.campaignId, updateDTO);
+//
+//     // Update local state
+//     campaign.value = updatedCampaign;
+//
+//     // Remove added user from search results
+//     searchResults.value = searchResults.value.filter(u => u.id !== user.id);
+//
+//     emit('participants-updated', 'Participant added successfully');
+//   } catch (error) {
+//     errorMessage.value = error.message || 'Failed to add participant';
+//     console.error('Add participant error:', error);
+//   } finally {
+//     isSaving.value = false;
+//   }
+// };
+
+// const removeParticipant = async (participant) => {
+//   if (!confirm(`Are you sure you want to remove ${participant.nickname || 'this participant'}?`))
+//     return;
+//
+//   try {
+//     isSaving.value = true;
+//     errorMessage.value = '';
+//
+//     // Use the updateParticipants method in campaignService
+//     const updateDTO = {
+//       participantsToAdd: null,
+//       participantIdsToRemove: [participant.id]
+//     };
+//
+//     // Call the backend
+//     const updatedCampaign = await campaignStore.updateParticipants(props.campaignId, updateDTO);
+//
+//     // Update local state
+//     campaign.value = updatedCampaign;
+//
+//     emit('participants-updated', 'Participant removed successfully');
+//   } catch (error) {
+//     errorMessage.value = error.message || 'Failed to remove participant';
+//     console.error('Remove participant error:', error);
+//   } finally {
+//     isSaving.value = false;
+//   }
+// };
+
 
 const removeParticipant = (participant) => {
   // Logic to remove participant from campaign
@@ -130,76 +260,162 @@ const transferOwnership = () => {
 
 </script>
 
-
 <template>
-  <div>
-    <h4>Campaign Settings</h4>
-    <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-    <div>
-      <label class="block text-sm font-medium text-primary-800 mb-1">Update your Nickname</label>
-      <div class="p-2">
+  <div class="bg-primary-200 rounded-lg shadow-md p-4">
+    <h3 class="text-xl font-bold mb-4">Campaign Settings</h3>
+
+    <!-- Error message -->
+    <div v-if="errorMessage" class="error-message bg-red-100 text-red-700 p-3 rounded mb-4">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Non-owner settings -->
+    <div v-if="!isOwner" class="mb-6">
+      <div class="border rounded-lg p-4">
+        <h5 class="font-medium mb-2">Your Nickname in Campaign</h5>
+
         <input
           v-model="nickname"
           type="text"
-          class="bg-primary-50 p-3 rounded flex-grow"
+          class="bg-primary-50 p-3 rounded w-full mb-3"
           :readonly="!isEditingNickname"
           :disabled="isSaving"
           :placeholder="currentUserNickname || 'Enter your nickname'"
           @click="startEditingNickname"
         />
-      </div>
-      <div v-if="isEditingNickname" class="space-y-2">
-        <div class="flex space-x-2">
-          <button @click="saveNickname" class="button button-add" :disabled="isSaving">
+
+        <div v-if="isEditingNickname" class="flex gap-2">
+          <button @click="saveNickname" class="button button-add flex-1" :disabled="isSaving">
             <span v-if="isSaving">Saving...</span>
             <span v-else>Save</span>
           </button>
-          <button @click="cancelEditingNickname" class="button button-primary" :disabled="isSaving">
+          <button @click="cancelEditingNickname" class="button button-primary flex-1"
+                  :disabled="isSaving">
             Cancel
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isOwner">
-      <button class="button button-add" @click="addParticipant">Add Player</button>
-      <button class="button button-remove" @click="deleteCampaign">Delete Campaign</button>
-      <button class="button button-update" @click="transferOwnership">Transfer Ownership</button>
-      <h4>Manage Participants</h4>
-      <ul>
-        <li v-for="participant in campaign?.participants || []" :key="participant.id">
-          <div v-if="editingParticipantId !== participant.id">
-            {{ participant.nickname }} - {{ participant.role }}
-            <button class="button button-update" @click="toggleRole(participant)">Set Role
-              (Player/GM)
-            </button>
-            <button class="button button-remove" @click="removeParticipant(participant)">Remove from
-              campaign
-            </button>
-            <button class="button button-update" @click="updateNicknameForParticipant(participant)">
-              Update Nickname
-            </button>
-          </div>
-          <div v-else>
-            <input
-              v-model="participant.nickname"
-              type="text"
-              class="bg-primary-50 p-3 rounded flex-grow"
-              :disabled="isSaving"
-              placeholder="Enter new nickname"
-            />
-            <button @click="saveParticipantNickname(participant)" class="button button-add"
-                    :disabled="isSaving">
-              <span v-if="isSaving">Saving...</span>
-              <span v-else>Save</span>
-            </button>
-            <button @click="editingParticipantId = null" class="button button-primary"
-                    :disabled="isSaving">
-              Cancel
-            </button>
-          </div>
-        </li>
-      </ul>
+    <!-- Owner-only settings -->
+    <div v-if="isOwner" class="space-y-6">
+      <!-- Add Participants Section -->
+      <div class="border rounded-lg p-4">
+        <h4 class="text-lg font-semibold mb-3">Add Participants</h4>
+
+        <div class="flex flex-col sm:flex-row gap-2 mb-4">
+          <input
+            v-model="searchTerm"
+            type="text"
+            class="bg-primary-50 p-3 rounded flex-grow"
+            placeholder="username or email"
+            @keyup.enter="searchUsers"
+          />
+
+          <button @click="searchUsers" class="button button-primary" :disabled="isSearching">
+            <span v-if="isSearching">Searching...</span>
+            <span v-else>Search</span>
+          </button>
+        </div>
+
+        <!-- Search results -->
+        <div v-if="searchResults.length" class="mt-3 border-t pt-3">
+          <h5 class="font-medium mb-2">Search Results</h5>
+
+          <ul class="divide-y divide-gray-200">
+            <li v-for="user in searchResults" :key="user.id"
+                class="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div class="mb-2 sm:mb-0">
+                <div class="font-medium">{{ user.displayName || user.username }}</div>
+                <div class="text-sm text-gray-500">{{ user.email }}</div>
+              </div>
+
+              <button @click="addParticipant(user)" class="button button-add self-end sm:self-auto"
+                      :disabled="isSaving">
+                Add to Campaign
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Manage Participants Section -->
+      <div class="border rounded-lg p-4">
+        <h4 class="text-lg font-semibold mb-3">Manage Participants</h4>
+
+        <ul class="space-y-4">
+          <li v-for="participant in campaign?.participants || []"
+              :key="participant.id"
+              class="border rounded p-3">
+
+            <!-- View mode -->
+            <div v-if="editingParticipantId !== participant.id" class="space-y-3">
+              <!-- Participant info -->
+              <div class="flex justify-between items-center">
+                <div class="font-medium">{{ participant.nickname }}</div>
+                <div class="px-2 py-1 bg-primary-300 rounded text-sm">{{ participant.role }}</div>
+              </div>
+
+              <!-- Action buttons -->
+              <div class="flex flex-wrap gap-2">
+                <button class="button button-update text-sm py-1"
+                        @click="toggleRole(participant)">
+                  Change Role
+                </button>
+                <button class="button button-update text-sm py-1"
+                        @click="updateNicknameForParticipant(participant)">
+                  Edit Nickname
+                </button>
+                <button class="button button-remove text-sm py-1"
+                        @click="removeParticipant(participant)">
+                  Remove
+                </button>
+              </div>
+            </div>
+
+            <!-- Edit nickname mode -->
+            <div v-else class="space-y-3">
+              <input
+                v-model="participant.nickname"
+                type="text"
+                class="bg-primary-50 p-2 rounded w-full"
+                :disabled="isSaving"
+                placeholder="Enter new nickname"
+              />
+
+              <div class="flex gap-2">
+                <button @click="saveParticipantNickname(participant)"
+                        class="button button-add text-sm py-1 flex-1"
+                        :disabled="isSaving">
+                  <span v-if="isSaving">Saving...</span>
+                  <span v-else>Save</span>
+                </button>
+                <button @click="editingParticipantId = null"
+                        class="button button-primary text-sm py-1 flex-1"
+                        :disabled="isSaving">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </li>
+        </ul>
+
+        <div v-if="(campaign?.participants || []).length === 0"
+             class="text-center py-3 text-gray-500">
+          No participants in this campaign yet.
+        </div>
+      </div>
+
+      <!-- Campaign Management Buttons -->
+      <div class="border rounded-lg p-4">
+        <h4 class="text-lg font-semibold mb-3">Campaign Management</h4>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button class="button button-update" @click="transferOwnership">Transfer Ownership
+          </button>
+          <button class="button button-remove" @click="deleteCampaign">Delete Campaign</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

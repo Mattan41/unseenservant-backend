@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,6 +23,17 @@ public class UserController {
     public UserController(UserService userService) {
         this.userService = userService;
     }
+
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDTO>> searchUsers(
+            @RequestParam String query,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long currentUserId = customUserDetails.user().getId();
+        List<UserDTO> users = userService.searchUsers(query, currentUserId);
+        return ResponseEntity.ok(users);
+    }
+
 
     @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/me")
