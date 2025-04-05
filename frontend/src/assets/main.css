@@ -1,7 +1,10 @@
 @import './base.css';
 
 @theme {
+
     /* Custom colors */
+    /* primary colors Grey */
+    --color-primary: #7A7A7A;
     --color-primary-50: #F5F5F5;
     --color-primary-100: #E0E0E0;
     --color-primary-200: #CCCCCC;
@@ -13,11 +16,23 @@
     --color-primary-800: #525252;
     --color-primary-900: #3D3D3D;
 
-    /* Red colors */
-    --color-secondary: #820000;
-    --color-secondary-highlight: #4E0808;
+    /* Yellow colors */
+    --color-secondary: #FFA500;
+    --color-secondary-50: #FFF8E1;
+    --color-secondary-100: #FFECB3;
+    --color-secondary-200: #FFE082;
+    --color-secondary-300: #FFD54F;
+    --color-secondary-400: #FFCA28;
+    --color-secondary-500: #FFC107;
+    --color-secondary-600: #FFB300;
+    --color-secondary-700: #FFA000;
+    --color-secondary-800: #FF8F00;
+    --color-secondary-900: #FF6F00;
 
-    /* Grey colors */
+
+
+    /* BlueGrey colors */
+    --color-third: #374151;
     --color-third-50: #F9FAFB;
     --color-third-100: #F3F4F6;
     --color-third-200: #E5E7EB;
@@ -60,30 +75,50 @@ h4 {
 
 /* Base button styles */
 .button {
-    @apply ml-1.5 px-2 py-1 mt-2 sm:mt-0 text-sm rounded font-semibold text-center cursor-pointer transition duration-300 ease-in-out;
+    /* Margin and padding */
+    @apply ml-1.5 mt-2 sm:mt-0 px-2 py-1;
+
+    /* Text and font */
+    @apply text-sm font-semibold text-center;
+
+    /* Appearance */
+    @apply rounded cursor-pointer;
+
+    /* Transition */
+    @apply transition duration-300 ease-in-out;
+
+    /* Focus styles */
+    @apply focus:outline-none focus:ring-2;
 }
+
 /* Primary button (light gray) */
 .button-primary {
-    @apply bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500;
+    @apply bg-primary-500 text-primary-100 hover:bg-primary-600 focus:ring-primary-500;
 }
 
 /* Secondary button (gray) */
 .button-secondary {
-    @apply bg-gray-300 text-black hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300;
+    @apply bg-gray-300 text-black hover:bg-gray-400 focus:ring-gray-300;
 }
 
-/* save button */
+/* Save button */
 .button-add {
-    @apply bg-green-800 text-gray-100 hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-900;
+    @apply bg-green-800 text-gray-100 hover:bg-green-900 focus:ring-green-900;
+}
+
+/* Update button */
+.button-update {
+    @apply bg-yellow-600 text-gray-200 hover:bg-yellow-700 focus:ring-red-100;
 }
 
 /* Delete button (red) */
 .button-remove {
-    @apply bg-secondary text-gray-200 hover:bg-secondary-highlight focus:outline-none focus:ring-2 focus:ring-secondary;
+    @apply bg-red-900 text-gray-200 hover:bg-red-950 focus:ring-secondary;
 }
 
+/* Retry button (orange) */
 .button-retry {
-    @apply text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 px-4 py-2 rounded;
+    @apply bg-orange-500 text-gray-200 hover:bg-orange-600 focus:ring-orange-500;
 }
 
 

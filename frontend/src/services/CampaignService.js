@@ -17,6 +17,21 @@ const CampaignService = {
     const response = await axios.get(`api/campaigns/${id}`);
     return response.data;
   },
+
+  async updateCampaignField(campaignId, field, value) {
+    const response = await axios.patch(`api/campaigns/${campaignId}`, {field, value});
+    return response.data;
+  },
+
+  async updateParticipantNickname(campaignId, participantId, nickname) {
+    const response = await axios.patch(`api/campaigns/${campaignId}/participants/${participantId}/nickname`, nickname, {
+      headers: {
+        'Content-Type': 'text/plain'
+      }
+    });
+    return response.data;
+  }
+
 };
 
 export default CampaignService;

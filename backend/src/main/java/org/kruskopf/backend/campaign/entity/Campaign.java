@@ -133,6 +133,6 @@ public class Campaign {
 
     @Transient
     public boolean isOwnedBy(Long userId) {
-        return owner == null || !owner.getId().equals(userId);
+        return owner != null && owner.getId().equals(userId);
     }
 }

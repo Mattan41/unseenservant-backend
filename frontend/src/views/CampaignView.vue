@@ -55,6 +55,11 @@ const isCharactersListVisible = ref(false);
 const toggleCharactersList = () => {
   isCharactersListVisible.value = !isCharactersListVisible.value;
 };
+
+// Listen for the participants-updated event
+const handleParticipantsUpdated = () => {
+  loadCampaignData();
+};
 </script>
 
 <template>
@@ -125,7 +130,8 @@ const toggleCharactersList = () => {
         </div>
         <div class="flex items-center space-x-2">
           <div v-if="showSettings">
-            <CampaignSettings v-if="showSettings" :campaignId="String(campaign.id)"/>
+            <CampaignSettings v-if="showSettings" :campaignId="String(campaign.id)"
+                              @participants-updated="handleParticipantsUpdated"/>
           </div>
         </div>
 

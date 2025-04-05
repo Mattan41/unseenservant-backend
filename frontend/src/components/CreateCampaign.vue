@@ -29,7 +29,7 @@
             Cancel
           </button>
         </form>
-        <div v-if="errorMessage" class="text-secondary text-sm">{{ errorMessage }}</div>
+        <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
       </div>
     </div>
   </div>

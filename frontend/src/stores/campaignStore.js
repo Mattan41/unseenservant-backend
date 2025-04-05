@@ -69,12 +69,33 @@ export const useCampaignStore = defineStore('campaign', {
       } finally {
         this.isLoading = false;
       }
+    },
+
+    // this fuction is used to update a field in the campaign object
+    async updateCampaignField(campaignId, field, value) {
+      console.log('Updating campaign field:', campaignId, field, value);
+      try {
+        await CampaignService.updateCampaignField(campaignId, field, value);
+      } catch (error) {
+        console.error('Failed to update campaign field:', error);
+        throw error;
+      }
+    },
+
+
+    async updateParticipantNickname(campaignId, participantId, nickname) {
+      try {
+        await CampaignService.updateParticipantNickname(campaignId, participantId, nickname);
+      } catch (error) {
+        console.error('Failed to update participant nickname:', error);
+        throw error;
+      }
     }
 
   },
   getters: {
     getCampaignById: (state) => (id) => state.campaigns.find(campaign => campaign.id === id),
-    // Hämtar ägaren av en kampanj baserat på ID
+    //Fetch the owner of a campaign based on ID
     ownerId: (state) => (id) => {
       const campaign = state.campaigns.find(c => c.id === id);
       return campaign ? campaign.ownerId : null;

@@ -120,7 +120,7 @@ public class CampaignService {
         Campaign campaign = findCampaignOrThrow(id);
 
         if (campaign.isOwnedBy(currentUserId)) {
-            throw new UnauthorizedAccessException("Only the campaign owner can delete the campaign");
+            throw new UnauthorizedAccessException("Only the campaign owner can update the campaign");
         }
 
 
@@ -135,7 +135,7 @@ public class CampaignService {
     public CampaignResponseDTO updateParticipants(Long id, UpdateParticipantsDTO updateDTO, Long currentUserId) {
         Campaign campaign = findCampaignOrThrow(id);
 
-        // Kontrollera ägarskap
+        // control owner
         if (campaign.isOwnedBy(currentUserId))
             throw new UnauthorizedAccessException("Only the campaign owner can update participants");
 
@@ -316,4 +316,22 @@ public class CampaignService {
         campaignRepository.save(campaign);
     }
 
+    @Transactional
+    public CampaignResponseDTO updateParticipantNickname(Long campaignId, Long participantId, String nickname, Long currentUserId) {
+        Campaign campaign = findCampaignOrThrow(campaignId);
+
+        if (!campaign.isOwnedBy(currentUserId) && !currentUserId.equals(participantId)) {
+            throw new UnauthorizedAccessException("Endast ägaren kan uppdatera andra deltagares nickname");
+        }
+
+        CampaignUser participant = campaign.getParticipants().stream()
+                .filter(p -> p.getUser().getId().equals(participantId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Deltagare inte hittad med id: " + participantId));
+
+        participant.setNickname(nickname);
+        campaignRepository.save(campaign);
+
+        return mapToResponseDTO(campaign);
+    }
 }

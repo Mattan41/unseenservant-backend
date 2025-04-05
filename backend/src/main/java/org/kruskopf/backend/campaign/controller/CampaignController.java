@@ -84,6 +84,17 @@ public class CampaignController {
         return ResponseEntity.ok(updatedCampaign);
     }
 
+    @PatchMapping("/{id}/participants/{participantId}/nickname")
+    public ResponseEntity<CampaignResponseDTO> updateParticipantNickname(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long id,
+            @PathVariable Long participantId,
+            @RequestBody String nickname) {
+        Long userId = customUserDetails.user().getId();
+        CampaignResponseDTO updatedCampaign = campaignService.updateParticipantNickname(id, participantId, nickname, userId);
+        return ResponseEntity.ok(updatedCampaign);
+    }
+
     @PatchMapping("/{id}/owner")
     public ResponseEntity<CampaignResponseDTO> transferOwnership(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,

@@ -11,7 +11,7 @@ const username = computed(() => userStore.getDisplayName);
 <template>
   <main>
     <section class="text-center">
-      <h1 class="text-4xl font-bold">Unseen Servant</h1>
+      <h1>Unseen Servant</h1>
       <p class="text-lg">A service that does not get in your way</p>
       <Hello v-if="username" :msg="username"/>
     </section>
