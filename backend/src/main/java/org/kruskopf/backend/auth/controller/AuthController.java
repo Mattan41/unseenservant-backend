@@ -52,6 +52,7 @@ public class AuthController {
         return ResponseEntity.ok(authDTO);
     }
 
+    // todo: remove theese endpoints below, they were used with form login which is not used anymore
     @GetMapping("/login")
     public ResponseEntity<Map<String, String>> loggedInUserData(@AuthenticationPrincipal OidcUser oidcUser, Authentication authentication) {
         if (authentication == null) {
@@ -84,7 +85,7 @@ public class AuthController {
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Login successful");
-        response.put("id", String.valueOf(user.getId())); // Lägg till användarens ID
+        response.put("id", String.valueOf(user.getId()));
         response.put("username", user.getUserName());
         response.put("email", user.getEmail());
         response.put("role", user.getRole().name());

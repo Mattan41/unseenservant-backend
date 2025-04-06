@@ -63,7 +63,7 @@ public class CampaignController {
         return ResponseEntity.ok(campaignResponse);
     }
 
-
+    // todo: remove this endpoint, it is not used as the whole campaign never gets updated
     @PutMapping("/{id}")
     public ResponseEntity<CampaignResponseDTO> updateCampaign(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,

@@ -21,7 +21,6 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    // @Transactional(readOnly = true) ?? or does dto solve this?
     public List<UserDTO> searchUsers(String query, Long currentUserId) {
         List<User> users = userRepository.findByUserNameContainingOrEmailContainingOrFullNameContaining(
                 query, query, query);
@@ -31,7 +30,6 @@ public class UserService {
                 .map(UserDTO::fromUser)
                 .toList();
     }
-
 
     public User save(User user) {
         return userRepository.save(user);
@@ -74,7 +72,7 @@ public class UserService {
 
         User user = existingUserOpt.get();
 
-        // update the fields based on input // todo review fields here - which should user be able to update? and how to solve Admin has more rights? preauthorize?
+        // update the fields based on input // todo review the fields here - which should user be able to update? and how to solve Admin has more rights? preauthorize? use different methods?
         updates.forEach((key, value) -> {
             switch (key) {
                 case "userName" -> user.setUserName((String) value);

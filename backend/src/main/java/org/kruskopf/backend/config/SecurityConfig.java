@@ -47,7 +47,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-                //.csrf(AbstractHttpConfigurer::disable) // Disable CSRF protection for testing with postman
+                //.csrf(AbstractHttpConfigurer::disable) // Disable CSRF protection if needed for manual testing todo: remove this line
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
@@ -58,7 +58,7 @@ public class SecurityConfig {
                     auth.requestMatchers("/api/auth/**", "/api/auth/login").permitAll();
                     auth.requestMatchers("/api/auth/me").authenticated();
                     auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**").authenticated();
-                    // auth.anyRequest().permitAll(); // switch for postman testing
+                    // auth.anyRequest().permitAll(); // switch for postman testing without need for authentication todo: remove this line
                     auth.anyRequest().denyAll();
 
                 }).exceptionHandling(exceptionHandling ->
@@ -97,7 +97,7 @@ public class SecurityConfig {
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true)
-                        .exposedHeaders("Set-Cookie"); // possibly remove the x-xsrf-token if it is not needed
+                        .exposedHeaders("Set-Cookie");
             }
         };
     }

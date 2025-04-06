@@ -18,5 +18,4 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
     }
 
-    // Hantera andra exception här...
 }
