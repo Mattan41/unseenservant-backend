@@ -74,6 +74,7 @@ public class CampaignController {
         return ResponseEntity.ok(updatedCampaign);
     }
 
+    // participants management
     @PatchMapping("/{id}/participants")
     public ResponseEntity<CampaignResponseDTO> updateParticipants(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
@@ -95,6 +96,19 @@ public class CampaignController {
         return ResponseEntity.ok(updatedCampaign);
     }
 
+    @PatchMapping("/{id}/participants/{participantId}/role")
+    public ResponseEntity<CampaignResponseDTO> updateParticipantRole(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long id,
+            @PathVariable Long participantId,
+            @RequestBody String role) {
+        Long userId = customUserDetails.user().getId();
+        CampaignResponseDTO updatedCampaign = campaignService.updateParticipantRole(id, participantId, role, userId);
+        return ResponseEntity.ok(updatedCampaign);
+    }
+
+
+    //campaign management
     @PatchMapping("/{id}/owner")
     public ResponseEntity<CampaignResponseDTO> transferOwnership(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,

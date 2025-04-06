@@ -21,6 +21,7 @@ const isEditingNickname = ref(false);
 const isSaving = ref(false);
 const errorMessage = ref('');
 const editingParticipantId = ref(null);
+const updatingRoles = ref(new Set());
 
 // Search functionality
 const searchTerm = ref('');
@@ -91,12 +92,11 @@ const searchUsers = async () => {
   }
 };
 
-
+// nickname editing functions
 const startEditingNickname = () => {
   isEditingNickname.value = true;
   errorMessage.value = '';
 };
-
 const cancelEditingNickname = () => {
   isEditingNickname.value = false;
   nickname.value = campaign.value.nickname;
@@ -125,7 +125,7 @@ const saveParticipantNickname = async (participant) => {
     isSaving.value = false;
   }
 };
-
+// Function to save the current user's nickname
 const saveNickname = async () => {
   const participant = {
     id: userStore.userInfo.id,
@@ -138,125 +138,89 @@ const saveNickname = async () => {
     errorMessage.value = error.message || 'Failed to update nickname';
   }
 };
-
 const updateNicknameForParticipant = (participant) => {
   editingParticipantId.value = participant.id;
 };
 
-// const toggleRole = async (participant) => {
-//   // Toggle between PLAYER and GM
-//   const newRole = participant.role === 'PLAYER' ? 'GM' : 'PLAYER';
-//
-//   try {
-//     isSaving.value = true;
-//     errorMessage.value = '';
-//
-//     // Create a participant update object
-//     const updatedParticipant = {
-//       ...participant,
-//       role: newRole
-//     };
-//
-//     // Use the updateParticipantRole method (you'll need to create this in campaignStore)
-//     await campaignStore.updateParticipantRole(props.campaignId, participant.id, newRole);
-//
-//     // Update local state
-//     const index = campaign.value.participants.findIndex(p => p.id === participant.id);
-//     if (index !== -1) {
-//       campaign.value.participants[index].role = newRole;
-//     }
-//
-//     emit('participants-updated', 'Role updated successfully');
-//   } catch (error) {
-//     errorMessage.value = error.message || 'Failed to update role';
-//     console.error('Toggle role error:', error);
-//   } finally {
-//     isSaving.value = false;
-//   }
-// };
+const addParticipant = async (user) => {
 
-const addParticipant = () => {
-  // Logic to add a new participant to the campaign
+  try {
+    // Convert campaignId to number if needed
+    const campaignIdNum = Number(props.campaignId);
+
+    // call the store method to add the participant
+    await campaignStore.addParticipantsToCampaign(
+      campaignIdNum,
+      [
+        {id: user, nickname: user.username, role: 'PLAYER'}]
+    );
+
+    // remove the added user from the search results
+    searchResults.value = searchResults.value.filter(u => u.id !== user.id);
+
+    emit('participants-updated', `Participant ${user.displayName || user.username} added successfully!`);
+
+
+  } catch (error) {
+    errorMessage.value = error.message || 'Failed to add participant';
+    console.error('Failed to add participant:', error);
+  }
+
 };
 
+const removeParticipant = async (participant) => {
+  if (!confirm(`Are you sure you want to remove ${participant.nickname || 'this participant'}?`))
+    return;
+  try {
+    // Convert campaignId to number if needed
+    const campaignIdNum = Number(props.campaignId);
 
-// const addParticipant = async (user) => {
-//   try {
-//     isSaving.value = true;
-//     errorMessage.value = '';
-//
-//     // Create a participant object to add
-//     const participantToAdd = {
-//       id: user.id,
-//       nickname: user.displayName || user.username,
-//       role: 'PLAYER' // Default role
-//     };
-//
-//     // Use the updateParticipants method in campaignService
-//     const updateDTO = {
-//       participantsToAdd: [participantToAdd],
-//       participantIdsToRemove: null
-//     };
-//
-//     // Call the backend
-//     const updatedCampaign = await campaignStore.updateParticipants(props.campaignId, updateDTO);
-//
-//     // Update local state
-//     campaign.value = updatedCampaign;
-//
-//     // Remove added user from search results
-//     searchResults.value = searchResults.value.filter(u => u.id !== user.id);
-//
-//     emit('participants-updated', 'Participant added successfully');
-//   } catch (error) {
-//     errorMessage.value = error.message || 'Failed to add participant';
-//     console.error('Add participant error:', error);
-//   } finally {
-//     isSaving.value = false;
-//   }
-// };
+    await campaignStore.removeParticipantsFromCampaign(
+      campaignIdNum,
+      [participant.id]
+    );
+    emit('participants-updated', `Participant ${participant.nickname || participant.displayName || participant.username || participant.name} removed successfully!`);
 
-// const removeParticipant = async (participant) => {
-//   if (!confirm(`Are you sure you want to remove ${participant.nickname || 'this participant'}?`))
-//     return;
-//
-//   try {
-//     isSaving.value = true;
-//     errorMessage.value = '';
-//
-//     // Use the updateParticipants method in campaignService
-//     const updateDTO = {
-//       participantsToAdd: null,
-//       participantIdsToRemove: [participant.id]
-//     };
-//
-//     // Call the backend
-//     const updatedCampaign = await campaignStore.updateParticipants(props.campaignId, updateDTO);
-//
-//     // Update local state
-//     campaign.value = updatedCampaign;
-//
-//     emit('participants-updated', 'Participant removed successfully');
-//   } catch (error) {
-//     errorMessage.value = error.message || 'Failed to remove participant';
-//     console.error('Remove participant error:', error);
-//   } finally {
-//     isSaving.value = false;
-//   }
-// };
-
-
-const removeParticipant = (participant) => {
-  // Logic to remove participant from campaign
+  } catch (error) {
+    errorMessage.value = error.message || 'Failed to remove participant';
+    console.error('Failed to remove participant:', error);
+  }
 };
+
+const toggleRole = async (participant) => {
+
+  try {
+    // set a participant as updating
+    updatingRoles.value.add(participant.id);
+
+    const newRole = participant.role === 'PLAYER' ? 'GM' : 'PLAYER';
+
+    // call the store method to update the participant's role
+    await campaignStore.updateParticipantRole(
+      props.campaignId,
+      participant.id,
+      newRole
+    );
+
+    emit('participants-updated', `${participant.nickname || participant.displayName || participant.username || participant.name} updated to ${newRole}`);
+  } catch (error) {
+    errorMessage.value = error.message || `Failed to update role for ${participant.displayName || participant.username}`;
+    console.error('Failed to toggle role:', error);
+  } finally {
+    updatingRoles.value.delete(participant.id);
+  }
+};
+
 
 const deleteCampaign = () => {
-  // Logic to delete the campaign
+  // todo: add Logic to delete the campaign
 };
 
 const transferOwnership = () => {
-  // Logic to transfer ownership of the campaign
+  // todo: add Logic to transfer ownership of the campaign
 };
+// todo: edit the name and description of the campaign
+// todo: add possibility to add picture to the campaign, and use a generic picture if it is not set
 
 </script>
 
@@ -329,8 +293,9 @@ const transferOwnership = () => {
                 <div class="font-medium">{{ user.displayName || user.username }}</div>
                 <div class="text-sm text-gray-500">{{ user.email }}</div>
               </div>
-
-              <button @click="addParticipant(user)" class="button button-add self-end sm:self-auto"
+              <!--             todo: can we have a checkbox here instead of button? and add all selected users with a button -->
+              <button @click="addParticipant(user.id)"
+                      class="button button-add self-end sm:self-auto"
                       :disabled="isSaving">
                 Add to Campaign
               </button>
@@ -360,7 +325,7 @@ const transferOwnership = () => {
               <div class="flex flex-wrap gap-2">
                 <button class="button button-update text-sm py-1"
                         @click="toggleRole(participant)">
-                  Change Role
+                  change to {{ participant.role === 'PLAYER' ? 'GM' : 'PLAYER' }}
                 </button>
                 <button class="button button-update text-sm py-1"
                         @click="updateNicknameForParticipant(participant)">
@@ -421,5 +386,4 @@ const transferOwnership = () => {
 </template>
 
 <style scoped>
-/* Add your styles here */
 </style>

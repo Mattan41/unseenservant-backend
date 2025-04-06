@@ -69,13 +69,34 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
-    // Update a field in the campaign object - can we use this to add participants? remove participants? edit roles?
+    // not used? remove?
     async updateCampaignField(campaignId, field, value) {
       console.log('Updating campaign field:', campaignId, field, value);
       try {
         await CampaignService.updateCampaignField(campaignId, field, value);
       } catch (error) {
         console.error('Failed to update campaign field:', error);
+        throw error;
+      }
+    },
+
+    // i Campaign Store
+    async addParticipantsToCampaign(campaignId, participantsToAdd) {
+      console.log('Adding participants to campaign:', campaignId, participantsToAdd);
+      try {
+        return await CampaignService.addParticipants(campaignId, participantsToAdd);
+      } catch (error) {
+        console.error('Failed to add participants to campaign:', error);
+        throw error;
+      }
+    },
+
+    async removeParticipantsFromCampaign(campaignId, participantIdsToRemove) {
+      console.log('Removing participants from campaign:', campaignId, participantIdsToRemove);
+      try {
+        return await CampaignService.removeParticipants(campaignId, participantIdsToRemove);
+      } catch (error) {
+        console.error('Failed to remove participants from campaign:', error);
         throw error;
       }
     },
@@ -95,6 +116,15 @@ export const useCampaignStore = defineStore('campaign', {
         return await CampaignService.searchUsers(query);
       } catch (error) {
         console.error('Failed to search users:', error);
+        throw error;
+      }
+    },
+
+    async updateParticipantRole(campaignId, participantId, role) {
+      try {
+        return await CampaignService.updateParticipantRole(campaignId, participantId, role);
+      } catch (error) {
+        console.error('Failed to update participant role:', error);
         throw error;
       }
     },

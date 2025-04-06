@@ -27,20 +27,38 @@ const CampaignService = {
     return response.data;
   },
 
-  // can we use this to update the campaign name and description? add and remove participants? update roles?
+  // remove this method if not used
   async updateCampaignField(campaignId, field, value) {
     const response = await axios.patch(`api/campaigns/${campaignId}`, {field, value});
     return response.data;
   },
 
-  async updateParticipantNickname(campaignId, participantId, nickname) {
-    const response = await axios.patch(`api/campaigns/${campaignId}/participants/${participantId}/nickname`, nickname, {
-      headers: {
-        'Content-Type': 'text/plain'
-      }
+  async addParticipants(campaignId, participantsToAdd) {
+    const response = await axios.patch(`api/campaigns/${campaignId}/participants`, {
+      participantsToAdd: participantsToAdd,
+      participantIdsToRemove: []
     });
     return response.data;
   },
+
+  async removeParticipants(campaignId, participantIdsToRemove) {
+    const response = await axios.patch(`api/campaigns/${campaignId}/participants`, {
+      participantsToAdd: [],
+      participantIdsToRemove: participantIdsToRemove
+    });
+    return response.data;
+  },
+
+  async updateParticipantNickname(campaignId, participantId, nickname) {
+    const response = await axios.patch(`api/campaigns/${campaignId}/participants/${participantId}/nickname`, nickname, {
+    });
+    return response.data;
+  },
+
+  async updateParticipantRole(campaignId, participantId, role) {
+    const response = await axios.patch(`api/campaigns/${campaignId}/participants/${participantId}/role`, role, {});
+    return response.data;
+  }
 
 };
 

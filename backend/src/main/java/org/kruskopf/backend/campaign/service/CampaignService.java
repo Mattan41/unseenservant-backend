@@ -131,9 +131,10 @@ public class CampaignService {
         return mapToResponseDTO(savedCampaign);
     }
 
+    // participants management
     @Transactional
-    public CampaignResponseDTO updateParticipants(Long id, UpdateParticipantsDTO updateDTO, Long currentUserId) {
-        Campaign campaign = findCampaignOrThrow(id);
+    public CampaignResponseDTO updateParticipants(Long campaignId, UpdateParticipantsDTO updateDTO, Long currentUserId) {
+        Campaign campaign = findCampaignOrThrow(campaignId);
 
         // control owner
         if (!campaign.isOwnedBy(currentUserId))
@@ -182,7 +183,6 @@ public class CampaignService {
         // Remove participants
         if (updateDTO.participantIdsToRemove() != null && !updateDTO.participantIdsToRemove().isEmpty()) {
             // Verify that all participant IDs to remove are actually participants in the campaign
-            // todo: add check that we dont remove owner. also add owner of campaign
             List<Long> nonExistingIds = updateDTO.participantIdsToRemove().stream()
                     .filter(participantId -> campaign.getParticipants().stream()
                             .noneMatch(p -> p.getUser().getId().equals(participantId)))
@@ -203,6 +203,54 @@ public class CampaignService {
         return mapToResponseDTO(savedCampaign);
     }
 
+    @Transactional
+    public CampaignResponseDTO updateParticipantNickname(Long campaignId, Long participantId, String nickname, Long currentUserId) {
+        Campaign campaign = findCampaignOrThrow(campaignId);
+
+        if (!campaign.isOwnedBy(currentUserId) && !currentUserId.equals(participantId)) {
+            throw new UnauthorizedAccessException("Only owner of the campaign is allowed to update other participants nickname");
+        }
+
+        CampaignUser participant = campaign.getParticipants().stream()
+                .filter(p -> p.getUser().getId().equals(participantId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Deltagare inte hittad med id: " + participantId));
+
+        participant.setNickname(nickname);
+        campaignRepository.save(campaign);
+
+        return mapToResponseDTO(campaign);
+    }
+
+    @Transactional
+    public CampaignResponseDTO updateParticipantRole(Long campaignId, Long participantId, String roleString, Long currentUserId) {
+        Campaign campaign = findCampaignOrThrow(campaignId);
+
+        // Only the owner can change participant roles
+        if (!campaign.isOwnedBy(currentUserId)) {
+            throw new UnauthorizedAccessException("Only the campaign owner can change participant roles");
+        }
+
+        // convert string to enum
+        CampaignRole role;
+        try {
+            role = CampaignRole.valueOf(roleString);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid role: " + roleString + ". Valid roles are PLAYER and GM.");
+        }
+
+        CampaignUser participant = campaign.getParticipants().stream()
+                .filter(p -> p.getUser().getId().equals(participantId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Participant not found with id: " + participantId));
+
+        participant.setRole(role);
+        campaignRepository.save(campaign);
+
+        return mapToResponseDTO(campaign);
+    }
+
+    // campaign management
     @Transactional
     public CampaignResponseDTO transferOwnership(Long campaignId, Long newOwnerId, Long currentUserId) {
         Campaign campaign = findCampaignOrThrow(campaignId);
@@ -230,7 +278,6 @@ public class CampaignService {
 
         return mapToResponseDTO(savedCampaign);
     }
-
 
     @Transactional
     public void deleteCampaign(Long id, Long currentUserId) {
@@ -316,22 +363,5 @@ public class CampaignService {
         campaignRepository.save(campaign);
     }
 
-    @Transactional
-    public CampaignResponseDTO updateParticipantNickname(Long campaignId, Long participantId, String nickname, Long currentUserId) {
-        Campaign campaign = findCampaignOrThrow(campaignId);
 
-        if (!campaign.isOwnedBy(currentUserId) && !currentUserId.equals(participantId)) {
-            throw new UnauthorizedAccessException("Only owner of the campaign is allowed to update other participants nickname");
-        }
-
-        CampaignUser participant = campaign.getParticipants().stream()
-                .filter(p -> p.getUser().getId().equals(participantId))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Deltagare inte hittad med id: " + participantId));
-
-        participant.setNickname(nickname);
-        campaignRepository.save(campaign);
-
-        return mapToResponseDTO(campaign);
-    }
 }
