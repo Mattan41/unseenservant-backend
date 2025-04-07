@@ -69,16 +69,16 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
-    // use this method to update a campaign field, such as name, description, etc.
-    async updateCampaignField(campaignId, field, value) {
-      console.log('Updating campaign field:', campaignId, field, value);
-      try {
-        await CampaignService.updateCampaignField(campaignId, field, value);
-      } catch (error) {
-        console.error('Failed to update campaign field:', error);
-        throw error;
-      }
-    },
+    // todo: remove this method, and instead use updateCampaignInfo and updateCampaignImage
+    // async updateCampaignField(campaignId, field, value) {
+    //   console.log('Updating campaign field:', campaignId, field, value);
+    //   try {
+    //     await CampaignService.updateCampaignField(campaignId, field, value);
+    //   } catch (error) {
+    //     console.error('Failed to update campaign field:', error);
+    //     throw error;
+    //   }
+    // },
 
     async updateCampaignInfo(campaignId, campaignData) {
       try {
@@ -88,6 +88,41 @@ export const useCampaignStore = defineStore('campaign', {
         throw error;
       }
     },
+
+    async updateCampaignImage(campaignId, imageUrl) {
+      console.log('Updating campaign image:', campaignId, imageUrl);
+      try {
+        return await CampaignService.updateCampaignImage(campaignId, imageUrl);
+      } catch (error) {
+        console.error('Failed to update campaign image:', error);
+        throw error;
+      }
+    },
+
+    // delete the campaign
+    async deleteCampaign(campaignId) {
+      console.log('Deleting campaign:', campaignId);
+      try {
+        await CampaignService.deleteCampaign(campaignId);
+        this.campaigns = this.campaigns.filter(campaign => campaign.id !== campaignId);
+      } catch (error) {
+        console.error('Failed to delete campaign:', error);
+        throw error;
+      }
+    },
+
+    // transfer ownership of the campaign todo: implement this
+    async transferCampaignOwnership(campaignId, newOwnerId) {
+      console.log('Transferring campaign ownership:', campaignId, newOwnerId);
+      try {
+        await CampaignService.transferCampaignOwnership(campaignId, newOwnerId);
+        await this.fetchAllCampaignsForCurrentUser();
+      } catch (error) {
+        console.error('Failed to transfer campaign ownership:', error);
+        throw error;
+      }
+    },
+
 
     // manage participants in a campaign
     async addParticipantsToCampaign(campaignId, participantsToAdd) {

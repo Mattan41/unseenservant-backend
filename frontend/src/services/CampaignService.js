@@ -27,44 +27,28 @@ const CampaignService = {
     return response.data;
   },
 
-  //use this method to update a campaign field, such as name, description, etc.
-  // async updateCampaignField(campaignId, field, value) {
-  //   const response = await axios.patch(`api/campaigns/${campaignId}`, {field,value});
-  //   return response.data;
-  // },
 
-  // use this method to update the campaign name and description together
+  // this method updates the campaign name and description together
   async updateCampaignInfo(campaignId, {name, description}) {
     const response = await axios.put(`api/campaigns/${campaignId}`, {name, description});
     return response.data;
   },
 
-  // for updating a single field, such as name, description, etc.
-  async updateCampaignField(campaignId, field, value) {
-    const payload = {};
-    payload[field] = value;
-    const response = await axios.patch(`api/campaigns/${campaignId}`, payload);
-    return response.data;
-  },
-
-// images
-  async uploadCampaignImage(campaignId, imageFile) {
-    const formData = new FormData();
-    formData.append('image', imageFile);
-    const response = await axios.patch(`api/campaigns/${campaignId}/image`, formData, {
-      headers: {'Content-Type': 'multipart/form-data'}
-    });
-    return response.data;
-  },
+  // for updating a single field, such as name, description, etc. TODO remove this method
+  // async updateCampaignField(campaignId, field, value) {
+  //   const payload = {};
+  //   payload[field] = value;
+  //   const response = await axios.patch(`api/campaigns/${campaignId}`, payload);
+  //   return response.data;
+  // },
 
   // Image url
   async updateCampaignImage(campaignId, imageUrl) {
     const response = await axios.patch(`/api/campaigns/${campaignId}/image`,
-      {imageUrl}
+      {imageUrl}, {}
     );
     return response.data;
   },
-
 
   async addParticipants(campaignId, participantsToAdd) {
     const response = await axios.patch(`api/campaigns/${campaignId}/participants`, {

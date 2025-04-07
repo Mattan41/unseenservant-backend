@@ -1,12 +1,14 @@
 <script setup>
-import {onMounted, ref, watch} from 'vue';
+import {computed, onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useCampaignStore} from '@/stores/campaignStore';
+import {useUserStore} from "@/stores/userStore.js";
 import CampaignSettings from "@/components/CampaignSettings.vue";
 
 const route = useRoute();
-const router = useRouter(); // Added for navigation if needed
+const router = useRouter();
 const campaignStore = useCampaignStore();
+const userStore = useUserStore();
 const campaign = ref(null);
 const isLoading = ref(true);
 const errorMessage = ref('');
@@ -15,12 +17,26 @@ const isCharactersListVisible = ref(false);
 const showSettings = ref(false);
 const descriptionExpanded = ref(false);
 
-// variables for inline editing
-const isEditing = ref(false);
+// Global edit mode state
+const isEditMode = ref(false);
 const editedName = ref('');
 const editedDescription = ref('');
+const editedImageUrl = ref('');
 const isUpdating = ref(false);
+const isUpdatingImage = ref(false);
 
+// Check if current user is the owner
+const isOwner = computed(() => {
+  if (!campaign.value || !userStore.userInfo) return false;
+  return campaign.value.ownerId === userStore.userInfo.id;
+});
+
+// Load user data for ownership check
+const loadUserData = async () => {
+  if (!userStore.userInfo) {
+    await userStore.fetchCurrentUser();
+  }
+};
 
 const loadCampaignData = async () => {
   isLoading.value = true;
@@ -47,19 +63,22 @@ const loadCampaignData = async () => {
   }
 };
 
-// Start editing function
-const startEditing = () => {
+// Start global editing function
+const startGlobalEditing = () => {
+  if (!isOwner.value) return;
+
   editedName.value = campaign.value.name || '';
   editedDescription.value = campaign.value.description || '';
-  isEditing.value = true;
+  editedImageUrl.value = campaign.value.imageUrl || '';
+  isEditMode.value = true;
 };
 
 // Cancel editing function
-const cancelEditing = () => {
-  isEditing.value = false;
+const cancelGlobalEditing = () => {
+  isEditMode.value = false;
 };
 
-// Save changes function
+// Save campaign info changes
 const saveChanges = async () => {
   isUpdating.value = true;
 
@@ -73,8 +92,6 @@ const saveChanges = async () => {
     campaign.value.name = editedName.value;
     campaign.value.description = editedDescription.value;
 
-    isEditing.value = false;
-
     // Optional: Show temporary success message
     successMessage.value = 'Campaign updated successfully!';
     setTimeout(() => {
@@ -82,6 +99,70 @@ const saveChanges = async () => {
     }, 3000);
   } catch (error) {
     console.error('Failed to update campaign:', error);
+    errorMessage.value = 'Failed to update campaign: ' + error.message;
+  } finally {
+    isUpdating.value = false;
+  }
+};
+
+// Update campaign image
+const saveImageUrl = async () => {
+  isUpdatingImage.value = true;
+
+  try {
+
+
+    // Validate the image URL (basic validation)
+    if (editedImageUrl.value && !editedImageUrl.value.startsWith('http')) {
+      errorMessage.value = 'Invalid image URL';
+      return;
+    }
+
+    if (!editedImageUrl.value) {
+      const confirmClear = confirm('Are you sure you want to clear the image?');
+      if (!confirmClear) {
+        isUpdatingImage.value = false;
+        return;
+      }
+    }
+
+    await campaignStore.updateCampaignImage(
+      campaign.value.id,
+      editedImageUrl.value
+    );
+
+    // Update local campaign object with edited image URL
+    campaign.value.imageUrl = editedImageUrl.value;
+
+    successMessage.value = 'Campaign image updated successfully!';
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 3000);
+  } catch (error) {
+    console.error('Failed to update campaign image:', error);
+    errorMessage.value = 'Failed to update image: ' + error.message;
+  } finally {
+    isUpdatingImage.value = false;
+  }
+};
+
+// Combined save function for the global edit mode
+const saveAllChanges = async () => {
+  // First update basic info
+  isUpdating.value = true;
+  try {
+    await saveChanges();
+
+    // Then update image if it's changed
+    if (editedImageUrl.value !== campaign.value.imageUrl) {
+      await saveImageUrl();
+    }
+
+    // Exit edit mode when all is saved
+    isEditMode.value = false;
+  } catch (error) {
+    console.error('Error saving changes:', error);
+    errorMessage.value = 'Failed to save changes: ' + error.message;
   } finally {
     isUpdating.value = false;
   }
@@ -95,6 +176,11 @@ const toggleSettings = () => {
   showSettings.value = !showSettings.value;
 };
 
+// Toggle description expanded state
+const toggleDescription = () => {
+  descriptionExpanded.value = !descriptionExpanded.value;
+};
+
 // Handle participants updated
 const handleParticipantsUpdated = (message) => {
   loadCampaignData(); // Reload full campaign data
@@ -106,18 +192,15 @@ const handleParticipantsUpdated = (message) => {
   }, 3000);
 };
 
-// Toggle description expanded state
-const toggleDescription = () => {
-  descriptionExpanded.value = !descriptionExpanded.value;
-};
+onMounted(async () => {
+  await loadUserData();
+  await loadCampaignData();
+});
 
-onMounted(loadCampaignData);
-
-// Critical: Watch for route parameter changes to reload data
+// Watch for route parameter changes to reload data
 watch(() => route.params.id, (newId) => {
   if (newId) loadCampaignData();
 });
-
 </script>
 
 <template>
@@ -173,16 +256,20 @@ watch(() => route.params.id, (newId) => {
     <div class="flex-1 p-4 overflow-y-auto">
       <!-- Campaign header with edit button -->
       <div class="mb-6">
-        <div v-if="!isEditing" class="group relative">
+        <div v-if="!isEditMode" class="group relative">
           <div class="flex justify-between items-start">
             <h2 class="text-xl sm:text-2xl font-bold">{{ campaign.name }}</h2>
-            <button @click="startEditing" class="button button-small button-outline">
-              Edit
+            <button
+              v-if="isOwner"
+              @click="startGlobalEditing"
+              class="button button-small button-outline"
+            >
+              Edit Campaign
             </button>
           </div>
 
           <!-- Campaign image -->
-          <div class="my-3">
+          <div class="my-3 relative">
             <img
               v-if="campaign.imageUrl"
               :src="campaign.imageUrl"
@@ -222,10 +309,11 @@ watch(() => route.params.id, (newId) => {
           </div>
         </div>
 
-        <!-- Edit mode -->
+        <!-- Global Edit Mode -->
         <div v-else class="bg-gray-50 p-4 rounded-lg border border-gray-200">
           <h3 class="text-lg font-medium mb-4">Edit Campaign</h3>
 
+          <!-- Campaign Name -->
           <div class="mb-3">
             <label for="campaign-name" class="block text-sm font-medium text-gray-700 mb-1">
               Campaign Name
@@ -239,6 +327,7 @@ watch(() => route.params.id, (newId) => {
             />
           </div>
 
+          <!-- Campaign Description -->
           <div class="mb-3">
             <label for="campaign-description" class="block text-sm font-medium text-gray-700 mb-1">
               Description
@@ -252,17 +341,43 @@ watch(() => route.params.id, (newId) => {
             ></textarea>
           </div>
 
+          <!-- Campaign Image URL -->
+          <div class="mb-3">
+            <label for="campaign-image-url" class="block text-sm font-medium text-gray-700 mb-1">
+              Image URL
+            </label>
+            <input
+              id="campaign-image-url"
+              v-model="editedImageUrl"
+              type="text"
+              class="input input-bordered w-full mb-3"
+              placeholder="Enter image URL"
+            />
+          </div>
+
+          <!-- Preview if URL exists -->
+          <div v-if="editedImageUrl" class="mb-3">
+            <p class="text-sm font-medium mb-1">Preview:</p>
+            <img
+              :src="editedImageUrl"
+              alt="Preview"
+              class="max-h-32 rounded object-contain bg-gray-100"
+              @error="e => e.target.src = 'https://via.placeholder.com/150?text=Invalid+Image+URL'"
+            />
+          </div>
+
           <div class="flex space-x-3">
-            <button @click="cancelEditing" class="button button-secondary" :disabled="isUpdating">
+            <button @click="cancelGlobalEditing" class="button button-secondary"
+                    :disabled="isUpdating">
               Cancel
             </button>
-            <button @click="saveChanges" class="button button-primary" :disabled="isUpdating">
-              {{ isUpdating ? 'Saving...' : 'Save Changes' }}
+            <button @click="saveAllChanges" class="button button-primary" :disabled="isUpdating">
+              {{ isUpdating ? 'Saving...' : 'Save All Changes' }}
             </button>
           </div>
         </div>
 
-        <!-- Success message for campaign update -->
+        <!-- Success message -->
         <div v-if="successMessage" class="mt-3 p-2 bg-green-100 text-green-700 rounded-md text-sm">
           {{ successMessage }}
         </div>
