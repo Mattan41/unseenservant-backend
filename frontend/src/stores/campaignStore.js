@@ -1,5 +1,6 @@
 import {defineStore} from 'pinia';
 import CampaignService from '../services/CampaignService';
+import {useNotificationStore} from "@/stores/notificationStore.js";
 
 export const useCampaignStore = defineStore('campaign', {
   state: () => ({
@@ -12,12 +13,12 @@ export const useCampaignStore = defineStore('campaign', {
     async fetchAllCampaigns() {
       this.isLoading = true;
       this.error = null;
-
+      const notificationStore = useNotificationStore();
       try {
         this.campaigns = await CampaignService.fetchAllCampaigns();
       } catch (error) {
-        console.error('Failed to fetch campaigns:', error);
         this.error = 'Could not fetch campaigns.';
+        notificationStore.addNotification(this.error, "error");
       } finally {
         this.isLoading = false;
       }
@@ -69,17 +70,6 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
-    // todo: remove this method, and instead use updateCampaignInfo and updateCampaignImage
-    // async updateCampaignField(campaignId, field, value) {
-    //   console.log('Updating campaign field:', campaignId, field, value);
-    //   try {
-    //     await CampaignService.updateCampaignField(campaignId, field, value);
-    //   } catch (error) {
-    //     console.error('Failed to update campaign field:', error);
-    //     throw error;
-    //   }
-    // },
-
     async updateCampaignInfo(campaignId, campaignData) {
       try {
         return await CampaignService.updateCampaignInfo(campaignId, campaignData);
@@ -99,14 +89,15 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
-    // delete the campaign
     async deleteCampaign(campaignId) {
-      console.log('Deleting campaign:', campaignId);
+      const notificationStore = useNotificationStore();
+
       try {
         await CampaignService.deleteCampaign(campaignId);
-        this.campaigns = this.campaigns.filter(campaign => campaign.id !== campaignId);
+        notificationStore.addNotification("Campaign deleted successfully!", "success", 3000);
       } catch (error) {
-        console.error('Failed to delete campaign:', error);
+        notificationStore.addNotification(error.message || "Failed to delete campaign", "error");
+        console.error("Error deleting campaign:", error);
         throw error;
       }
     },
@@ -181,5 +172,6 @@ export const useCampaignStore = defineStore('campaign', {
       const campaign = state.campaigns.find(c => c.id === id);
       return campaign ? campaign.ownerId : null;
     }
+
   },
 });

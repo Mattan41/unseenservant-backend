@@ -35,7 +35,8 @@ class AuthService {
         const userStore = useUserStore();
 
         // Clear the user data from the stores
-        authStore.user = null; // todo: clearUser() method in authStore
+        authStore.user = null; // todo: clearUser() method in authStore ?
+        authStore.isAuthenticated = false;
         userStore.clearUserInfo();
 
         // Clear the user data from the local storage

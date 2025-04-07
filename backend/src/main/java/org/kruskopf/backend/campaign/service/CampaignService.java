@@ -227,7 +227,7 @@ public class CampaignService {
         CampaignUser participant = campaign.getParticipants().stream()
                 .filter(p -> p.getUser().getId().equals(participantId))
                 .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Deltagare inte hittad med id: " + participantId));
+                .orElseThrow(() -> new ResourceNotFoundException("Participant not found with id: " + participantId));
 
         participant.setNickname(nickname);
         campaignRepository.save(campaign);
@@ -297,8 +297,8 @@ public class CampaignService {
 
         Campaign campaign = findCampaignOrThrow(id);
 
-        if (campaign.isOwnedBy(currentUserId)) {
-            throw new UnauthorizedAccessException("Only the campaign owner can update campaign details");
+        if (!campaign.isOwnedBy(currentUserId)) {
+            throw new UnauthorizedAccessException("Only the campaign owner can delete the campaign");
         }
         campaignRepository.delete(campaign);
     }

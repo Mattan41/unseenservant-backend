@@ -34,19 +34,16 @@ const CampaignService = {
     return response.data;
   },
 
-  // for updating a single field, such as name, description, etc. TODO remove this method
-  // async updateCampaignField(campaignId, field, value) {
-  //   const payload = {};
-  //   payload[field] = value;
-  //   const response = await axios.patch(`api/campaigns/${campaignId}`, payload);
-  //   return response.data;
-  // },
-
   // Image url
   async updateCampaignImage(campaignId, imageUrl) {
     const response = await axios.patch(`/api/campaigns/${campaignId}/image`,
       {imageUrl}, {}
     );
+    return response.data;
+  },
+
+  async deleteCampaign(campaignId) {
+    const response = await axios.delete(`api/campaigns/${campaignId}`);
     return response.data;
   },
 

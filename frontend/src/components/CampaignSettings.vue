@@ -2,6 +2,8 @@
 import {computed, ref, watch} from 'vue';
 import {useCampaignStore} from '@/stores/campaignStore';
 import {useUserStore} from "@/stores/userStore.js";
+import router from "@/router/index.js";
+import {useNotificationStore} from "@/stores/notificationStore.js";
 
 const props = defineProps({
   campaignId: {
@@ -210,15 +212,29 @@ const toggleRole = async (participant) => {
   }
 };
 
-
 const deleteCampaign = () => {
-  // todo: add Logic to delete the campaign
+  console.log('Deleting campaign:', props.campaignId);
+  const notificationStore = useNotificationStore();
+
+  if (confirm('Are you sure you want to delete this campaign?')) {
+    campaignStore.deleteCampaign(props.campaignId)
+      .then(() => {
+        campaign.value = null;
+
+        setTimeout(() => {
+          router.push({name: 'CampaignsView'});
+        }, 100);
+      })
+      .catch((error) => {
+        notificationStore.addNotification(error.message || "Failed to delete campaign", "error");
+        console.error('Failed to delete campaign:', error);
+      });
+  }
 };
 
 const transferOwnership = () => {
   // todo: add Logic to transfer ownership of the campaign
 };
-// todo: add possibility to add picture to the campaign, and use a generic picture if it is not set
 
 </script>
 
@@ -226,7 +242,7 @@ const transferOwnership = () => {
   <div class="bg-primary-200 rounded-lg shadow-md p-4">
     <h3 class="text-xl font-bold mb-4">Campaign Settings</h3>
 
-    <!-- Error message -->
+    <!-- Error message todo remove and use notificationStore instead -->
     <div v-if="errorMessage" class="error-message bg-red-100 text-red-700 p-3 rounded mb-4">
       {{ errorMessage }}
     </div>

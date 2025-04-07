@@ -38,6 +38,7 @@ const loadUserData = async () => {
   }
 };
 
+
 const loadCampaignData = async () => {
   isLoading.value = true;
   errorMessage.value = '';
@@ -53,6 +54,11 @@ const loadCampaignData = async () => {
 
   // Load the campaign with the given id
   const campaignId = route.params.id;
+  const campaignExists = campaignStore.campaigns.some(c => c.id === parseInt(campaignId));
+  if (!campaignExists) {
+    await router.push({name: 'campaignsView'});
+    return;
+  }
 
   try {
     campaign.value = await campaignStore.fetchCampaign(campaignId);
@@ -198,9 +204,14 @@ onMounted(async () => {
 });
 
 // Watch for route parameter changes to reload data
-watch(() => route.params.id, (newId) => {
-  if (newId) loadCampaignData();
-});
+watch(() => route.params.id,
+  async (newId) => {
+    if (newId) {
+      await loadCampaignData();
+    }
+  },
+  {immediate: true}
+);
 </script>
 
 <template>
@@ -225,16 +236,19 @@ watch(() => route.params.id, (newId) => {
           v-for="userCampaign in campaignStore.campaigns"
           :key="userCampaign.id"
           :to="{ name: 'CampaignView', params: { id: userCampaign.id } }"
-          class="w-10 h-10 bg-primary-400 rounded-md flex items-center justify-center text-xs text-white font-medium overflow-hidden relative group no-underline"
+          class="w-10 h-10 rounded-md flex items-center justify-center text-primary-500 font-medium overflow-hidden relative group no-underline border border-primary-400 hover:scale-110"
           :class="{ 'ring-2 ring-primary-500': parseInt(route.params.id) === userCampaign.id }"
+          :style="userCampaign.imageUrl ? { backgroundImage: `url(${userCampaign.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}"
         >
-          {{ userCampaign.name?.[0]?.toUpperCase() || '?' }}
+       <span v-if="!userCampaign.imageUrl" class="text-xl font-bold">
+         {{ userCampaign.name?.[0]?.toUpperCase() || '?' }}
+       </span>
 
           <!-- Tooltip on hover -->
           <span
             class="absolute left-12 w-auto p-2 bg-primary-700 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10 whitespace-nowrap">
-            {{ userCampaign.name }}
-          </span>
+         {{ userCampaign.name }}
+       </span>
         </RouterLink>
       </div>
 
@@ -243,12 +257,6 @@ watch(() => route.params.id, (newId) => {
         class="w-10 h-10 bg-primary-200 text-primary-800 rounded-md flex items-center justify-center hover:bg-primary-300 transition-colors no-underline relative group"
       >
         <span class="text-xl">+</span>
-
-        <!-- Tooltip on hover -->
-        <span
-          class="absolute left-12 w-auto p-2 bg-primary-700 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10 whitespace-nowrap">
-          New Campaign
-        </span>
       </RouterLink>
     </aside>
 

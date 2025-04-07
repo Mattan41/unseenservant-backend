@@ -6,6 +6,7 @@ import {useUserStore} from "@/stores/userStore.js";
 import {useAuthStore} from "@/stores/authStore.js";
 import {onMounted, ref, watch} from "vue";
 import router from "@/router/index.js";
+import Notification from "@/components/Notification.vue";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
@@ -56,6 +57,7 @@ watch(
 </script>
 <template>
   <div class="flex flex-col min-h-screen overflow-x-hidden">
+    <Notification/>
     <Header/>
     <main class="flex-grow bg-gradient-to-b from-primary-100 via-primary-300 to-primary-100">
       <RouterView/>
