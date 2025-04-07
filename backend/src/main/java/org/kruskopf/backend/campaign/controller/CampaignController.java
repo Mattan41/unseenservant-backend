@@ -1,9 +1,6 @@
 package org.kruskopf.backend.campaign.controller;
 
-import org.kruskopf.backend.campaign.dto.CampaignCreationDTO;
-import org.kruskopf.backend.campaign.dto.CampaignResponseDTO;
-import org.kruskopf.backend.campaign.dto.CampaignUpdateDTO;
-import org.kruskopf.backend.campaign.dto.UpdateParticipantsDTO;
+import org.kruskopf.backend.campaign.dto.*;
 import org.kruskopf.backend.campaign.service.CampaignService;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.springframework.http.HttpStatus;
@@ -63,7 +60,7 @@ public class CampaignController {
         return ResponseEntity.ok(campaignResponse);
     }
 
-    // todo: remove this endpoint, it is not used as the whole campaign never gets updated
+
     @PutMapping("/{id}")
     public ResponseEntity<CampaignResponseDTO> updateCampaign(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
@@ -73,6 +70,17 @@ public class CampaignController {
         CampaignResponseDTO updatedCampaign = campaignService.updateCampaign(id, campaignDTO, userId);
         return ResponseEntity.ok(updatedCampaign);
     }
+
+    @PatchMapping("/{id}/image")
+    public ResponseEntity<CampaignResponseDTO> updateCampaignImage(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long id,
+            @RequestBody ImageUpdateDTO imageDTO) {
+        Long userId = customUserDetails.user().getId();
+        CampaignResponseDTO updatedCampaign = campaignService.updateCampaignImage(id, imageDTO.imageUrl(), userId);
+        return ResponseEntity.ok(updatedCampaign);
+    }
+
 
     // participants management
     @PatchMapping("/{id}/participants")

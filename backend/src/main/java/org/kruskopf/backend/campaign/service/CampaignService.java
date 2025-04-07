@@ -119,7 +119,7 @@ public class CampaignService {
     public CampaignResponseDTO updateCampaign(Long id, CampaignUpdateDTO dto, Long currentUserId) {
         Campaign campaign = findCampaignOrThrow(id);
 
-        if (campaign.isOwnedBy(currentUserId)) {
+        if (!campaign.isOwnedBy(currentUserId)) {
             throw new UnauthorizedAccessException("Only the campaign owner can update the campaign");
         }
 
@@ -127,6 +127,19 @@ public class CampaignService {
         campaign.setName(dto.name());
         campaign.setDescription(dto.description());
 
+        Campaign savedCampaign = campaignRepository.save(campaign);
+        return mapToResponseDTO(savedCampaign);
+    }
+
+    @Transactional
+    public CampaignResponseDTO updateCampaignImage(Long id, String imageUrl, Long currentUserId) {
+        Campaign campaign = findCampaignOrThrow(id);
+
+        if (!campaign.isOwnedBy(currentUserId)) {
+            throw new UnauthorizedAccessException("Only the campaign owner can update the campaign image");
+        }
+
+        campaign.setImageUrl(imageUrl);
         Campaign savedCampaign = campaignRepository.save(campaign);
         return mapToResponseDTO(savedCampaign);
     }
@@ -322,6 +335,7 @@ public class CampaignService {
                 campaign.getId(),
                 campaign.getName(),
                 campaign.getDescription(),
+                campaign.getImageUrl(),
                 campaign.getOwner() != null ? campaign.getOwner().getId() : null,
                 campaign.getParticipants().stream()
                         .map(participant -> new ParticipantResponseDTO(

@@ -23,7 +23,11 @@ public class Campaign {
 
     private String name;
 
+    @Lob
     private String description;
+
+    @Column(length = 1024)
+    private String imageUrl;
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -73,6 +77,14 @@ public class Campaign {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -112,7 +112,6 @@ const saveParticipantNickname = async (participant) => {
   try {
     isSaving.value = true;
     errorMessage.value = '';
-
     await campaignStore.updateParticipantNickname(props.campaignId, participant.id, participant.nickname.trim());
 
     editingParticipantId.value = null;
@@ -219,7 +218,6 @@ const deleteCampaign = () => {
 const transferOwnership = () => {
   // todo: add Logic to transfer ownership of the campaign
 };
-// todo: edit the name and description of the campaign
 // todo: add possibility to add picture to the campaign, and use a generic picture if it is not set
 
 </script>

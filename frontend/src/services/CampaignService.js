@@ -27,11 +27,44 @@ const CampaignService = {
     return response.data;
   },
 
-  // remove this method if not used
-  async updateCampaignField(campaignId, field, value) {
-    const response = await axios.patch(`api/campaigns/${campaignId}`, {field, value});
+  //use this method to update a campaign field, such as name, description, etc.
+  // async updateCampaignField(campaignId, field, value) {
+  //   const response = await axios.patch(`api/campaigns/${campaignId}`, {field,value});
+  //   return response.data;
+  // },
+
+  // use this method to update the campaign name and description together
+  async updateCampaignInfo(campaignId, {name, description}) {
+    const response = await axios.put(`api/campaigns/${campaignId}`, {name, description});
     return response.data;
   },
+
+  // for updating a single field, such as name, description, etc.
+  async updateCampaignField(campaignId, field, value) {
+    const payload = {};
+    payload[field] = value;
+    const response = await axios.patch(`api/campaigns/${campaignId}`, payload);
+    return response.data;
+  },
+
+// images
+  async uploadCampaignImage(campaignId, imageFile) {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    const response = await axios.patch(`api/campaigns/${campaignId}/image`, formData, {
+      headers: {'Content-Type': 'multipart/form-data'}
+    });
+    return response.data;
+  },
+
+  // Image url
+  async updateCampaignImage(campaignId, imageUrl) {
+    const response = await axios.patch(`/api/campaigns/${campaignId}/image`,
+      {imageUrl}
+    );
+    return response.data;
+  },
+
 
   async addParticipants(campaignId, participantsToAdd) {
     const response = await axios.patch(`api/campaigns/${campaignId}/participants`, {
@@ -50,13 +83,19 @@ const CampaignService = {
   },
 
   async updateParticipantNickname(campaignId, participantId, nickname) {
-    const response = await axios.patch(`api/campaigns/${campaignId}/participants/${participantId}/nickname`, nickname, {
-    });
+    const response = await axios.patch(`api/campaigns/${campaignId}/participants/${participantId}/nickname`,
+      nickname,
+      {
+        headers: {'Content-Type': 'text/plain'}
+      }
+    );
     return response.data;
   },
 
   async updateParticipantRole(campaignId, participantId, role) {
-    const response = await axios.patch(`api/campaigns/${campaignId}/participants/${participantId}/role`, role, {});
+    const response = await axios.patch(`api/campaigns/${campaignId}/participants/${participantId}/role`, role, {
+      headers: {'Content-Type': 'text/plain'}
+    });
     return response.data;
   }
 

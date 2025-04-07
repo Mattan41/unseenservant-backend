@@ -1,4 +1,32 @@
-// CreateCampaign.vue
+<script setup>
+import {ref} from 'vue';
+import {useCampaignStore} from '@/stores/campaignStore';
+
+const campaignStore = useCampaignStore();
+
+const showCreateCampaignModal = ref(false);
+const newCampaignName = ref('');
+const newCampaignDescription = ref('');
+const isCreating = ref(false);
+const errorMessage = ref('');
+
+const createCampaign = async () => {
+  isCreating.value = true;
+  try {
+    await campaignStore.createCampaign(newCampaignName.value, newCampaignDescription.value);
+    showCreateCampaignModal.value = false;
+    newCampaignName.value = '';
+    newCampaignDescription.value = '';
+    errorMessage.value = '';
+  } catch (error) {
+    console.error(error);
+    errorMessage.value = error.message || 'Failed to create campaign';
+  } finally {
+    isCreating.value = false;
+  }
+};
+</script>
+
 <template>
   <div>
     <button @click="showCreateCampaignModal = true" class="button button-add">
@@ -35,31 +63,3 @@
   </div>
 </template>
 
-<script setup>
-import {ref} from 'vue';
-import {useCampaignStore} from '@/stores/campaignStore';
-
-const campaignStore = useCampaignStore();
-
-const showCreateCampaignModal = ref(false);
-const newCampaignName = ref('');
-const newCampaignDescription = ref('');
-const isCreating = ref(false);
-const errorMessage = ref('');
-
-const createCampaign = async () => {
-  isCreating.value = true;
-  try {
-    await campaignStore.createCampaign(newCampaignName.value, newCampaignDescription.value);
-    showCreateCampaignModal.value = false;
-    newCampaignName.value = '';
-    newCampaignDescription.value = '';
-    errorMessage.value = '';
-  } catch (error) {
-    console.error(error);
-    errorMessage.value = error.message || 'Failed to create campaign';
-  } finally {
-    isCreating.value = false;
-  }
-};
-</script>

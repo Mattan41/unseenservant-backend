@@ -1,16 +1,26 @@
 <script setup>
 import {onMounted, ref, watch} from 'vue';
-import {useRoute} from 'vue-router';
+import {useRoute, useRouter} from 'vue-router';
 import {useCampaignStore} from '@/stores/campaignStore';
 import CampaignSettings from "@/components/CampaignSettings.vue";
 
 const route = useRoute();
+const router = useRouter(); // Added for navigation if needed
 const campaignStore = useCampaignStore();
 const campaign = ref(null);
 const isLoading = ref(true);
 const errorMessage = ref('');
 const successMessage = ref('');
+const isCharactersListVisible = ref(false);
+const showSettings = ref(false);
 const descriptionExpanded = ref(false);
+
+// variables for inline editing
+const isEditing = ref(false);
+const editedName = ref('');
+const editedDescription = ref('');
+const isUpdating = ref(false);
+
 
 const loadCampaignData = async () => {
   isLoading.value = true;
@@ -19,7 +29,6 @@ const loadCampaignData = async () => {
   try {
     // Load all campaigns for the current user
     await campaignStore.fetchAllCampaignsForCurrentUser();
-
   } catch (error) {
     errorMessage.value = 'Could not retrieve campaigns: ' + error.message;
     isLoading.value = false;
@@ -38,36 +47,77 @@ const loadCampaignData = async () => {
   }
 };
 
-// show settings for the campaign with the id from the route
-
-const showSettings = ref(false);
-
-const toggleSettings = () => {
-  showSettings.value = !showSettings.value;
+// Start editing function
+const startEditing = () => {
+  editedName.value = campaign.value.name || '';
+  editedDescription.value = campaign.value.description || '';
+  isEditing.value = true;
 };
 
-onMounted(loadCampaignData);
+// Cancel editing function
+const cancelEditing = () => {
+  isEditing.value = false;
+};
 
-watch(() => route.params.id, (newId) => {
-  if (newId) loadCampaignData();
-});
+// Save changes function
+const saveChanges = async () => {
+  isUpdating.value = true;
 
-const isCharactersListVisible = ref(false);
+  try {
+    await campaignStore.updateCampaignInfo(campaign.value.id, {
+      name: editedName.value,
+      description: editedDescription.value
+    });
+
+    // Update local campaign object with edited values
+    campaign.value.name = editedName.value;
+    campaign.value.description = editedDescription.value;
+
+    isEditing.value = false;
+
+    // Optional: Show temporary success message
+    successMessage.value = 'Campaign updated successfully!';
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 3000);
+  } catch (error) {
+    console.error('Failed to update campaign:', error);
+  } finally {
+    isUpdating.value = false;
+  }
+};
 
 const toggleCharactersList = () => {
   isCharactersListVisible.value = !isCharactersListVisible.value;
 };
 
-// Listen for the participants-updated event
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value;
+};
+
+// Handle participants updated
 const handleParticipantsUpdated = (message) => {
+  loadCampaignData(); // Reload full campaign data
   successMessage.value = message || 'Update successful!';
-  loadCampaignData();
 
   // clear the message after 3 seconds
   setTimeout(() => {
     successMessage.value = '';
   }, 3000);
 };
+
+// Toggle description expanded state
+const toggleDescription = () => {
+  descriptionExpanded.value = !descriptionExpanded.value;
+};
+
+onMounted(loadCampaignData);
+
+// Critical: Watch for route parameter changes to reload data
+watch(() => route.params.id, (newId) => {
+  if (newId) loadCampaignData();
+});
+
 </script>
 
 <template>
@@ -78,7 +128,8 @@ const handleParticipantsUpdated = (message) => {
   </div>
 
   <!-- Error state -->
-  <div v-else-if="errorMessage" class="error-message p-4 rounded">
+  <div v-else-if="errorMessage"
+       class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
     <p>{{ errorMessage }}</p>
   </div>
 
@@ -91,57 +142,134 @@ const handleParticipantsUpdated = (message) => {
           v-for="userCampaign in campaignStore.campaigns"
           :key="userCampaign.id"
           :to="{ name: 'CampaignView', params: { id: userCampaign.id } }"
-          class="w-10 h-10 bg-third-400 rounded-md flex items-center justify-center text-xs text-white font-medium overflow-hidden relative group no-underline"
-          :class="{ 'ring ring-primary-500': userCampaign.id === campaign.id }"
+          class="w-10 h-10 bg-primary-400 rounded-md flex items-center justify-center text-xs text-white font-medium overflow-hidden relative group no-underline"
+          :class="{ 'ring-2 ring-primary-500': parseInt(route.params.id) === userCampaign.id }"
         >
-          <span v-if="userCampaign.name" class="uppercase">
-            {{ userCampaign.name.charAt(0) }}
-          </span>
-          <span v-else>C</span>
-          <div
-            class="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          {{ userCampaign.name?.[0]?.toUpperCase() || '?' }}
+
+          <!-- Tooltip on hover -->
+          <span
+            class="absolute left-12 w-auto p-2 bg-primary-700 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10 whitespace-nowrap">
             {{ userCampaign.name }}
-          </div>
+          </span>
         </RouterLink>
       </div>
+
+      <RouterLink
+        to="/campaigns"
+        class="w-10 h-10 bg-primary-200 text-primary-800 rounded-md flex items-center justify-center hover:bg-primary-300 transition-colors no-underline relative group"
+      >
+        <span class="text-xl">+</span>
+
+        <!-- Tooltip on hover -->
+        <span
+          class="absolute left-12 w-auto p-2 bg-primary-700 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10 whitespace-nowrap">
+          New Campaign
+        </span>
+      </RouterLink>
     </aside>
 
     <!-- Main content area -->
     <div class="flex-1 p-4 overflow-y-auto">
-      <!-- Campaign header -->
-      <div class="mb-4">
-        <h2 class="text-xl sm:text-2xl font-bold">{{ campaign.name || 'Unseen Servant' }}</h2>
+      <!-- Campaign header with edit button -->
+      <div class="mb-6">
+        <div v-if="!isEditing" class="group relative">
+          <div class="flex justify-between items-start">
+            <h2 class="text-xl sm:text-2xl font-bold">{{ campaign.name }}</h2>
+            <button @click="startEditing" class="button button-small button-outline">
+              Edit
+            </button>
+          </div>
 
-        <!-- Campaign description with line clamp -->
-        <div class="mt-2">
-          <p v-if="!campaign.description" class="italic text-gray-500 text-sm">
-            No description available.
-          </p>
-
-          <template v-else>
-            <p
-              :class="{ 'line-clamp-2': !descriptionExpanded }"
-              class="text-sm text-gray-700"
+          <!-- Campaign image -->
+          <div class="my-3">
+            <img
+              v-if="campaign.imageUrl"
+              :src="campaign.imageUrl"
+              :alt="campaign.name"
+              class="w-full h-48 object-cover rounded"
             >
-              {{ campaign.description }}
+            <div
+              v-else
+              class="w-full h-48 bg-gray-200 flex items-center justify-center rounded text-gray-500 text-sm"
+            >
+              No image has been set for this campaign
+            </div>
+          </div>
+
+          <!-- Campaign description with line clamp -->
+          <div class="mt-3">
+            <p v-if="!campaign.description" class="italic text-gray-500 text-sm">
+              No description available.
             </p>
 
-            <button
-              v-if="campaign.description && campaign.description.length > 60"
-              @click="descriptionExpanded = !descriptionExpanded"
-              class="text-xs text-primary-500 mt-1 hover:underline"
-            >
-              {{ descriptionExpanded ? 'Show less' : 'Read more' }}
+            <template v-else>
+              <p
+                :class="{ 'line-clamp-2': !descriptionExpanded }"
+                class="text-sm text-gray-700"
+              >
+                {{ campaign.description }}
+              </p>
+
+              <button
+                v-if="campaign.description && campaign.description.length > 60"
+                @click="toggleDescription"
+                class="text-xs text-primary-500 mt-1 hover:underline"
+              >
+                {{ descriptionExpanded ? 'Show less' : 'Read more' }}
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Edit mode -->
+        <div v-else class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h3 class="text-lg font-medium mb-4">Edit Campaign</h3>
+
+          <div class="mb-3">
+            <label for="campaign-name" class="block text-sm font-medium text-gray-700 mb-1">
+              Campaign Name
+            </label>
+            <input
+              id="campaign-name"
+              v-model="editedName"
+              type="text"
+              class="input input-bordered w-full mb-3"
+              placeholder="Enter campaign name"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label for="campaign-description" class="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              id="campaign-description"
+              v-model="editedDescription"
+              class="textarea textarea-bordered w-full"
+              rows="4"
+              placeholder="Enter campaign description"
+            ></textarea>
+          </div>
+
+          <div class="flex space-x-3">
+            <button @click="cancelEditing" class="button button-secondary" :disabled="isUpdating">
+              Cancel
             </button>
-          </template>
+            <button @click="saveChanges" class="button button-primary" :disabled="isUpdating">
+              {{ isUpdating ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Success message for campaign update -->
+        <div v-if="successMessage" class="mt-3 p-2 bg-green-100 text-green-700 rounded-md text-sm">
+          {{ successMessage }}
         </div>
       </div>
 
       <!-- Campaign content -->
       <section class="mb-6">
-        <!-- Group chat section -->
-        <h4 class="text-xl font-bold font-serif mb-2">Group Chat</h4>
-
         <!-- Participants collapsible section -->
         <div class="mb-4 border rounded p-3">
           <h3 class="font-medium cursor-pointer flex items-center" @click="toggleCharactersList">
@@ -172,27 +300,18 @@ const handleParticipantsUpdated = (message) => {
           </button>
         </div>
 
-        <!-- Success message from Settings panel -->
-        <div v-if="successMessage"
-             class="success-message mt-4 p-3 bg-green-100 border border-green-500 text-green-700 rounded">
-          {{ successMessage }}
-        </div>
         <!-- Settings panel -->
         <div v-if="showSettings" class="mt-4">
           <CampaignSettings :campaignId="String(campaign.id)"
                             @participants-updated="handleParticipantsUpdated"/>
         </div>
-
       </section>
     </div>
   </div>
 </template>
 
 <style scoped>
-
 aside {
   min-height: calc(100vh - 4rem); /* secure full height */
 }
-
-
 </style>

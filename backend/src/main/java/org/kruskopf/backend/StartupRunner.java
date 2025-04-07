@@ -60,7 +60,7 @@ public class StartupRunner implements CommandLineRunner {
             User user3 = userService.findByUserName("User1");
             User user4 = userService.findByUserName("User2");
 
-            Campaign campaign1 = new Campaign("Curse of Strahd", " Under the light of the full moon, the small town of Barovia is plagued by the evil forces of Count Strahd von Zarovich.");
+            Campaign campaign1 = new Campaign("Curse of Strahd", "Under the light of the full moon, the small town of Barovia is plagued by the evil forces of Count Strahd von Zarovich.");
             campaign1.setCreatedBy("Mattan");
             campaign1.setLastModifiedBy("Mattan");
             campaign1.setOwner(user1);

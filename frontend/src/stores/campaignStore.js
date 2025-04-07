@@ -69,7 +69,7 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
-    // not used? remove?
+    // use this method to update a campaign field, such as name, description, etc.
     async updateCampaignField(campaignId, field, value) {
       console.log('Updating campaign field:', campaignId, field, value);
       try {
@@ -80,7 +80,16 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
-    // i Campaign Store
+    async updateCampaignInfo(campaignId, campaignData) {
+      try {
+        return await CampaignService.updateCampaignInfo(campaignId, campaignData);
+      } catch (error) {
+        console.error('Failed to update campaign info:', error);
+        throw error;
+      }
+    },
+
+    // manage participants in a campaign
     async addParticipantsToCampaign(campaignId, participantsToAdd) {
       console.log('Adding participants to campaign:', campaignId, participantsToAdd);
       try {
@@ -110,7 +119,6 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
-    // New methods for participant management
     async searchUsers(query) {
       try {
         return await CampaignService.searchUsers(query);
