@@ -35,7 +35,7 @@ class AuthService {
         const userStore = useUserStore();
 
         // Clear the user data from the stores
-        authStore.user = null; // todo: clearUser() method in authStore ?
+        authStore.user = null; // todo: clearUser() method in authStore ? something is interfering with the logout
         authStore.isAuthenticated = false;
         userStore.clearUserInfo();
 

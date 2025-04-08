@@ -206,7 +206,7 @@ onMounted(async () => {
   await loadUserData();
   await loadCampaignData();
 
-  // Check scrollability after component is mounted and campaigns are loaded
+  // Check if scrollable after component is mounted and campaigns are loaded
   checkScrollable();
 
   // Add resize listener to recheck when window size changes
@@ -223,14 +223,14 @@ watch(() => route.params.id,
   async (newId) => {
     if (newId) {
       await loadCampaignData();
-      // Recheck scrollability after data loads and DOM updates
+      // Recheck scrollable after data loads and DOM updates
       setTimeout(checkScrollable, 100);
     }
   },
   {immediate: true}
 );
 
-//  watch the campaign store for changes that might affect scrollability
+//  watch the campaign store for changes that might affect scrollable
 watch(() => campaignStore.campaigns.length, () => {
   setTimeout(checkScrollable, 100);
 });

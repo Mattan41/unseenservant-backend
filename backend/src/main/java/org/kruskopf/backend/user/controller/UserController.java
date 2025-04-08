@@ -19,7 +19,7 @@ public class UserController {
 
     public UserService userService;
 
-    // todo: add @PreAuthorize on endponints after testing with Postman is done
+    // todo: add @PreAuthorize on endpoints after testing with Postman is done
     public UserController(UserService userService) {
         this.userService = userService;
     }
