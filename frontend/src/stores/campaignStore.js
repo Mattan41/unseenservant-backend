@@ -167,11 +167,24 @@ export const useCampaignStore = defineStore('campaign', {
 
   getters: {
     getCampaignById: (state) => (id) => state.campaigns.find(campaign => campaign.id === id),
-    //Fetch the owner of a campaign based on ID
+
     ownerId: (state) => (id) => {
       const campaign = state.campaigns.find(c => c.id === id);
       return campaign ? campaign.ownerId : null;
-    }
+    },
 
+    getCampaignDescription: (state) => (id) => {
+      const campaign = state.campaigns.find(campaign => campaign.id === id);
+      return campaign?.description || "This campaign has no description.";
+    },
+
+    getCampaignTitle: (state) => (id) => {
+      const campaign = state.campaigns.find(campaign => campaign.id === id);
+      return campaign.name || "This is a generic campaign title";
+    },
+    getCampaignImageUrl: (state) => (id) => {
+      const campaign = state.campaigns.find(campaign => campaign.id === id);
+      return campaign?.imageUrl || '/src/assets/default-campaign.svg';
+    }
   },
 });

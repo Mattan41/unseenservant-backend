@@ -1,5 +1,5 @@
 <script setup>
-import {computed, onMounted, ref, watch} from 'vue';
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useCampaignStore} from '@/stores/campaignStore';
 import {useUserStore} from "@/stores/userStore.js";
@@ -16,6 +16,8 @@ const successMessage = ref('');
 const isCharactersListVisible = ref(false);
 const showSettings = ref(false);
 const descriptionExpanded = ref(false);
+const campaignListRef = ref(null);
+const isScrollable = ref(false);
 
 // Global edit mode state
 const isEditMode = ref(false);
@@ -198,9 +200,28 @@ const handleParticipantsUpdated = (message) => {
   }, 3000);
 };
 
+// Check if the campaign list is scrollable
+const checkScrollable = () => {
+  if (campaignListRef.value) {
+    const element = campaignListRef.value;
+    isScrollable.value = element.scrollHeight > element.clientHeight;
+  }
+};
+
 onMounted(async () => {
   await loadUserData();
   await loadCampaignData();
+
+  // Check scrollability after component is mounted and campaigns are loaded
+  checkScrollable();
+
+  // Add resize listener to recheck when window size changes
+  window.addEventListener('resize', checkScrollable);
+});
+
+// Clean up the event listener when component is unmounted
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScrollable);
 });
 
 // Watch for route parameter changes to reload data
@@ -208,11 +229,19 @@ watch(() => route.params.id,
   async (newId) => {
     if (newId) {
       await loadCampaignData();
+      // Recheck scrollability after data loads and DOM updates
+      setTimeout(checkScrollable, 100);
     }
   },
   {immediate: true}
 );
+
+//  watch the campaign store for changes that might affect scrollability
+watch(() => campaignStore.campaigns.length, () => {
+  setTimeout(checkScrollable, 100);
+});
 </script>
+
 
 <template>
   <!-- Loading state -->
@@ -230,35 +259,47 @@ watch(() => route.params.id,
   <!-- Campaign loaded successfully -->
   <div v-else-if="campaign" class="flex h-full">
     <!-- Campaign selector sidebar - same for all screen sizes -->
-    <aside class="w-16 flex flex-col items-center py-4 space-y-4 h-full overflow-y-auto">
-      <div class="flex-1 flex flex-col items-center space-y-4">
+    <aside class="w-16 flex flex-col items-center py-4 space-y-4 h-screen custom-gradient relative">
+      <!-- Scroll hint at top if scrollable -->
+      <div v-if="isScrollable"
+           class="absolute top-2 left-1/2 transform -translate-x-1/2 w-5 h-1 bg-primary-400 rounded-full animate-pulse"></div>
+
+      <div ref="campaignListRef"
+           class="campaign-list flex-1 flex flex-col items-center space-y-4 max-h-[calc(10*2.5rem+2rem)]">
         <RouterLink
           v-for="userCampaign in campaignStore.campaigns"
           :key="userCampaign.id"
           :to="{ name: 'CampaignView', params: { id: userCampaign.id } }"
-          class="w-10 h-10 rounded-md flex items-center justify-center text-primary-500 font-medium overflow-hidden relative group no-underline border border-primary-400 hover:scale-110"
+          class="w-10 h-10 rounded-md flex items-center justify-center text-primary-500 font-medium relative group no-underline border border-primary-400 hover:scale-110 flex-shrink-0"
           :class="{ 'ring-2 ring-primary-500': parseInt(route.params.id) === userCampaign.id }"
-          :style="userCampaign.imageUrl ? { backgroundImage: `url(${userCampaign.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}"
+          :style="campaignStore.getCampaignImageUrl(userCampaign.id) ? { backgroundImage: `url(${campaignStore.getCampaignImageUrl(userCampaign.id)})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}"
         >
-       <span v-if="!userCampaign.imageUrl" class="text-xl font-bold">
-         {{ userCampaign.name?.[0]?.toUpperCase() || '?' }}
-       </span>
-
-          <!-- Tooltip on hover -->
+          <!-- Campaign content -->
           <span
-            class="absolute left-12 w-auto p-2 bg-primary-700 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10 whitespace-nowrap">
-         {{ userCampaign.name }}
-       </span>
+            class="absolute left-full ml-2 px-2 py-1 bg-primary-600 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-50 pointer-events-none"
+          >
+          {{ campaignStore.getCampaignTitle(userCampaign.id) }}
+        </span>
         </RouterLink>
       </div>
-
+      <div
+        class=" h-2 rounded-md flex items-center justify-center text-white font-medium relative group">
+        <div v-if="isScrollable"
+             class="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-5 h-1 bg-primary-400 rounded-full animate-pulse"></div>
+      </div>
       <RouterLink
         to="/campaigns"
-        class="w-10 h-10 bg-primary-200 text-primary-800 rounded-md flex items-center justify-center hover:bg-primary-300 transition-colors no-underline relative group"
+        class="w-10 h-10 bg-primary-200 text-primary-800 rounded-md flex items-center justify-center hover:bg-primary-300 transition-colors no-underline relative group mt-2 hover:scale-110 flex-shrink-0"
       >
         <span class="text-xl">+</span>
+        <span
+          class="absolute top-1/2 left-full transform -translate-y-1/2 ml-2 w-auto p-2 bg-primary-700 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-50 whitespace-nowrap pointer-events-none"
+        >
+        to campaign overview
+      </span>
       </RouterLink>
     </aside>
+
 
     <!-- Main content area -->
     <div class="flex-1 p-4 overflow-y-auto">
@@ -266,7 +307,9 @@ watch(() => route.params.id,
       <div class="mb-6">
         <div v-if="!isEditMode" class="group relative">
           <div class="flex justify-between items-start">
-            <h2 class="text-xl sm:text-2xl font-bold">{{ campaign.name }}</h2>
+            <h2 class="text-xl sm:text-2xl font-bold">{{
+                campaignStore.getCampaignTitle(campaign.id)
+              }}</h2>
             <button
               v-if="isOwner"
               @click="startGlobalEditing"
@@ -278,23 +321,16 @@ watch(() => route.params.id,
 
           <!-- Campaign image -->
           <div class="my-3 relative">
-            <img
-              v-if="campaign.imageUrl"
-              :src="campaign.imageUrl"
-              :alt="campaign.name"
-              class="w-full h-48 object-cover rounded"
-            >
-            <div
-              v-else
-              class="w-full h-48 bg-gray-200 flex items-center justify-center rounded text-gray-500 text-sm"
-            >
-              No image has been set for this campaign
-            </div>
+            <img v-if="campaignStore.getCampaignImageUrl(campaign.id)"
+                 :src="campaignStore.getCampaignImageUrl(campaign.id)"
+                 :alt="campaignStore.getCampaignTitle(campaign.id)"
+                 class="w-full h-48 object-cover rounded"/>
           </div>
 
           <!-- Campaign description with line clamp -->
           <div class="mt-3">
-            <p v-if="!campaign.description" class="italic text-gray-500 text-sm">
+            <p v-if="!campaignStore.getCampaignDescription(campaign.id)"
+               class="italic text-gray-500 text-sm">
               No description available.
             </p>
 
@@ -303,11 +339,11 @@ watch(() => route.params.id,
                 :class="{ 'line-clamp-2': !descriptionExpanded }"
                 class="text-sm text-gray-700"
               >
-                {{ campaign.description }}
+                {{ campaignStore.getCampaignDescription(campaign.id) }}
               </p>
 
               <button
-                v-if="campaign.description && campaign.description.length > 60"
+                v-if="campaignStore.getCampaignDescription(campaign.id) && campaignStore.getCampaignDescription(campaign.id).length > 60"
                 @click="toggleDescription"
                 class="text-xs text-primary-500 mt-1 hover:underline"
               >
@@ -435,6 +471,39 @@ watch(() => route.params.id,
 
 <style scoped>
 aside {
+  overflow: visible;
   min-height: calc(100vh - 4rem); /* secure full height */
+}
+
+.custom-gradient {
+  background: linear-gradient(to bottom,
+  var(--color-primary-100) 0%,
+  var(--color-primary-300) 50%,
+  var(--color-primary-100) 100%);
+}
+
+.campaign-list {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.campaign-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Animation for the scroll hint */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 </style>

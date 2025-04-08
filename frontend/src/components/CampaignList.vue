@@ -35,29 +35,27 @@ onMounted(async () => {
 
         <RouterLink :to="{ name: 'CampaignView', params: { id: campaign.id } }"
                     class="element-link">
-          <h3 class="text-lg font-bold">{{ campaign.name }}</h3>
+          <h3 class="text-lg font-bold">{{ campaignStore.getCampaignTitle(campaign.id) }}</h3>
 
           <!-- image component -->
           <div class="my-3">
-            <img v-if="campaign.imageUrl"
-                 :src="campaign.imageUrl"
-                 :alt="campaign.name"
+            <img v-if="campaignStore.getCampaignImageUrl(campaign.id)"
+                 :src="campaignStore.getCampaignImageUrl(campaign.id)"
+                 :alt="campaignStore.getCampaignTitle(campaign.id)"
                  class="w-full h-48 object-cover rounded"/>
-            <div v-else class="w-full h-32 bg-gray-200 flex items-center justify-center rounded">
-              <p class="text-gray-500 italic">No image has been set for this campaign</p>
-            </div>
           </div>
 
           <!-- Description with read more/less -->
           <div>
-            <p v-if="campaign.description.length <= 150 || expandedDescriptions[campaign.id]">
-              {{ campaign.description }}
+            <p
+              v-if="campaignStore.getCampaignDescription(campaign.id).length <= 150 || expandedDescriptions[campaign.id]">
+              {{ campaignStore.getCampaignDescription(campaign.id) }}
             </p>
             <p v-else>
-              {{ campaign.description.substring(0, 150) }}...
+              {{ campaignStore.getCampaignDescription(campaign.id).substring(0, 150) }}...
             </p>
             <button
-              v-if="campaign.description.length > 150"
+              v-if="campaignStore.getCampaignDescription(campaign.id).length > 150"
               @click.prevent="toggleDescription(campaign.id)"
               class="text-primary-600 hover:text-primary-800 text-sm mt-1"
             >
