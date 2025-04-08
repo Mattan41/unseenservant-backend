@@ -34,7 +34,7 @@ const CampaignService = {
     return response.data;
   },
 
-  // Image url
+  // Set Image url
   async updateCampaignImage(campaignId, imageUrl) {
     const response = await axios.patch(`/api/campaigns/${campaignId}/image`,
       {imageUrl}, {}
@@ -44,6 +44,12 @@ const CampaignService = {
 
   async deleteCampaign(campaignId) {
     const response = await axios.delete(`api/campaigns/${campaignId}`);
+    return response.data;
+  },
+
+  // method for transferring ownership of a campaign, send the new owner id, as well as the campaign id
+  async transferCampaignOwnership(campaignId, newOwnerId) {
+    const response = await axios.patch(`api/campaigns/${campaignId}/owner`, {newOwnerId});
     return response.data;
   },
 

@@ -116,14 +116,13 @@ public class CampaignController {
     }
 
 
-    //campaign management
     @PatchMapping("/{id}/owner")
     public ResponseEntity<CampaignResponseDTO> transferOwnership(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long id,
-            @RequestParam Long newOwnerId) {
+            @RequestBody CampaignTransferOwnerDTO request) {
         Long currentUserId = customUserDetails.user().getId();
-        CampaignResponseDTO updatedCampaign = campaignService.transferOwnership(id, newOwnerId, currentUserId);
+        CampaignResponseDTO updatedCampaign = campaignService.transferOwnership(id, request.newOwnerId(), currentUserId);
         return ResponseEntity.ok(updatedCampaign);
     }
 

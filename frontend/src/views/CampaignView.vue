@@ -4,6 +4,7 @@ import {useRoute, useRouter} from 'vue-router';
 import {useCampaignStore} from '@/stores/campaignStore';
 import {useUserStore} from "@/stores/userStore.js";
 import CampaignSettings from "@/components/CampaignSettings.vue";
+import {useNotificationStore} from "@/stores/notificationStore.js";
 
 const route = useRoute();
 const router = useRouter();
@@ -11,8 +12,6 @@ const campaignStore = useCampaignStore();
 const userStore = useUserStore();
 const campaign = ref(null);
 const isLoading = ref(true);
-const errorMessage = ref('');
-const successMessage = ref('');
 const isCharactersListVisible = ref(false);
 const showSettings = ref(false);
 const descriptionExpanded = ref(false);
@@ -42,14 +41,16 @@ const loadUserData = async () => {
 
 
 const loadCampaignData = async () => {
+  const notificationStore = useNotificationStore();
   isLoading.value = true;
-  errorMessage.value = '';
+  const campaignStore = useCampaignStore();
 
   try {
     // Load all campaigns for the current user
     await campaignStore.fetchAllCampaignsForCurrentUser();
   } catch (error) {
-    errorMessage.value = 'Could not retrieve campaigns: ' + error.message;
+    console.error('Failed to load campaigns:', error);
+    notificationStore.addNotification("Failed to load campaigns: " + error.message, "error");
     isLoading.value = false;
     return;
   }
@@ -65,7 +66,8 @@ const loadCampaignData = async () => {
   try {
     campaign.value = await campaignStore.fetchCampaign(campaignId);
   } catch (error) {
-    errorMessage.value = error.message + 'Failed to load campaign';
+    console.error('Failed to load campaign:', error);
+    notificationStore.addNotification("Failed to load campaign: " + error.message, "error");
   } finally {
     isLoading.value = false;
   }
@@ -89,6 +91,7 @@ const cancelGlobalEditing = () => {
 // Save campaign info changes
 const saveChanges = async () => {
   isUpdating.value = true;
+  const notificationStore = useNotificationStore();
 
   try {
     await campaignStore.updateCampaignInfo(campaign.value.id, {
@@ -100,14 +103,12 @@ const saveChanges = async () => {
     campaign.value.name = editedName.value;
     campaign.value.description = editedDescription.value;
 
-    // Optional: Show temporary success message
-    successMessage.value = 'Campaign updated successfully!';
-    setTimeout(() => {
-      successMessage.value = '';
-    }, 3000);
+    // Show temporary success message
+    notificationStore.addNotification("Campaign updated successfully", "success");
+
   } catch (error) {
     console.error('Failed to update campaign:', error);
-    errorMessage.value = 'Failed to update campaign: ' + error.message;
+    notificationStore.addNotification("Failed to update campaign: " + error.message, "error");
   } finally {
     isUpdating.value = false;
   }
@@ -116,13 +117,11 @@ const saveChanges = async () => {
 // Update campaign image
 const saveImageUrl = async () => {
   isUpdatingImage.value = true;
-
+  const notificationStore = useNotificationStore();
   try {
-
-
     // Validate the image URL (basic validation)
     if (editedImageUrl.value && !editedImageUrl.value.startsWith('http')) {
-      errorMessage.value = 'Invalid image URL';
+      notificationStore.addNotification("Invalid image URL", "error");
       return;
     }
 
@@ -141,14 +140,12 @@ const saveImageUrl = async () => {
 
     // Update local campaign object with edited image URL
     campaign.value.imageUrl = editedImageUrl.value;
+    notificationStore.addNotification("Campaign image updated successfully", "success");
 
-    successMessage.value = 'Campaign image updated successfully!';
-    setTimeout(() => {
-      successMessage.value = '';
-    }, 3000);
   } catch (error) {
     console.error('Failed to update campaign image:', error);
-    errorMessage.value = 'Failed to update image: ' + error.message;
+    notificationStore.addNotification("Failed to update image: " + error.message, "error");
+
   } finally {
     isUpdatingImage.value = false;
   }
@@ -156,6 +153,7 @@ const saveImageUrl = async () => {
 
 // Combined save function for the global edit mode
 const saveAllChanges = async () => {
+
   // First update basic info
   isUpdating.value = true;
   try {
@@ -170,7 +168,9 @@ const saveAllChanges = async () => {
     isEditMode.value = false;
   } catch (error) {
     console.error('Error saving changes:', error);
-    errorMessage.value = 'Failed to save changes: ' + error.message;
+    // use notification store to show error message
+    const notificationStore = useNotificationStore();
+    notificationStore.addNotification("Failed to save changes: " + error.message, "error");
   } finally {
     isUpdating.value = false;
   }
@@ -190,14 +190,8 @@ const toggleDescription = () => {
 };
 
 // Handle participants updated
-const handleParticipantsUpdated = (message) => {
+const handleParticipantsUpdated = () => {
   loadCampaignData(); // Reload full campaign data
-  successMessage.value = message || 'Update successful!';
-
-  // clear the message after 3 seconds
-  setTimeout(() => {
-    successMessage.value = '';
-  }, 3000);
 };
 
 // Check if the campaign list is scrollable
@@ -250,12 +244,6 @@ watch(() => campaignStore.campaigns.length, () => {
     <p class="mt-2">Loading campaign...</p>
   </div>
 
-  <!-- Error state -->
-  <div v-else-if="errorMessage"
-       class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-    <p>{{ errorMessage }}</p>
-  </div>
-
   <!-- Campaign loaded successfully -->
   <div v-else-if="campaign" class="flex h-full">
     <!-- Campaign selector sidebar - same for all screen sizes -->
@@ -280,6 +268,7 @@ watch(() => campaignStore.campaigns.length, () => {
           >
           {{ campaignStore.getCampaignTitle(userCampaign.id) }}
         </span>
+
         </RouterLink>
       </div>
       <div
@@ -421,50 +410,62 @@ watch(() => campaignStore.campaigns.length, () => {
           </div>
         </div>
 
-        <!-- Success message -->
-        <div v-if="successMessage" class="mt-3 p-2 bg-green-100 text-green-700 rounded-md text-sm">
-          {{ successMessage }}
-        </div>
-      </div>
 
-      <!-- Campaign content -->
-      <section class="mb-6">
-        <!-- Participants collapsible section -->
-        <div class="mb-4 border rounded p-3">
-          <h3 class="font-medium cursor-pointer flex items-center" @click="toggleCharactersList">
+        <!-- Campaign content -->
+        <section class="mb-6">
+          <!-- Participants collapsible section -->
+          <div class="mb-4 border rounded p-3">
+            <h3 class="font-medium cursor-pointer flex items-center" @click="toggleCharactersList">
             <span v-if="isCharactersListVisible"
                   class="transform rotate-90 inline-block mr-1">›</span>
-            <span v-else class="inline-block mr-1">›</span>
-            Participants
-          </h3>
+              <span v-else class="inline-block mr-1">›</span>
+              Participants
+            </h3>
 
-          <ul v-if="isCharactersListVisible" class="mt-2 space-y-1">
-            <li
-              v-for="(participant, index) in campaign?.participants || []"
-              :key="index"
-              class="pl-4 py-1 border-l-2 border-primary-200"
-            >
-              • {{ participant.nickname }}, {{ participant.role }}
-            </li>
-          </ul>
-        </div>
+            <ul v-if="isCharactersListVisible" class="mt-2 space-y-1">
+              <li
+                v-for="(participant, index) in campaign?.participants || []"
+                :key="index"
+                class="pl-4 py-1 border-l-2 border-primary-200"
+              >
+                • {{ participant.nickname }}, {{ participant.role }}
+              </li>
+            </ul>
+          </div>
 
-        <!-- Action Buttons -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
-          <button class="button button-primary" @click="toggleSettings">
-            Campaign Settings
-          </button>
-          <button class="button button-primary">
-            IMPORT CHARACTER
-          </button>
-        </div>
+          <!-- Action Buttons -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+            <button class="button button-primary" @click="toggleSettings">
+              Campaign Settings
+            </button>
+            <button class="button button-primary">
+              IMPORT CHARACTER
+            </button>
+          </div>
 
-        <!-- Settings panel -->
-        <div v-if="showSettings" class="mt-4">
-          <CampaignSettings :campaignId="String(campaign.id)"
-                            @participants-updated="handleParticipantsUpdated"/>
-        </div>
-      </section>
+          <!-- Modal overlay -->
+          <div v-if="showSettings"
+               class="fixed inset-0 z-30 flex items-center justify-center"
+               @click="showSettings = false">
+            <div
+              class="bg-white p-6 rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto w-full shadow-lg border border-gray-300"
+              @click.stop>
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-semibold text-third-800">Campaign Settings</h3>
+                <button @click="showSettings = false"
+                        class="text-gray-600 hover:text-gray-800 focus:outline-none">
+                  &times;
+                </button>
+              </div>
+              <CampaignSettings :campaignId="String(campaign.id)"
+                                @close-modal="showSettings = false"
+                                @participants-updated="handleParticipantsUpdated"/>
+            </div>
+          </div>
+
+
+        </section>
+      </div>
     </div>
   </div>
 </template>

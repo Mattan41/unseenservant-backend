@@ -72,14 +72,13 @@ h4 {
     font-size: 15px;
 }
 
-
 /* Base button styles */
 .button {
     /* Margin and padding */
-    @apply ml-1.5 mt-2 sm:mt-0 px-2 py-1;
+    @apply ml-1 mt-1 sm:mt-0 px-2 py-1;
 
     /* Text and font */
-    @apply text-sm font-semibold text-center;
+    @apply text-xs font-semibold text-center;
 
     /* Appearance */
     @apply rounded cursor-pointer;
@@ -108,19 +107,18 @@ h4 {
 
 /* Update button */
 .button-update {
-    @apply bg-yellow-600 text-gray-200 hover:bg-yellow-700 focus:ring-red-100;
+    @apply bg-yellow-600 text-gray-200 hover:bg-yellow-700 focus:ring-yellow-500;
 }
 
 /* Delete button (red) */
 .button-remove {
-    @apply bg-red-900 text-gray-200 hover:bg-red-950 focus:ring-secondary;
+    @apply bg-red-900 text-gray-200 hover:bg-red-950 focus:ring-red-500;
 }
 
 /* Retry button (orange) */
 .button-retry {
     @apply bg-orange-500 text-gray-200 hover:bg-orange-600 focus:ring-orange-500;
 }
-
 
 /* Links and list styles */
 .element-link {

@@ -269,13 +269,17 @@ public class CampaignService {
         Campaign campaign = findCampaignOrThrow(campaignId);
 
         // Validate ownership
-        if (campaign.isOwnedBy(currentUserId)) {
+        if (!campaign.isOwnedBy(currentUserId)) {
             throw new UnauthorizedAccessException("Only the campaign owner can transfer ownership");
         }
 
         // find new owner
         User newOwner = userService.findById(newOwnerId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + newOwnerId));
+
+        if (newOwner.equals(campaign.getOwner())) {
+            throw new IllegalArgumentException("New owner must be different from the current owner");
+        }
 
         // Validate that new owner is a participant
         boolean isParticipant = campaign.getParticipants().stream()
