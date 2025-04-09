@@ -2,14 +2,14 @@
 import {computed, onMounted, ref} from 'vue';
 import {useUserStore} from '../stores/userStore';
 import CampaignList from '@/components/CampaignList.vue';
+import {useNotificationStore} from "@/stores/notificationStore.js";
 
 
 const userStore = useUserStore();
 const displayName = ref('');
 const isEditing = ref(false);
 const isSaving = ref(false);
-const errorMessage = ref('');
-const successMessage = ref('');
+const notificationStore = useNotificationStore();
 
 // Get current user information
 const user = computed(() => userStore.userInfo);
@@ -24,8 +24,6 @@ onMounted(async () => {
 const startEditing = () => {
   displayName.value = userStore.getDisplayName;
   isEditing.value = true;
-  errorMessage.value = '';
-  successMessage.value = '';
 };
 
 const cancelEditing = () => {
@@ -35,28 +33,17 @@ const cancelEditing = () => {
 
 const saveDisplayName = async () => {
   if (!displayName.value.trim()) {
-    errorMessage.value = 'Display name cannot be empty';
+    notificationStore.addNotification("Display name cannot be empty", "error");
     return;
   }
 
-  try {
-    isSaving.value = true;
-    errorMessage.value = '';
+  isSaving.value = true;
+  const success = await userStore.updateProfileField('displayName', displayName.value.trim());
 
-    await userStore.updateProfileField('displayName', displayName.value.trim());
-
+  if (success) {
     isEditing.value = false;
-    successMessage.value = 'Display name updated successfully!';
-
-    // Clear success message after 3 seconds
-    setTimeout(() => {
-      successMessage.value = '';
-    }, 3000);
-  } catch (error) {
-    errorMessage.value = error.message || 'Failed to update display name';
-  } finally {
-    isSaving.value = false;
   }
+  isSaving.value = false;
 };
 </script>
 
@@ -73,22 +60,6 @@ const saveDisplayName = async () => {
           <div
             class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
           <p class="mt-2">Loading your profile...</p>
-        </div>
-
-        <!-- Error state -->
-        <div v-else-if="userStore.error"
-             class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <p>{{ userStore.error }}</p>
-          <button @click="userStore.fetchCurrentUser()"
-                  class="button button-retry">
-            Try Again
-          </button>
-        </div>
-
-        <!-- Success message -->
-        <div v-if="successMessage"
-             class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-          {{ successMessage }}
         </div>
 
         <!-- Profile content -->
@@ -118,8 +89,6 @@ const saveDisplayName = async () => {
                     :disabled="isSaving"
                     placeholder="Enter display name"
                   />
-
-                  <div v-if="errorMessage" class="text-red-600 text-sm">{{ errorMessage }}</div>
 
                   <div class="flex space-x-2">
                     <button

@@ -1,5 +1,6 @@
 import {defineStore} from 'pinia'
-import UserService from '../services/UserService' // Importera UserService
+import UserService from '../services/UserService'
+import {useNotificationStore} from "@/stores/notificationStore.js"; // Importera UserService
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -40,21 +41,50 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    // async updateProfileField(field, value) {
+    //   this.isLoading = true
+    //   this.error = null
+    //
+    //   try {
+    //     const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value)
+    //     this.userInfo = { ...this.userInfo, ...updatedUser }
+    //   } catch (error) {
+    //     console.error('Failed to update profile field:', error)
+    //     this.error = 'Failed to update profile.'
+    //   } finally {
+    //     this.isLoading = false
+    //   }
+    // },
     async updateProfileField(field, value) {
-      this.isLoading = true
-      this.error = null
+      const notificationStore = useNotificationStore();
+      this.isLoading = true;
+      this.error = null;
 
       try {
-        const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value)
-        this.userInfo = { ...this.userInfo, ...updatedUser }
+        const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value);
+        this.userInfo = {...this.userInfo, ...updatedUser};
+        // Notify the user about the successful update
+        notificationStore.addNotification(`Successfully updated ${field}.`, 'success');
+        return true;
       } catch (error) {
-        console.error('Failed to update profile field:', error)
-        this.error = 'Failed to update profile.'
+        // Handle HTTP 409 Conflict (UniqueConstraintViolation) if the field is unique and already taken
+        if (error.response?.status === 409) {
+          const data = error.response.data;
+          const errorMessage = data.message || `This ${field} is already taken`;
+          this.error = errorMessage;
+          notificationStore.addNotification(errorMessage, 'error');
+        } else {
+          const errorMessage = `Failed to update ${field}. Please try again.`;
+          this.error = errorMessage;
+          notificationStore.addNotification(errorMessage, 'error');
+        }
+        return false;
       } finally {
-        this.isLoading = false
+        this.isLoading = false;
       }
     },
 
+    // We might not need this function, since we can update the profile with the updateProfileField function
     async updateProfile(data) {
       this.isLoading = true
       this.error = null
@@ -68,6 +98,7 @@ export const useUserStore = defineStore('user', {
         this.isLoading = false
       }
     },
+
     clearUserInfo() {
       this.userInfo = null;
       this.error = null;

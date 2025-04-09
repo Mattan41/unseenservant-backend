@@ -8,10 +8,19 @@ const axios = Axios.create({
   withXSRFToken: true,
 // todo: define api an use throughout the app, makes it easier to change the api interface if needed
   // todo: is an axios service needed or can we set it here?
-  // if no Xsrf token is set, the server will should a 403 error,
+  // if no Xsrf token is set, the server should throw a 403 error,
   // and we probably get a new token with the response, should we make another request with the new token immediately, at least once?
 
-  // todo: set up error handling for axios, and use it throughout the app. Remember to set upp error in backend as well
 });
+
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    // Logga alla API-fel
+    console.error('API Error:', error.response?.data || error.message);
+    return Promise.reject(error);
+  }
+);
+
 
 export default axios;

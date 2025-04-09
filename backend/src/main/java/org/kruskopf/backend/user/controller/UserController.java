@@ -1,5 +1,6 @@
 package org.kruskopf.backend.user.controller;
 
+import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.User;
@@ -19,7 +20,7 @@ public class UserController {
 
     public UserService userService;
 
-    // todo: add @PreAuthorize on endpoints after testing with Postman is done
+    // todo: add @PreAuthorize on relevanr endpoints
     public UserController(UserService userService) {
         this.userService = userService;
     }
@@ -67,10 +68,11 @@ public class UserController {
     @PreAuthorize("hasRole('ROLE_USER')")
     @PatchMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
-        return userService.partialUpdate(id, updates)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+        User updatedUser = userService.partialUpdate(id, updates)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        return ResponseEntity.ok(updatedUser);
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<User> updateProfile(@PathVariable Long id, @RequestBody User user) {

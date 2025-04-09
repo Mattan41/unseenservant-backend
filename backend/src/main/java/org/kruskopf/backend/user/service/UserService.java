@@ -1,5 +1,6 @@
 package org.kruskopf.backend.user.service;
 
+import org.kruskopf.backend.exception.UniqueConstraintViolationException;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
@@ -77,7 +78,14 @@ public class UserService {
             switch (key) {
                 case "userName" -> user.setUserName((String) value);
                 case "email" -> user.setEmail((String) value);
-                case "displayName" -> user.setDisplayName((String) value);
+                case "displayName" -> {
+                    String newDisplayName = (String) value;
+                    if (userRepository.existsByDisplayNameAndIdNot(newDisplayName, user.getId())) {
+                        throw new UniqueConstraintViolationException("displayName", newDisplayName);
+                    }
+                    user.setDisplayName(newDisplayName);
+                }
+
                 default -> throw new IllegalArgumentException("Field " + key + " not supported for update");
             }
         });
