@@ -1,0 +1,7 @@
+package org.kruskopf.backend.campaign.dto;
+
+import java.util.List;
+
+public record CampaignCreationDTO(String name, String description, Long ownerId,
+                                  List<ParticipantResponseDTO> participants) {
+}

@@ -1,5 +1,6 @@
-import { defineStore } from 'pinia'
-import UserService from '../services/UserService' // Importera UserService
+import {defineStore} from 'pinia'
+import UserService from '../services/UserService'
+import {useNotificationStore} from "@/stores/notificationStore.js"; // Importera UserService
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -25,14 +26,13 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    //fetch user information by user id, could be used to fetch other users' information
+    //fetch user information by user id, could be used to fetch other users' information such as invites to campaigns, or by admin to view/edit user information
     async fetchUserInfo(userId) {
       this.isLoading = true
       this.error = null
 
       try {
-        const user = await UserService.fetchUser(userId)
-        this.userInfo = user
+        this.userInfo = await UserService.fetchUser(userId)
       } catch (error) {
         console.error('Failed to fetch user info:', error)
         this.error = 'Failed to fetch user.'
@@ -41,28 +41,56 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    // async updateProfileField(field, value) {
+    //   this.isLoading = true
+    //   this.error = null
+    //
+    //   try {
+    //     const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value)
+    //     this.userInfo = { ...this.userInfo, ...updatedUser }
+    //   } catch (error) {
+    //     console.error('Failed to update profile field:', error)
+    //     this.error = 'Failed to update profile.'
+    //   } finally {
+    //     this.isLoading = false
+    //   }
+    // },
     async updateProfileField(field, value) {
-      this.isLoading = true
-      this.error = null
+      const notificationStore = useNotificationStore();
+      this.isLoading = true;
+      this.error = null;
 
       try {
-        const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value)
-        this.userInfo = { ...this.userInfo, ...updatedUser }
+        const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value);
+        this.userInfo = {...this.userInfo, ...updatedUser};
+        // Notify the user about the successful update
+        notificationStore.addNotification(`Successfully updated ${field}.`, 'success');
+        return true;
       } catch (error) {
-        console.error('Failed to update profile field:', error)
-        this.error = 'Failed to update profile.'
+        // Handle HTTP 409 Conflict (UniqueConstraintViolation) if the field is unique and already taken
+        if (error.response?.status === 409) {
+          const data = error.response.data;
+          const errorMessage = data.message || `This ${field} is already taken`;
+          this.error = errorMessage;
+          notificationStore.addNotification(errorMessage, 'error');
+        } else {
+          const errorMessage = `Failed to update ${field}. Please try again.`;
+          this.error = errorMessage;
+          notificationStore.addNotification(errorMessage, 'error');
+        }
+        return false;
       } finally {
-        this.isLoading = false
+        this.isLoading = false;
       }
     },
 
+    // We might not need this function, since we can update the profile with the updateProfileField function
     async updateProfile(data) {
       this.isLoading = true
       this.error = null
 
       try {
-        const updatedUser = await UserService.updateProfile(this.userInfo.id, data)
-        this.userInfo = updatedUser
+        this.userInfo = await UserService.updateProfile(this.userInfo.id, data)
       } catch (error) {
         console.error('Failed to update profile:', error)
         this.error = 'Failed to update profile.'
@@ -70,11 +98,20 @@ export const useUserStore = defineStore('user', {
         this.isLoading = false
       }
     },
+
+    clearUserInfo() {
+      this.userInfo = null;
+      this.error = null;
+      this.isLoading = false;
+      localStorage.removeItem('userData');
+      console.log('User info cleared and localStorage cleaned.');
+    },
   },
 
   getters: {
-    getDisplayName: (state) => state.userInfo?.displayName || state.userInfo?.username || 'Guest',
-
+    getDisplayName: (state) => state.userInfo?.displayName || state.userInfo?.username || 'Traveler',
+    getRole: (state) => state.userInfo?.role || 'Standard user',
     isLoadingProfile: (state) => state.isLoading,
+    getUserId: (state) => state.userInfo?.id || null,
   },
 })

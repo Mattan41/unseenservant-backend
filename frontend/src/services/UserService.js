@@ -1,34 +1,28 @@
-import axios from 'axios';
-
-const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/users`;
+import axios from '@/lib/axios.js'
 
 const UserService = {
   async fetchCurrentUser() {
-    const response = await axios.get(`${API_BASE_URL}/me`, {
-      withCredentials: true, // session-cookies is automatically sent with the request
+    const response = await axios.get(`api/users/me`, {
     });
-    return response.data; // UserDTO eller AuthDTO
+    return response.data;
   },
 
   async fetchUser(userId) {
-    const response = await axios.get(`${API_BASE_URL}/${userId}`, {
-      withCredentials: true,
+    const response = await axios.get(`api/users/${userId}`, {
     });
     return response.data;
   },
 
   async updateProfile(userId, data) {
-    const response = await axios.put(`${API_BASE_URL}/${userId}`, data, {
-      withCredentials: true,
+    const response = await axios.put(`api/users/${userId}`, data, {
     });
     return response.data;
   },
 
   async updateProfileField(userId, field, value) {
-    const response = await axios.patch(`${API_BASE_URL}/${userId}`, {
+    const response = await axios.patch(`api/users/${userId}`, {
       [field]: value,
     }, {
-      withCredentials: true,
     });
 
     return response.data;

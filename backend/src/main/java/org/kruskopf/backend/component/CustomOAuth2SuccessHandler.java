@@ -76,7 +76,9 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
 
         // Check for admin role in whitelist
-        String adminWhitelist = System.getenv("ADMIN_WHITELIST");
+         String adminWhitelist = System.getenv("ADMIN_WHITELIST");
+        // todo whiteList need to be populated with emails of admins
+
         boolean isAdmin = adminWhitelist != null && adminWhitelist.contains(Objects.requireNonNull(email));
 
         UserRole role = isAdmin ? UserRole.ADMIN : UserRole.USER;

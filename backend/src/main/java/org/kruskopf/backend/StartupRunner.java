@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class StartupRunner implements CommandLineRunner {
 
 
-
     private final UserService userService;
     private final CampaignService campaignService;
     private final MessageService messageService;
@@ -51,20 +50,26 @@ public class StartupRunner implements CommandLineRunner {
             userService.createAdminUser("admin", "admin@admin.se", "admin", "000000", ProviderType.GITHUB);
         }
 
+
         // Create and save campaigns
-        if (campaignService.findAll().isEmpty()) {
-            Campaign campaign1 = new Campaign("Campaign 1", "Description of Campaign 1");
-            campaign1.setCreatedBy("Mattan");
-            campaign1.setLastModifiedBy("Mattan");
-            Campaign campaign2 = new Campaign("Campaign 2", "Description of Campaign 2");
-            campaign2.setCreatedBy("Mats");
-            campaign2.setLastModifiedBy("Mats");
+        if (campaignService.getAllCampaignsRaw().isEmpty()) {
 
             // Retrieve users
             User user1 = userService.findByUserName("Mattan");
             User user2 = userService.findByUserName("Mats");
             User user3 = userService.findByUserName("User1");
             User user4 = userService.findByUserName("User2");
+
+            Campaign campaign1 = new Campaign("Curse of Strahd", "Under the light of the full moon, the small town of Barovia is plagued by the evil forces of Count Strahd von Zarovich.");
+            campaign1.setCreatedBy("Mattan");
+            campaign1.setLastModifiedBy("Mattan");
+            campaign1.setOwner(user1);
+
+            Campaign campaign2 = new Campaign("Neptunus", "The University of Lundenwic has been robbed of its prized artifact, the Amulet of Taharka. The players are hired to track down the thief and retrieve the amulet.");
+            campaign2.setCreatedBy("Mats");
+            campaign2.setLastModifiedBy("Mats");
+            campaign2.setOwner(user2);
+
 
             // Create and add participants
             campaign1.getParticipants().add(new CampaignUser(campaign1, user1, CampaignRole.PLAYER, "Mattan"));
@@ -73,9 +78,8 @@ public class StartupRunner implements CommandLineRunner {
 
             campaign2.getParticipants().add(new CampaignUser(campaign2, user2, CampaignRole.PLAYER, "Mats"));
             campaign2.getParticipants().add(new CampaignUser(campaign2, user4, CampaignRole.PLAYER, "User2"));
-
-            campaignService.save(campaign1);
-            campaignService.save(campaign2);
+            campaignService.createCampaignRaw(campaign1);
+            campaignService.createCampaignRaw(campaign2);
         }
 
         // Create and save messages
@@ -125,7 +129,6 @@ public class StartupRunner implements CommandLineRunner {
                     new PlayerCharacterStats(16, 10, 14, 10, 14, 12)
             ));
         }
-
 
 
     }

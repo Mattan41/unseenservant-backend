@@ -1,11 +1,13 @@
 package org.kruskopf.backend.user.service;
 
+import org.kruskopf.backend.exception.UniqueConstraintViolationException;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,6 +22,15 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+    public List<UserDTO> searchUsers(String query, Long currentUserId) {
+        List<User> users = userRepository.findByUserNameContainingOrEmailContainingOrFullNameContaining(
+                query, query, query);
+
+        return users.stream()
+                .filter(user -> !user.getId().equals(currentUserId))
+                .map(UserDTO::fromUser)
+                .toList();
+    }
 
     public User save(User user) {
         return userRepository.save(user);
@@ -62,13 +73,19 @@ public class UserService {
 
         User user = existingUserOpt.get();
 
-        // update the fields based on input
+        // update the fields based on input // todo review the fields here - which should user be able to update? and how to solve Admin has more rights? preauthorize? use different methods?
         updates.forEach((key, value) -> {
             switch (key) {
                 case "userName" -> user.setUserName((String) value);
                 case "email" -> user.setEmail((String) value);
-                case "displayName" -> user.setDisplayName((String) value);
-                // todo add more fields here
+                case "displayName" -> {
+                    String newDisplayName = (String) value;
+                    if (userRepository.existsByDisplayNameAndIdNot(newDisplayName, user.getId())) {
+                        throw new UniqueConstraintViolationException("displayName", newDisplayName);
+                    }
+                    user.setDisplayName(newDisplayName);
+                }
+
                 default -> throw new IllegalArgumentException("Field " + key + " not supported for update");
             }
         });
@@ -104,7 +121,7 @@ public class UserService {
 
     public UserDTO findUserDTOById(Long id) {
         return userRepository.findById(id)
-                .map(this::toDTO) // Konvertera User till UserDTO
+                .map(this::toDTO) // convert User to UserDTO
                 .orElse(null);
     }
 

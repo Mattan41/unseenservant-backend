@@ -1,5 +1,6 @@
 package org.kruskopf.backend.user.controller;
 
+import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.User;
@@ -10,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,10 +20,21 @@ public class UserController {
 
     public UserService userService;
 
-    // todo: add @PreAuthorize on endponints after testing with Postman is done
+    // todo: add @PreAuthorize on relevanr endpoints
     public UserController(UserService userService) {
         this.userService = userService;
     }
+
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDTO>> searchUsers(
+            @RequestParam String query,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long currentUserId = customUserDetails.user().getId();
+        List<UserDTO> users = userService.searchUsers(query, currentUserId);
+        return ResponseEntity.ok(users);
+    }
+
 
     @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/me")
@@ -52,12 +65,14 @@ public class UserController {
         return ResponseEntity.ok(userDTO);
     }
 
+    @PreAuthorize("hasRole('ROLE_USER')")
     @PatchMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
-        return userService.partialUpdate(id, updates)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+        User updatedUser = userService.partialUpdate(id, updates)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        return ResponseEntity.ok(updatedUser);
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<User> updateProfile(@PathVariable Long id, @RequestBody User user) {

@@ -17,7 +17,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -33,12 +32,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableRetry
 public class SecurityConfig {
 
-    private final UserDetailsService userDetailsService;
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
 
-    public SecurityConfig(UserDetailsService userDetailsService,
-                          CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
-        this.userDetailsService = userDetailsService;
+    public SecurityConfig(
+            CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
         this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
     }
 
@@ -50,22 +47,20 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-                //.csrf(AbstractHttpConfigurer::disable)  // disable csrf when testing with postman
-                //.csrf(Customizer.withDefaults()) // OR use this to enable csrf
+                //.csrf(AbstractHttpConfigurer::disable) // Disable CSRF protection if needed for manual testing todo: remove this line
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
                 )
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/", "/oauth2/**").permitAll();
+                    auth.requestMatchers("/", "/oauth2/**", "/logout").permitAll();
                     auth.requestMatchers("/admin").hasRole(UserRole.ADMIN.name());
-                    auth.requestMatchers("/api/auth/**").permitAll();
-                    auth.requestMatchers("/api/auth/login").permitAll();
+                    auth.requestMatchers("/api/auth/**", "/api/auth/login").permitAll();
                     auth.requestMatchers("/api/auth/me").authenticated();
-                    auth.requestMatchers("/api/users/**").hasRole(UserRole.USER.name()); //.permitAll();//authenticated(); // todo: change to authenticated() or hasRole(UserRole.USER.name());
-                    auth.requestMatchers("/api/campaigns/**").permitAll(); // todo change to authenticated();
-                    auth.requestMatchers("/api/characters/**").permitAll(); // .authenticated();
-                    auth.requestMatchers("/api/messages/**").permitAll(); // .authenticated();
+                    auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**").authenticated();
+                    // auth.anyRequest().permitAll(); // switch for postman testing without need for authentication todo: remove this line
                     auth.anyRequest().denyAll();
+
                 }).exceptionHandling(exceptionHandling ->
                         exceptionHandling
                                 .accessDeniedHandler((request, response, accessDeniedException) -> {
@@ -76,7 +71,7 @@ public class SecurityConfig {
                                     }
                                 }))
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .maximumSessions(1)
                         .expiredUrl("/login"))
                 .logout(logout -> logout
@@ -84,11 +79,7 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID"))
-                .formLogin(AbstractHttpConfigurer::disable
-//                        form -> form
-//                        .successHandler(customAuthenticationSuccessHandler)
-//                        .failureHandler(customAuthenticationFailureHandler)
-                )
+                .formLogin(AbstractHttpConfigurer::disable)
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(customOAuth2SuccessHandler));
 
@@ -103,7 +94,7 @@ public class SecurityConfig {
             public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins("http://localhost:5173", "https://unseenservant.se")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true)
                         .exposedHeaders("Set-Cookie");
@@ -119,7 +110,7 @@ public class SecurityConfig {
                 .build();
     }
 
-    // and, if using pre-post method security also add
+    // this is for using Pre and PostAuthorize annotations, it is needed for Role hierarchy to work with these annotations
     @Bean
     static MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
         DefaultMethodSecurityExpressionHandler expressionHandler = new DefaultMethodSecurityExpressionHandler();

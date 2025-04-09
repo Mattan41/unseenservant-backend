@@ -1,0 +1,35 @@
+ALTER TABLE campaign
+    ADD owner_id BIGINT NULL;
+
+ALTER TABLE campaign
+    MODIFY owner_id BIGINT NOT NULL;
+
+ALTER TABLE campaign
+    ADD CONSTRAINT FK_CAMPAIGN_ON_OWNER FOREIGN KEY (owner_id) REFERENCES users (id);
+
+ALTER TABLE users
+    DROP
+        COLUMN provider_type;
+
+ALTER TABLE users
+    DROP
+        COLUMN `role`;
+
+ALTER TABLE users
+    ADD provider_type VARCHAR(255) NOT NULL;
+
+ALTER TABLE campaign_user
+    DROP
+        COLUMN `role`;
+
+ALTER TABLE campaign_user
+    ADD `role` VARCHAR(255) NULL;
+
+ALTER TABLE users
+    ADD `role` VARCHAR(255) NULL;
+
+CREATE INDEX idx_user_email ON users (email);
+
+CREATE INDEX idx_user_provider_id ON users (provider_id);
+
+CREATE INDEX idx_user_username ON users (user_name);

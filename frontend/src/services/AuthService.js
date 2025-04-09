@@ -1,8 +1,8 @@
-import axios from 'axios';
+import axios from '@/lib/axios.js';
 import {useAuthStore} from '../stores/authStore.js';
 import router from '../router/index.js';
+import {useUserStore} from "@/stores/userStore.js";
 
-const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/auth`;
 const API_GOOGLE_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
 const API_GITHUB_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/github`;
 
@@ -16,11 +16,9 @@ class AuthService {
     window.location.href = API_GITHUB_LOGIN_URL;
   }
 
-
   async getCurrentUser() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/me`, {
-        withCredentials: true, //  session-cookies is automatically sent with the request
+      const response = await axios.get(`/api/auth/me`, {
       });
       return response.data;
     } catch (error) {
@@ -31,15 +29,24 @@ class AuthService {
 
   async logout() {
     return axios
-      .post(`${import.meta.env.VITE_API_BASE_URL}/logout`, {}, {
-        withCredentials: true,
-      })
+      .post(`/logout`, {}, {})
       .then(() => {
         const authStore = useAuthStore();
-        authStore.user = null;
+        const userStore = useUserStore();
+
+        // Clear the user data from the stores
+        authStore.user = null; // todo: clearUser() method in authStore ? something is interfering with the logout
+        authStore.isAuthenticated = false;
+        userStore.clearUserInfo();
+
+        // Clear the user data from the local storage
         localStorage.removeItem('userData');
         sessionStorage.removeItem('userData');
+
+        // Trigger the storage event to notify all tabs
         window.dispatchEvent(new Event('storage'));
+
+        // Redirect the user to the home page
         router.push('/');
       });
   }

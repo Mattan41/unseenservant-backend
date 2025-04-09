@@ -2,6 +2,7 @@ package org.kruskopf.backend.campaign.entity;
 
 import jakarta.persistence.*;
 import org.kruskopf.backend.message.entity.Message;
+import org.kruskopf.backend.user.entity.User;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -22,7 +23,11 @@ public class Campaign {
 
     private String name;
 
+    @Lob
     private String description;
+
+    @Column(length = 1024)
+    private String imageUrl;
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -36,11 +41,15 @@ public class Campaign {
     @LastModifiedBy
     private String lastModifiedBy;
 
-    @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CampaignUser> participants = new ArrayList<>();
 
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL)
     private List<Message> messages = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 
     public Campaign() {
     }
@@ -68,6 +77,14 @@ public class Campaign {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -116,5 +133,18 @@ public class Campaign {
 
     public void setMessages(List<Message> messages) {
         this.messages = messages;
+    }
+
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
+    }
+
+    @Transient
+    public boolean isOwnedBy(Long userId) {
+        return owner != null && owner.getId().equals(userId);
     }
 }
