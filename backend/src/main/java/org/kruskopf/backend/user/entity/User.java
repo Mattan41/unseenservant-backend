@@ -1,78 +1,106 @@
 package org.kruskopf.backend.user.entity;
 
 import jakarta.persistence.*;
+import org.kruskopf.backend.message.entity.Message;
+import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-@Entity
-public class User {
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+@Entity
+@EntityListeners(AuditingEntityListener.class)
+@Table(name = "users", indexes = {
+        @Index(name = "idx_user_email", columnList = "email"),
+        @Index(name = "idx_user_username", columnList = "userName"),
+        @Index(name = "idx_user_provider_id", columnList = "provider_id")
+})
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "provider_id", unique = true, nullable = false)
+    private String providerId;
 
-    @jakarta.persistence.Column(unique = true, name = "google_id")
-    private String googleId;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private ProviderType providerType;
 
-    @jakarta.persistence.Column(unique = true, name = "user_name")
-    private String userName;
+    @Column(nullable = false, unique = true)
+    private String email;
 
     @Column(name = "full_name")
     private String fullName;
 
-    @jakarta.persistence.Column(unique = true, name = "email")
-    private String email;
+    @Column(nullable = false, unique = true)
+    private String userName;
 
-    @Column(name = "role")
-    private String role;
+    @Column(name = "display_name", nullable = true, length = 50, unique = true)
+    private String displayName;
 
-    @Column(name = "password")
+    @Enumerated(EnumType.STRING)
+    private UserRole role;
+
     private String password;
+
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PlayerCharacter> playerCharacters = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Message> messages = new ArrayList<>();
+
 
     public User() {
     }
 
-    // Parameterized constructor
-    public User(String googleId, String email, String fullName) {
-        this.googleId = googleId;
+    // parameterized constructor
+    public User(String providerId, ProviderType providerType, String email, String fullName, String username, UserRole role, String password) {
+        this.providerId = providerId;
+        this.providerType = providerType;
         this.email = email;
         this.fullName = fullName;
-        this.userName = email;
-        this.password = new BCryptPasswordEncoder().encode("password"); // Set a default password
-        this.role = "USER"; // Set a default role
+        this.userName = username;
+        this.displayName = displayName;
+        this.role = role;
+        setPassword(password);
     }
+    // getters and setters
+    // todo: remove setters that are unnesesary and could be a security risk
 
-    public String getGoogleId() {
-        return googleId;
-    }
-
-    public void setGoogleId(String googleId) {
-        this.googleId = googleId;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public Long getId() {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public String getProviderId() {
+        return providerId;
     }
 
-    public String getUserName() {
-        return userName;
+    public void setProviderId(String providerId) {
+        this.providerId = providerId;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public ProviderType getProviderType() {
+        return providerType;
     }
 
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
+    public void setProviderType(ProviderType providerType) {
+        this.providerType = providerType;
     }
 
     public String getEmail() {
@@ -83,11 +111,35 @@ public class User {
         this.email = email;
     }
 
-    public String getRole() {
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String username) {
+        this.userName = username;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public UserRole getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(UserRole role) {
         this.role = role;
     }
 
@@ -98,5 +150,37 @@ public class User {
     public void setPassword(String password) {
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         this.password = passwordEncoder.encode(password);
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public List<PlayerCharacter> getCharacters() {
+        return playerCharacters;
+    }
+
+    public void setCharacters(List<PlayerCharacter> playerCharacters) {
+        this.playerCharacters = playerCharacters;
+    }
+
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<Message> messages) {
+        this.messages = messages;
     }
 }
