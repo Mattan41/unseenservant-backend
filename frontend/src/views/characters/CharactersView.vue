@@ -1,12 +1,13 @@
 <script setup>
-import CampaignList from '@/components/CampaignList.vue';
+
+import CharacterList from "@/views/characters/components/CharacterList.vue";
 
 </script>
 
 <template>
   <div class="container mx-auto p-6 max-w-4xl">
     <section class="bg-primary-500 p-4 rounded-lg">
-      <CampaignList/>
+      <CharacterList/>
     </section>
   </div>
 </template>

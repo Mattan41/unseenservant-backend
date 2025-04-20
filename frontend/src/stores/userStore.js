@@ -1,6 +1,6 @@
 import {defineStore} from 'pinia'
 import UserService from '../services/UserService'
-import {useNotificationStore} from "@/stores/notificationStore.js"; // Importera UserService
+import {useNotificationStore} from "@/stores/notificationStore.js";
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -41,20 +41,6 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    // async updateProfileField(field, value) {
-    //   this.isLoading = true
-    //   this.error = null
-    //
-    //   try {
-    //     const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value)
-    //     this.userInfo = { ...this.userInfo, ...updatedUser }
-    //   } catch (error) {
-    //     console.error('Failed to update profile field:', error)
-    //     this.error = 'Failed to update profile.'
-    //   } finally {
-    //     this.isLoading = false
-    //   }
-    // },
     async updateProfileField(field, value) {
       const notificationStore = useNotificationStore();
       this.isLoading = true;

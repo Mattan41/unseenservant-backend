@@ -3,6 +3,7 @@ import {computed, onMounted, ref} from 'vue';
 import {useUserStore} from '../stores/userStore';
 import CampaignList from '@/components/CampaignList.vue';
 import {useNotificationStore} from "@/stores/notificationStore.js";
+import CharacterList from "@/views/characters/components/CharacterList.vue";
 
 
 const userStore = useUserStore();
@@ -133,6 +134,10 @@ const saveDisplayName = async () => {
           <!-- Campaigns section -->
           <section class="bg-primary-500 p-4 rounded-lg">
             <CampaignList/>
+          </section>
+          <section class="bg-primary-500 p-4 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4 text-primary-700">Your Characters</h2>
+            <CharacterList/>
           </section>
 
         </div>

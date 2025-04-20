@@ -22,6 +22,7 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+    // todo replace usage of Long with primitive type long in most cases
     public List<UserDTO> searchUsers(String query, Long currentUserId) {
         List<User> users = userRepository.findByUserNameContainingOrEmailContainingOrFullNameContaining(
                 query, query, query);

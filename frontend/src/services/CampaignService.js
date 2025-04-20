@@ -84,7 +84,24 @@ const CampaignService = {
       headers: {'Content-Type': 'text/plain'}
     });
     return response.data;
+  },
+
+  async fetchCharactersForCampaign(campaignId) {
+    const response = await axios.get(`api/characters?campaignId=${campaignId}`);
+    return response.data;
+  },
+
+  async addCharacterToCampaign(characterId, campaignId) {
+    const response = await axios.patch(`api/characters/${characterId}/campaign`,
+      {campaignId: campaignId}, {});
+    return response.data;
+  },
+
+  async removeCharacterFromCampaign(characterId) {
+    const response = await axios.delete(`api/characters/${characterId}/campaign`);
+    return response.data;
   }
+
 
 };
 

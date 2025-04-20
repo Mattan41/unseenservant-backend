@@ -1,9 +1,14 @@
 package org.kruskopf.backend.playercharacter.controller;
 
+import org.kruskopf.backend.playercharacter.dto.PlayerCharacterCampaignUpdateDTO;
 import org.kruskopf.backend.playercharacter.dto.PlayerCharacterInputDTO;
 import org.kruskopf.backend.playercharacter.dto.PlayerCharacterOutputDTO;
 import org.kruskopf.backend.playercharacter.service.PlayerCharacterService;
+import org.kruskopf.backend.user.CustomUserDetails;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,9 +23,62 @@ public class PlayerCharacterController {
         this.playerCharacterService = playerCharacterService;
     }
 
+    // add preauthorize to all endpoints
+
+    @PostMapping
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<PlayerCharacterOutputDTO> createCharacter(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @RequestBody PlayerCharacterInputDTO inputDTO) {
+
+        Long userId = customUserDetails.user().getId();
+
+        PlayerCharacterInputDTO effectiveDTO = inputDTO;
+        if (inputDTO.ownerId() == null) {
+            effectiveDTO = new PlayerCharacterInputDTO(
+                    userId,
+                    null,
+                    inputDTO.name(),
+                    inputDTO.level(),
+                    inputDTO.characterClass(),
+                    inputDTO.race(),
+                    inputDTO.playerCharacterData()
+            );
+        }
+
+        PlayerCharacterOutputDTO createdCharacter = playerCharacterService.createCharacter(effectiveDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCharacter);
+    }
+
     @GetMapping
-    public List<PlayerCharacterOutputDTO> getAllCharacters() {
-        return playerCharacterService.getAllCharacters();
+    public ResponseEntity<List<PlayerCharacterOutputDTO>> getCharactersByCampaignId(
+            @RequestParam(required = false) Long campaignId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        Long userId = customUserDetails.user().getId();
+
+        List<PlayerCharacterOutputDTO> characters = playerCharacterService.getCharactersByCampaignId(campaignId, userId);
+
+        return ResponseEntity.ok(characters);
+    }
+
+    // get a list of all characters without campaign id for a user
+    @GetMapping("/without-campaign")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<List<PlayerCharacterOutputDTO>> getCharactersWithoutCampaign(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        Long userId = customUserDetails.user().getId();
+        List<PlayerCharacterOutputDTO> characters = playerCharacterService.getCharactersWithoutCampaign(userId);
+        return ResponseEntity.ok(characters);
+    }
+
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<List<PlayerCharacterOutputDTO>> getMyCharacters(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
+        List<PlayerCharacterOutputDTO> characters = playerCharacterService.getCharactersByUserId(userId);
+        return ResponseEntity.ok(characters);
     }
 
     @GetMapping("/{id}")
@@ -32,8 +90,36 @@ public class PlayerCharacterController {
         }
     }
 
-    @PostMapping
-    public ResponseEntity<PlayerCharacterOutputDTO> createCharacter(@RequestBody PlayerCharacterInputDTO inputDTO) {
-        return ResponseEntity.ok(playerCharacterService.createCharacter(inputDTO));
+    @PatchMapping("/{characterId}/campaign")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<PlayerCharacterOutputDTO> addCharacterToCampaign(
+            @PathVariable Long characterId,
+            @RequestBody PlayerCharacterCampaignUpdateDTO updateDTO,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        Long userId = customUserDetails.user().getId();
+        PlayerCharacterOutputDTO updatedCharacter = playerCharacterService.addCharacterToCampaign(characterId, updateDTO.campaignId(), userId);
+        return ResponseEntity.ok(updatedCharacter);
     }
+
+    @DeleteMapping("/{characterId}/campaign")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<PlayerCharacterOutputDTO> removeCharacterFromCampaign(
+            @PathVariable Long characterId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        Long userId = customUserDetails.user().getId();
+        PlayerCharacterOutputDTO updatedCharacter = playerCharacterService.removeCharacterFromCampaign(characterId, userId);
+        return ResponseEntity.ok(updatedCharacter);
+    }
+
+    @DeleteMapping("/{characterId}")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<Void> deleteCharacter(@PathVariable Long characterId, @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
+        playerCharacterService.deleteCharacter(characterId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+
 }
