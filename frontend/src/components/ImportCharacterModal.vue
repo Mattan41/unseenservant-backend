@@ -66,7 +66,11 @@ watch(
 </script>
 
 <template>
-  <div v-if="modelValue" class="fixed inset-0 w-full h-full bg-black/50 flex justify-center items-center z-[1000]">
+  <div
+    v-if="modelValue"
+    class="fixed inset-0 w-full h-full bg-black/50 flex justify-center items-center z-[1000]"
+    @click.self="close"
+  >
     <div class="bg-primary-50 p-8 rounded-lg max-w-[600px] w-[90%] max-h-[80vh] overflow-y-auto">
       <h4 class="mb-4 text-primary-800">Select a character to import to the campaign</h4>
 
@@ -75,13 +79,6 @@ watch(
           class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"
         ></div>
         <p class="mt-2 text-gray-600">Loading available characters...</p>
-      </div>
-
-      <div
-        v-else-if="characterStore.error"
-        class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"
-      >
-        <p>{{ characterStore.error }}</p>
       </div>
 
       <div v-else-if="availableCharacters.length === 0" class="text-center py-8">

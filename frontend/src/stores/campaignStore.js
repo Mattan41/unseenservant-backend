@@ -37,6 +37,7 @@ export const useCampaignStore = defineStore('campaign', {
       try {
         this.campaigns = await CampaignService.fetchAllCampaigns()
       } catch (error) {
+        console.error('Failed to fetch campaigns:', error)
         this.error = 'Could not fetch campaigns.'
       } finally {
         this.isLoading = false
@@ -254,7 +255,6 @@ export const useCampaignStore = defineStore('campaign', {
 
     async removeCharacterFromCampaign(characterId) {
       try {
-        // Leta upp vilken kampanj karaktären tillhör
         let campaignId = null;
         for (const [campId, characters] of Object.entries(this.campaignCharacters)) {
           if (characters.some(char => char.id === characterId)) {

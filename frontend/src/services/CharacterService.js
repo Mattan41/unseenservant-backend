@@ -52,21 +52,5 @@ const CharacterService = {
     });
     return response.data;
   },
-
-  // add to campaign
-  async addCharacterToCampaign(characterId, campaignId) {
-    const response = await axios.post(`api/characters/${characterId}/campaigns/${campaignId}`,
-      {}, {});
-    return response.data;
-
-    },
-
-  // remove from campaign
-  async removeCharacterFromCampaign(characterId, campaignId) {
-    const response = await axios.patch(`api/characters/${characterId}/campaigns`, {campaignId},
-      {});
-    return response.data;
-    },
-
 }
 export default CharacterService;

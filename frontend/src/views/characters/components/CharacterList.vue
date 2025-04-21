@@ -33,10 +33,6 @@ const viewCharacter = (id) => {
       <p class="mt-2 text-gray-600">Loading characters...</p>
     </div>
 
-    <div v-else-if="characterStore.error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-      <p>{{ characterStore.error }}</p>
-    </div>
-
     <div v-else-if="characterStore.characters.length === 0" class="text-center py-8">
       <p class="text-gray-600">You don't have any characters yet.</p>
       <router-link :to="{ name: 'CreateCharacter' }" class="mt-4 inline-block bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded">

@@ -7,7 +7,6 @@ export const useCharacterStore = defineStore('character', {
     characters: [],
     currentCharacter: null,
     isLoading: false,
-    error: null,
   }),
 
   actions: {
@@ -24,7 +23,6 @@ export const useCharacterStore = defineStore('character', {
       } catch (error) {
         console.error('Failed to create character:', error);
         notificationStore.addNotification("Failed to create character.", "error");
-        this.error = error.message;
       } finally {
         this.isLoading = false;
       }
@@ -55,7 +53,6 @@ export const useCharacterStore = defineStore('character', {
       } catch (error) {
         console.error('Failed to fetch character:', error);
         notificationStore.addNotification("Failed to fetch character.", "error");
-        this.error = error.message;
       } finally {
         this.isLoading = false;
       }
@@ -71,7 +68,6 @@ export const useCharacterStore = defineStore('character', {
       } catch (error) {
         console.error('Failed to fetch characters:', error);
         notificationStore.addNotification("Failed to fetch characters.", "error");
-        this.error = error.message;
       } finally {
         this.isLoading = false;
       }
@@ -118,7 +114,6 @@ export const useCharacterStore = defineStore('character', {
       } catch (error) {
         console.error('Failed to update character:', error);
         notificationStore.addNotification("Failed to update character.", "error");
-        this.error = error.message;
       } finally {
         this.isLoading = false;
       }
@@ -147,7 +142,6 @@ export const useCharacterStore = defineStore('character', {
       } catch (error) {
         console.error('Failed to update character field:', error);
         notificationStore.addNotification(`Failed to update ${field}.`, "error");
-        this.error = error.message;
       } finally {
         this.isLoading = false;
       }
@@ -173,35 +167,12 @@ export const useCharacterStore = defineStore('character', {
       } catch (error) {
         console.error('Failed to delete character:', error);
         notificationStore.addNotification("Failed to delete character.", "error");
-        this.error = error.message;
         return false;
       } finally {
         this.isLoading = false;
       }
     },
-
-    async addCharacterToCampaign(characterId, campaignId) {
-      const notificationStore = useNotificationStore();
-      try {
-        const response = await CharacterService.addCharacterToCampaign(characterId, campaignId);
-         return response.data;
-      } catch (error) {
-        notificationStore.addNotification("Failed to add character to campaign.", error);
-      }
-    },
-
-    // todo: is this needed? we use the removeCharacterFromCampaign method in the CampaignStore
-    async removeCharacterFromCampaign(characterId) {
-      try {
-        const response = await CharacterService.removeCharacterFromCampaign(characterId);
-        return response.data;
-      } catch (error) {
-        const notificationStore = useNotificationStore();
-        notificationStore.addNotification("Failed to remove character from campaign.", error);
-      }
-    }
-
-  },
+   },
 
   getters: {
     getCharacterById: (state) => (id) => {

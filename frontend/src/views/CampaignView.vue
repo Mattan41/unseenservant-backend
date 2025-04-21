@@ -597,7 +597,7 @@ watch(
           <!-- Modal overlay -->
           <div
             v-if="showSettings"
-            class="fixed inset-0 z-30 flex items-center justify-center"
+            class="fixed inset-0 z-30 bg-black/50 flex items-center justify-center"
             @click="showSettings = false"
           >
             <div
