@@ -17,6 +17,7 @@ const getCampaignName = (campaignId) => {
 onMounted(async () => {
   loading.value = true;
   await characterStore.fetchAllCharactersForCurrentUser();
+  await campaignStore.fetchAllCampaignsForCurrentUser();
   loading.value = false;
 });
 
