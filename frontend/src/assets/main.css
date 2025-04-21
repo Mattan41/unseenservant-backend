@@ -45,32 +45,7 @@
     --color-third-900: #111827;
 
 }
-h1,
-h2,
-h3,
-h4 {
-    font-family: "Oswald", sans-serif;
-    text-transform: uppercase;
-}
 
-h1 {
-    font-size: 48px;
-    line-height: 1.1em;
-}
-
-h2 {
-    font-size: 30px;
-    line-height: 1.2em;
-}
-
-h3 {
-    font-size: 17px;
-    line-height: 1.2em;
-}
-
-h4 {
-    font-size: 15px;
-}
 
 /* Base button styles */
 .button {
@@ -132,7 +107,47 @@ h4 {
 .success-message {
     @apply bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded
 }
+h1,
+h2,
+h3,
+h4,
+h5 {
+    font-family: "Oswald", sans-serif;
+}
 
+h1, h2, h3 {
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+/* Basstorlekar */
+h1 {
+    font-size: 48px;
+    line-height: 1.1em;
+    color: var(--color-primary-900);
+}
+
+h2 {
+    font-size: 30px;
+    line-height: 1.2em;
+}
+
+h3 {
+    font-size: 17px;
+    line-height: 1.2em;
+}
+
+h4 {
+    font-size: 15px;
+    line-height: 1.3em;
+}
+
+h5 {
+    font-size: 14px;
+    line-height: 1.3em;
+}
+
+/* Tablet (sm) */
 @media screen and (min-width: 640px) {
     h1 {
         font-size: 50px;
@@ -160,7 +175,7 @@ h4 {
     }
 }
 
-
+/* Medium (md) */
 @media screen and (min-width: 768px) {
     h1 {
         font-size: 54px;
@@ -188,7 +203,7 @@ h4 {
     }
 }
 
-
+/* Large (lg) */
 @media screen and (min-width: 1024px) {
     h1 {
         font-size: 56px;
@@ -216,6 +231,7 @@ h4 {
     }
 }
 
+/* Extra large (xl) */
 @media screen and (min-width: 1280px) {
     h1 {
         font-size: 56px;
@@ -237,5 +253,10 @@ h4 {
     body {
         font-size: 20px;
     }
+
+    h5 {
+        font-size: 18px;
+    }
 }
+
 

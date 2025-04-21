@@ -35,7 +35,7 @@ onMounted(async () => {
 
         <RouterLink :to="{ name: 'CampaignView', params: { id: campaign.id } }"
                     class="element-link">
-          <h3 class="text-lg font-bold">{{ campaignStore.getCampaignTitle(campaign.id) }}</h3>
+          <h3 class="text-lg font-bold break-words">{{ campaignStore.getCampaignTitle(campaign.id) }}</h3>
 
           <!-- image component -->
           <div class="my-3">
@@ -46,7 +46,7 @@ onMounted(async () => {
           </div>
 
           <!-- Description with read more/less -->
-          <div>
+          <div class="break-words">
             <p
               v-if="campaignStore.getCampaignDescription(campaign.id).length <= 150 || expandedDescriptions[campaign.id]">
               {{ campaignStore.getCampaignDescription(campaign.id) }}

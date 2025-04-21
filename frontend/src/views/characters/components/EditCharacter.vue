@@ -1,42 +1,74 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useCharacterStore } from '@/stores/characterStore.js';
-import { useRoute, useRouter } from 'vue-router';
-import { useNotificationStore } from '@/stores/notificationStore.js';
+import { computed, onMounted, ref } from 'vue'
+import { useCharacterStore } from '@/stores/characterStore.js'
+import { useRoute, useRouter } from 'vue-router'
+import CharacterImage from "@/views/characters/components/CharacterImage.vue";
 
-const characterStore = useCharacterStore();
-const route = useRoute();
-const router = useRouter();
-const notificationStore = useNotificationStore();
+const characterStore = useCharacterStore()
+const route = useRoute()
+const router = useRouter()
 
-const characterId = computed(() => route.params.id);
-const loading = ref(true);
-const formError = ref('');
-const isSubmitting = ref(false);
+const characterId = computed(() => route.params.id)
+const loading = ref(true)
+const formError = ref('')
+const isSubmitting = ref(false)
+
+// For image upload
+const fileInput = ref(null)
+const previewImage = ref(null)
+const selectedFile = ref(null)
+const characterImageUrl = computed(() => {
+  if (previewImage.value) return previewImage.value
+  return character.value.imageUrl
+})
 
 const character = ref({
   name: '',
   race: '',
   characterClass: '',
   level: 1,
+  imageUrl: null,
   playerCharacterData: {
     strength: 10,
     dexterity: 10,
     constitution: 10,
     intelligence: 10,
     wisdom: 10,
-    charisma: 10
-  }
-});
+    charisma: 10,
+  },
+})
 
-const races = ['Human', 'Elf', 'Dwarf', 'Halfling', 'Gnome', 'Half-Elf', 'Half-Orc', 'Dragonborn', 'Tiefling'];
-const characterClasses = ['Fighter', 'Wizard', 'Rogue', 'Cleric', 'Ranger', 'Paladin', 'Barbarian', 'Bard', 'Druid', 'Monk', 'Sorcerer', 'Warlock'];
+const races = [
+  'Human',
+  'Elf',
+  'Dwarf',
+  'Halfling',
+  'Gnome',
+  'Half-Elf',
+  'Half-Orc',
+  'Dragonborn',
+  'Tiefling',
+]
+const characterClasses = [
+  'Fighter',
+  'Wizard',
+  'Rogue',
+  'Cleric',
+  'Ranger',
+  'Paladin',
+  'Barbarian',
+  'Bard',
+  'Druid',
+  'Monk',
+  'Sorcerer',
+  'Warlock',
+]
 
 onMounted(async () => {
   try {
-    const fetchedCharacter = await characterStore.fetchCharacter(characterId.value);
+    const fetchedCharacter = await characterStore.fetchCharacter(characterId.value)
     if (fetchedCharacter) {
-      character.value = { ...fetchedCharacter };
+      character.value = { ...fetchedCharacter }
       // Ensure playerCharacterData is not null
       if (!character.value.playerCharacterData) {
         character.value.playerCharacterData = {
@@ -45,56 +77,82 @@ onMounted(async () => {
           constitution: 10,
           intelligence: 10,
           wisdom: 10,
-          charisma: 10
-        };
+          charisma: 10,
+        }
       }
     } else {
-      formError.value = 'Character not found';
+      formError.value = 'Character not found'
     }
   } catch (error) {
-    formError.value = error.message || 'Failed to load character';
+    formError.value = error.message || 'Failed to load character'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-});
+})
+
+// Image upload functions
+function triggerFileInput() {
+  fileInput.value.click()
+}
+
+function handleImageChange(event) {
+  const file = event.target.files[0]
+  if (file) {
+    selectedFile.value = file
+    // Create a preview URL for the selected image
+    previewImage.value = URL.createObjectURL(file)
+  }
+}
 
 const submitCharacter = async () => {
   if (!character.value.name) {
-    formError.value = 'Character name is required';
-    return;
+    formError.value = 'Character name is required'
+    return
   }
 
   if (!character.value.race) {
-    formError.value = 'You must select a race';
-    return;
+    formError.value = 'You must select a race'
+    return
   }
 
   if (!character.value.characterClass) {
-    formError.value = 'You must select a class';
-    return;
+    formError.value = 'You must select a class'
+    return
   }
 
-  isSubmitting.value = true;
-  formError.value = '';
+  isSubmitting.value = true
+  formError.value = ''
 
   try {
-    const updatedCharacter = await characterStore.updateCharacter(characterId.value, character.value);
+    if (selectedFile.value) {
+      const updatedCharacter = await characterStore.uploadCharacterImage(
+        characterId.value,
+        selectedFile.value,
+      );
+      character.value.imageUrl = updatedCharacter.imageUrl || updatedCharacter;
+    }
+
+    const updatedCharacter = await characterStore.updateCharacter(
+      characterId.value,
+      character.value,
+    )
     if (updatedCharacter) {
-      notificationStore.addNotification('Character updated successfully!', 'success');
-      router.push({ name: 'CharacterView', params: { id: updatedCharacter.id } });
+      await router.push({name: 'CharacterView', params: {id: updatedCharacter.id}})
     }
   } catch (error) {
-    formError.value = error.message || 'Failed to update character';
+    formError.value = error.message || 'Failed to update character'
   } finally {
-    isSubmitting.value = false;
+    isSubmitting.value = false
   }
-};
+}
 </script>
 
 <template>
   <div class="container mx-auto p-4 max-w-2xl">
     <div v-if="loading" class="text-center py-8">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+      <div
+        class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"
+      ></div>
       <p class="mt-2 text-gray-600">Loading character...</p>
     </div>
 
@@ -104,16 +162,61 @@ const submitCharacter = async () => {
       </div>
 
       <form @submit.prevent="submitCharacter" class="p-6">
-        <div v-if="formError" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        <div
+          v-if="formError"
+          class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"
+        >
           {{ formError }}
+        </div>
+
+        <!-- Character Image -->
+        <div class="mb-6">
+          <h5 class="text-lg font-semibold mb-3 text-primary-600">Character Image</h5>
+          <div class="flex items-center space-x-4">
+            <div class="relative">
+              <CharacterImage
+                :src="characterImageUrl"
+                alt="Character Image"
+                class="w-24 h-24 rounded-lg object-cover border-2 border-primary-300"
+              />
+
+              <!-- Overlay with edit icon over image -->
+              <div
+                @click="triggerFileInput"
+                class="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                <span class="text-white text-sm">Change</span>
+              </div>
+            </div>
+
+            <!-- File input (hidden) -->
+            <input
+              type="file"
+              ref="fileInput"
+              @change="handleImageChange"
+              accept="image/*"
+              class="hidden"
+            />
+
+            <!-- Text link to trigger upload -->
+            <button
+              type="button"
+              @click="triggerFileInput"
+              class="text-primary-600 hover:text-primary-800 text-sm"
+            >
+              Upload new image
+            </button>
+          </div>
         </div>
 
         <!-- Basic Info -->
         <div class="mb-6">
-          <h2 class="text-lg font-semibold mb-3 text-primary-600">Basic Information</h2>
+          <h4 class="text-lg font-semibold mb-3 text-primary-600">Basic Information</h4>
 
           <div class="mb-4">
-            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Character Name</label>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-1"
+              >Character Name</label
+            >
             <input
               id="name"
               v-model="character.name"
@@ -144,13 +247,17 @@ const submitCharacter = async () => {
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="" disabled>Select a class</option>
-                <option v-for="charClass in characterClasses" :key="charClass" :value="charClass">{{ charClass }}</option>
+                <option v-for="charClass in characterClasses" :key="charClass" :value="charClass">
+                  {{ charClass }}
+                </option>
               </select>
             </div>
           </div>
 
           <div class="mb-4">
-            <label for="level" class="block text-sm font-medium text-gray-700 mb-1">Level (1-20)</label>
+            <label for="level" class="block text-sm font-medium text-gray-700 mb-1"
+              >Level (1-20)</label
+            >
             <input
               id="level"
               v-model.number="character.level"
@@ -164,11 +271,13 @@ const submitCharacter = async () => {
 
         <!-- Character Stats -->
         <div class="mb-6">
-          <h2 class="text-lg font-semibold mb-3 text-primary-600">Character Stats</h2>
+          <h4 class="text-lg font-semibold mb-3 text-primary-600">Character Stats</h4>
 
           <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div class="mb-4" v-for="(value, stat) in character.playerCharacterData" :key="stat">
-              <label :for="stat" class="block text-sm font-medium text-gray-700 mb-1 capitalize">{{ stat }}</label>
+              <label :for="stat" class="block text-sm font-medium text-gray-700 mb-1 capitalize">{{
+                stat
+              }}</label>
               <input
                 :id="stat"
                 v-model.number="character.playerCharacterData[stat]"

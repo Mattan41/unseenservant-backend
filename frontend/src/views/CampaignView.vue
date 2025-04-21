@@ -406,7 +406,7 @@ watch(
           </div>
 
           <!-- Campaign description with line clamp -->
-          <div class="mt-3 whitespace-pre-line">
+          <div class="mt-3 whitespace-pre-line break-words">
             <p
               v-if="!campaignStore.getCampaignDescription(campaign.id)"
               class="italic text-gray-500 text-sm"
@@ -512,7 +512,7 @@ watch(
           <div class="mb-4 border rounded p-3">
             <h3 class="font-medium cursor-pointer flex items-center" @click="toggleCharactersList">
               <span v-if="isCharactersListVisible" class="transform rotate-90 inline-block mr-1"
-                >›</span
+              >›</span
               >
               <span v-else class="inline-block mr-1">›</span>
               Participants & Characters
@@ -534,15 +534,17 @@ watch(
                   :key="participantId"
                   class="mb-3 border-l-2 border-primary-200"
                 >
-                  <div class="pl-4 py-1 font-medium flex items-center">
-                    <span class="mr-2">•</span>
-                    {{ data.participant.nickname }}
-                    <span v-if="data.participant.role" class="text-gray-600 ml-1">
+                  <div class="pl-4 py-1 font-medium flex flex-wrap items-center">
+                    <span class="mr-2 flex-shrink-0">•</span>
+                    <span class="truncate max-w-[150px] sm:max-w-none" :title="data.participant.nickname">
+                      {{ data.participant.nickname }}
+                    </span>
+                    <span v-if="data.participant.role" class="text-gray-600 ml-1 truncate">
                       ({{ data.participant.role }})
                     </span>
                     <span
                       v-if="data.participant.id === campaign.ownerId"
-                      class="text-primary-600 text-sm ml-1"
+                      class="text-primary-600 text-sm ml-1 whitespace-nowrap"
                     >
                       (Campaign Owner)
                     </span>
@@ -553,18 +555,20 @@ watch(
                     <div
                       v-for="character in data.characters"
                       :key="character.id"
-                      class="py-1 flex items-center text-gray-700"
+                      class="py-1 flex flex-wrap items-center text-gray-700"
                     >
-                      <span class="text-primary-500 mr-1">◦</span>
-                      <span>{{ character.name }}</span>
-                      <span v-if="character.characterClass" class="text-sm text-gray-600 ml-1">
+                      <span class="text-primary-500 mr-1 flex-shrink-0">◦</span>
+                      <span class="truncate max-w-[120px] sm:max-w-[200px] md:max-w-none" :title="character.name">
+                        {{ character.name }}
+                      </span>
+                      <span v-if="character.characterClass" class="text-sm text-gray-600 ml-1 truncate">
                         ({{ character.characterClass }}
                         <span v-if="character.level"> , Level {{ character.level }} </span>)
                       </span>
                       <button
                         v-if="userStore.userInfo && userStore.userInfo.id === character.ownerId"
                         @click="removeCharacter(character.id)"
-                        class="button button-remove"
+                        class="button button-remove ml-auto mt-1 sm:mt-0"
                         aria-label="Remove character"
                       >
                         Remove
@@ -601,7 +605,8 @@ watch(
             @click="showSettings = false"
           >
             <div
-              class="bg-primary-100 p-6 rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto w-full shadow-lg border border-primary-300"
+              class="bg-primary-100 p-6 rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto w-full m-4 shadow-lg border border-primary-300"
+
               @click.stop
             >
               <div class="flex justify-between items-center mb-4">

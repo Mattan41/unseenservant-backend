@@ -29,20 +29,31 @@ const CharacterService = {
     return response.data;
   },
 
-  // we will wait to implement this until we have the character creation form. start with viewing a character
   async updateCharacter(characterId, data) {
-    const response = await axios.put(`api/characters/${characterId}`, data, {
+    const response = await axios.patch(`api/characters/${characterId}`, data, {
     });
     return response.data;
   },
 
-  // wait to implement this until we have the character creation form. start with viewing a character
   async updateCharacterField(characterId, field, value) {
     const response = await axios.patch(`api/characters/${characterId}`, {
       [field]: value,
     }, {
     });
 
+    return response.data;
+  },
+
+  async uploadCharacterImage(characterId, imageFile) {
+
+    const formData = new FormData();
+    formData.append('file', imageFile);
+
+    const response = await axios.post(`api/characters/${characterId}/image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 

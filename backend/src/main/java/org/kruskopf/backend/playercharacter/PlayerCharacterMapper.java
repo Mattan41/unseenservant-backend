@@ -19,6 +19,7 @@ public class PlayerCharacterMapper {
                 playerCharacter.getLevel(),
                 playerCharacter.getCharacterClass(),
                 playerCharacter.getRace(),
+                playerCharacter.getImageUrl(),
                 playerCharacter.getCharacterData(),
                 playerCharacter.getCreatedAt(),
                 playerCharacter.getUpdatedAt()
@@ -26,7 +27,7 @@ public class PlayerCharacterMapper {
     }
 
     public PlayerCharacter toEntity(PlayerCharacterInputDTO dto, User owner, Campaign campaign) {
-        return new PlayerCharacter(
+        PlayerCharacter character = new PlayerCharacter(
                 owner,
                 campaign,
                 dto.name(),
@@ -35,6 +36,26 @@ public class PlayerCharacterMapper {
                 dto.race(),
                 dto.playerCharacterData()
         );
+
+        if (dto.imageUrl() != null) {
+            character.setImageUrl(dto.imageUrl());
+        }
+
+        return character;
     }
+
+    public void patchEntity(PlayerCharacter entity, PlayerCharacterInputDTO dto) {
+        if (dto.name() != null) entity.setName(dto.name());
+        if (dto.characterClass() != null) entity.setCharacterClass(dto.characterClass());
+        if (dto.level() != null) {
+            entity.setLevel(dto.level());
+        }
+        if (dto.race() != null) entity.setRace(dto.race());
+        if (dto.playerCharacterData() != null) entity.setCharacterData(dto.playerCharacterData());
+
+        // Lägg till denna rad för att kunna uppdatera imageUrl
+        if (dto.imageUrl() != null) entity.setImageUrl(dto.imageUrl());
+    }
+
 }
 

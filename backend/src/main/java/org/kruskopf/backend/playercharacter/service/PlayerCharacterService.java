@@ -6,6 +6,7 @@ import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
 import org.kruskopf.backend.campaign.service.CampaignService;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
+import org.kruskopf.backend.filestorage.FileStorageService;
 import org.kruskopf.backend.playercharacter.PlayerCharacterMapper;
 import org.kruskopf.backend.playercharacter.dto.PlayerCharacterInputDTO;
 import org.kruskopf.backend.playercharacter.dto.PlayerCharacterOutputDTO;
@@ -15,7 +16,9 @@ import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,17 +29,28 @@ public class PlayerCharacterService {
     private final CampaignRepository campaignRepository;
     private final PlayerCharacterMapper playerCharacterMapper;
     private final CampaignUserRepository campaignUserRepository;
+    private final FileStorageService fileStorageService;
 
     public PlayerCharacterService(
             PlayerCharacterRepository playerCharacterRepository,
             UserRepository userRepository,
             CampaignRepository campaignRepository,
-            PlayerCharacterMapper playerCharacterMapper, CampaignUserRepository campaignUserRepository) {
+            PlayerCharacterMapper playerCharacterMapper, CampaignUserRepository campaignUserRepository, FileStorageService fileStorageService) {
         this.playerCharacterRepository = playerCharacterRepository;
         this.userRepository = userRepository;
         this.campaignRepository = campaignRepository;
         this.playerCharacterMapper = playerCharacterMapper;
         this.campaignUserRepository = campaignUserRepository;
+        this.fileStorageService = fileStorageService;
+    }
+    public PlayerCharacterOutputDTO createCharacter(PlayerCharacterInputDTO inputDTO) {
+        User owner = userRepository.findById(inputDTO.ownerId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + inputDTO.ownerId()));
+
+        PlayerCharacter character = playerCharacterMapper.toEntity(inputDTO, owner, null);
+        PlayerCharacter savedCharacter = playerCharacterRepository.save(character);
+
+        return playerCharacterMapper.toOutputDTO(savedCharacter);
     }
 
     public List<PlayerCharacterOutputDTO> getAllCharacters() {
@@ -67,22 +81,47 @@ public class PlayerCharacterService {
                 .collect(Collectors.toList());
     }
 
-
     public PlayerCharacterOutputDTO getCharacterById(long id) {
         return playerCharacterRepository.findById(id)
                 .map(playerCharacterMapper::toOutputDTO)
                 .orElseThrow(() -> new RuntimeException("Character not found!"));
     }
 
-    public PlayerCharacterOutputDTO createCharacter(PlayerCharacterInputDTO inputDTO) {
-        User owner = userRepository.findById(inputDTO.ownerId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + inputDTO.ownerId()));
+    @Transactional
+    public PlayerCharacterOutputDTO updateCharacter(long characterId, PlayerCharacterInputDTO inputDTO, long userId) {
+        PlayerCharacter character = playerCharacterRepository.findById(characterId)
+                .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
-        PlayerCharacter character = playerCharacterMapper.toEntity(inputDTO, owner, null);
-        PlayerCharacter savedCharacter = playerCharacterRepository.save(character);
+        if (!character.getOwner().getId().equals(userId)) {
+            throw new UnauthorizedAccessException("User does not own this character");
+        }
 
-        return playerCharacterMapper.toOutputDTO(savedCharacter);
+        // Använd mapper för att uppdatera fälten
+        playerCharacterMapper.patchEntity(character, inputDTO);
+
+        PlayerCharacter updatedCharacter = playerCharacterRepository.save(character);
+        return playerCharacterMapper.toOutputDTO(updatedCharacter);
     }
+
+    public PlayerCharacterOutputDTO uploadCharacterImage(long characterId, MultipartFile file, long userId) {
+        PlayerCharacter character = playerCharacterRepository.findById(characterId)
+                .orElseThrow(() -> new ResourceNotFoundException("Character not found"));
+
+        if (!character.getOwner().getId().equals(userId)) {
+            throw new UnauthorizedAccessException("User does not own this character");
+        }
+
+        try {
+            String fileName = fileStorageService.storeFile(file, "character_" + characterId);
+            character.setImageUrl("/images/" + fileName);
+            PlayerCharacter savedCharacter = playerCharacterRepository.save(character);
+            return playerCharacterMapper.toOutputDTO(savedCharacter);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store file", e);
+        }
+    }
+
+
 
     @Transactional
     public PlayerCharacterOutputDTO addCharacterToCampaign(long characterId, long campaignId, long userId) {

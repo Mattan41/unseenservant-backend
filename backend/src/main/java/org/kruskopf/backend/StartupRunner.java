@@ -93,16 +93,16 @@ public class StartupRunner implements CommandLineRunner {
         // Create and save characters
         if (playerCharacterService.getAllCharacters().isEmpty()) {
             // Characters for campaign 1
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(1L, 1L, "Gandalf", 10, "Wizard", "Human", new PlayerCharacterStats(11, 11, 11, 11, 15, 13)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(2L, 1L, "Frodo", 8, "Rogue", "Halfling", new PlayerCharacterStats(10, 18, 12, 12, 13, 10)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(3L, 1L, "Galadriel", 10, "Cleric", "Elf", new PlayerCharacterStats(10, 10, 10, 14, 18, 16)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(4L, 1L, "Gimli", 8, "Fighter", "Dwarf", new PlayerCharacterStats(19, 8, 16, 9, 11, 8)));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(1L, 1L, "Gandalf", 10, "Wizard", null, "Human", new PlayerCharacterStats(11, 11, 11, 11, 15, 13)));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(2L, 1L, "Frodo", 8, "Rogue",null, "Halfling", new PlayerCharacterStats(10, 18, 12, 12, 13, 10)));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(3L, 1L, "Galadriel", 10, "Cleric",null, "Elf", new PlayerCharacterStats(10, 10, 10, 14, 18, 16)));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(4L, 1L, "Gimli", 8, "Fighter",null, "Dwarf", new PlayerCharacterStats(19, 8, 16, 9, 11, 8)));
 
             // Character for campaign 2
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(1L, 2L, "Rincewind", 1, "Wizard", "Human", new PlayerCharacterStats(9, 9, 9, 14, 9, 9)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(2L, 2L, "Twoflower", 1, "Rogue", "Halfling", new PlayerCharacterStats(9, 14, 9, 9, 9, 14)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(3L, 2L, "Mightily Oats", 1, "Cleric", "Human", new PlayerCharacterStats(10, 10, 10, 10, 16, 10)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(4L, 2L, "Carrot Ironfoundersson", 1, "Fighter", "Dwarf", new PlayerCharacterStats(16, 10, 14, 10, 14, 12)));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(1L, 2L, "Rincewind", 1, "Wizard",null, "Human", new PlayerCharacterStats(9, 9, 9, 14, 9, 9)));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(2L, 2L, "Twoflower", 1, "Rogue", null,"Halfling", new PlayerCharacterStats(9, 14, 9, 9, 9, 14)));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(3L, 2L, "Mightily Oats", 1, "Cleric",null, "Human", new PlayerCharacterStats(10, 10, 10, 10, 16, 10)));
+            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(4L, 2L, "Carrot Ironfoundersson", 1, "Fighter", null,"Dwarf", new PlayerCharacterStats(16, 10, 14, 10, 14, 12)));
         }
 
 

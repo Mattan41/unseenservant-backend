@@ -1,5 +1,6 @@
 package org.kruskopf.backend.playercharacter.controller;
 
+import jakarta.validation.Valid;
 import org.kruskopf.backend.playercharacter.dto.PlayerCharacterCampaignUpdateDTO;
 import org.kruskopf.backend.playercharacter.dto.PlayerCharacterInputDTO;
 import org.kruskopf.backend.playercharacter.dto.PlayerCharacterOutputDTO;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -41,6 +43,7 @@ public class PlayerCharacterController {
                     inputDTO.name(),
                     inputDTO.level(),
                     inputDTO.characterClass(),
+                    inputDTO.imageUrl(),
                     inputDTO.race(),
                     inputDTO.playerCharacterData()
             );
@@ -88,6 +91,31 @@ public class PlayerCharacterController {
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @PatchMapping("/{characterId}")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<PlayerCharacterOutputDTO> updateCharacter(
+            @PathVariable Long characterId,
+            @Valid @RequestBody PlayerCharacterInputDTO inputDTO,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        Long userId = customUserDetails.user().getId();
+        PlayerCharacterOutputDTO updatedCharacter = playerCharacterService.updateCharacter(characterId, inputDTO, userId);
+        return ResponseEntity.ok(updatedCharacter);
+    }
+
+    @PostMapping("/{id}/image")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<PlayerCharacterOutputDTO> uploadImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
+
+        PlayerCharacterOutputDTO updatedImage = playerCharacterService.uploadCharacterImage(id, file, userId);
+
+        return ResponseEntity.ok(updatedImage);
     }
 
     @PatchMapping("/{characterId}/campaign")

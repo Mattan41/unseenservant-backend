@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { useCharacterStore } from '@/stores/characterStore'
 import { useCampaignStore } from '@/stores/campaignStore'
+import CharacterImage from "@/views/characters/components/CharacterImage.vue";
 
 const props = defineProps({
   modelValue: Boolean,
@@ -68,7 +69,7 @@ watch(
 <template>
   <div
     v-if="modelValue"
-    class="fixed inset-0 w-full h-full bg-black/50 flex justify-center items-center z-[1000]"
+    class="fixed inset-0 w-full h-full bg-black/50 flex justify-center items-center z-[100]"
     @click.self="close"
   >
     <div class="bg-primary-50 p-8 rounded-lg max-w-[600px] w-[90%] max-h-[80vh] overflow-y-auto">
@@ -89,24 +90,43 @@ watch(
       </div>
 
       <!-- Character grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[calc(80vh-200px)] overflow-y-auto">
         <div
           v-for="character in availableCharacters"
           :key="character.id"
-          class="bg-white rounded-lg shadow border overflow-hidden hover:shadow-md transition-shadow duration-300"
+          class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100 flex flex-col"
         >
-          <div class="p-4">
-            <h3 class="text-lg font-semibold text-primary-600">{{ character.name }}</h3>
-            <div class="flex justify-between text-sm text-gray-600 mt-1">
-              <span>{{ character.race }}</span>
-              <span>{{ character.characterClass }} (Level {{ character.level }})</span>
+          <div class="p-4 flex-grow">
+            <div class="flex items-start space-x-3">
+              <CharacterImage
+                :src="character.imageUrl"
+                :alt="`${character.name} portrait`"
+                class="w-14 h-14 rounded-lg border-2 border-primary-300 shadow-sm flex-shrink-0 object-cover"
+              />
+
+              <div class="flex-1 min-w-0">
+                <h5
+                  class="text-base font-semibold text-primary-700 line-clamp-2 break-words"
+                  :title="character.name"
+                >
+                  {{ character.name }}
+                </h5>
+
+                <!-- Character basic info -->
+                <div class="flex items-center text-xs text-gray-600 mt-1">
+                  <span>{{ character.race }}</span>
+                  <span class="mx-1">•</span>
+                  <span>{{ character.characterClass }} (Level {{ character.level }})</span>
+                </div>
+              </div>
             </div>
           </div>
+
           <div class="bg-primary-50 px-4 py-2 flex justify-end">
             <button
               @click="importCharacter(character.id)"
               :disabled="isImporting === character.id"
-              class="button button-primary"
+              class="button button-primary text-sm"
             >
               <span v-if="isImporting === character.id">
                 <span
@@ -127,27 +147,6 @@ watch(
   </div>
 </template>
 
-<style scoped>
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
 
-.modal-content {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 0.5rem;
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-}
+<style scoped>
 </style>

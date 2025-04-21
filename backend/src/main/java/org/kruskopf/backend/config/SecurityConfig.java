@@ -56,7 +56,7 @@ public class SecurityConfig {
                     auth.requestMatchers("/", "/oauth2/**", "/logout").permitAll();
                     auth.requestMatchers("/admin").hasRole(UserRole.ADMIN.name());
                     auth.requestMatchers("/api/auth/**", "/api/auth/login").permitAll();
-                    auth.requestMatchers("/api/auth/me").authenticated();
+                    auth.requestMatchers("/api/auth/me","/images/**").authenticated();
                     auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**").authenticated();
                     // auth.anyRequest().permitAll(); // switch for postman testing without need for authentication todo: remove this line
                     auth.anyRequest().denyAll();
