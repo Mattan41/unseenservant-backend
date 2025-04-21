@@ -1,6 +1,6 @@
 <script setup>
 import {ref} from 'vue';
-import {useCampaignStore} from '@/stores/campaignStore';
+import {useCampaignStore} from '@/features/campaign/campaignStore.js';
 
 const campaignStore = useCampaignStore();
 

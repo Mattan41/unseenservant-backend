@@ -1,8 +1,8 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
-import { useCharacterStore } from '@/stores/characterStore'
-import { useCampaignStore } from '@/stores/campaignStore'
-import CharacterImage from "@/views/characters/components/CharacterImage.vue";
+import { useCharacterStore } from '@/features/character/characterStore.js'
+import { useCampaignStore } from '@/features/campaign/campaignStore.js'
+import CharacterImage from "@/features/character/components/CharacterImage.vue";
 
 const props = defineProps({
   modelValue: Boolean,

@@ -1,5 +1,5 @@
 import {defineStore} from 'pinia'
-import UserService from '../services/UserService'
+import UserService from './UserService.js'
 import {useNotificationStore} from "@/stores/notificationStore.js";
 
 export const useUserStore = defineStore('user', {
@@ -51,6 +51,9 @@ export const useUserStore = defineStore('user', {
         this.userInfo = {...this.userInfo, ...updatedUser};
         // Notify the user about the successful update
         notificationStore.addNotification(`Successfully updated ${field}.`, 'success');
+        //  update the store with the new value
+        this.userInfo[field] = value;
+
         return true;
       } catch (error) {
         // Handle HTTP 409 Conflict (UniqueConstraintViolation) if the field is unique and already taken
@@ -71,6 +74,7 @@ export const useUserStore = defineStore('user', {
     },
 
     // We might not need this function, since we can update the profile with the updateProfileField function
+    // todo remove this function if we don't need it
     async updateProfile(data) {
       this.isLoading = true
       this.error = null

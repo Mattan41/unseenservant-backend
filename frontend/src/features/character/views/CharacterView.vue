@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { useCharacterStore } from '@/stores/characterStore.js';
+import { useCharacterStore } from '@/features/character/characterStore.js';
 import { useRoute, useRouter } from 'vue-router';
-import CharacterImage from "@/views/characters/components/CharacterImage.vue";
+import CharacterImage from "@/features/character/components/CharacterImage.vue";
 
 const characterStore = useCharacterStore();
 const route = useRoute();

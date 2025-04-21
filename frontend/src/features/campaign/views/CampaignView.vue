@@ -1,11 +1,12 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useCampaignStore } from '@/stores/campaignStore'
-import { useUserStore } from '@/stores/userStore.js'
-import CampaignSettings from '@/components/CampaignSettings.vue'
+import { useCampaignStore } from '@/features/campaign/campaignStore.js'
+import { useUserStore } from '@/features/user/userStore.js'
+import CampaignSettings from '@/features/campaign/components/CampaignSettings.vue'
 import { useNotificationStore } from '@/stores/notificationStore.js'
-import ImportCharacterModal from '@/components/ImportCharacterModal.vue'
+import ImportCharacterModal from '@/features/campaign/components/ImportCharacterModal.vue'
+import CharacterImage from "@/features/character/components/CharacterImage.vue";
 
 const route = useRoute()
 const router = useRouter()
@@ -164,12 +165,10 @@ const saveChanges = async () => {
       description: editedDescription.value,
     })
 
-    // Update local campaign object with edited values
+    // Update local campaign object with edited values - todo: perhaps update the store instead?
     campaign.value.name = editedName.value
     campaign.value.description = editedDescription.value
 
-    // Show temporary success message
-    notificationStore.addNotification('Campaign updated successfully', 'success')
   } catch (error) {
     console.error('Failed to update campaign:', error)
     notificationStore.addNotification('Failed to update campaign: ' + error.message, 'error')
@@ -406,7 +405,7 @@ watch(
           </div>
 
           <!-- Campaign description with line clamp -->
-          <div class="mt-3 whitespace-pre-line break-words">
+          <div class="mt-3 break-words whitespace-pre-line">
             <p
               v-if="!campaignStore.getCampaignDescription(campaign.id)"
               class="italic text-gray-500 text-sm"
@@ -558,6 +557,11 @@ watch(
                       class="py-1 flex flex-wrap items-center text-gray-700"
                     >
                       <span class="text-primary-500 mr-1 flex-shrink-0">◦</span>
+                      <CharacterImage
+                        :src="character.imageUrl"
+                        :alt="`${character.name} portrait`"
+                        class="w-10 h-10 rounded-lg border-2 border-primary-300 shadow-sm flex-shrink-0 object-cover">
+                      </CharacterImage>
                       <span class="truncate max-w-[120px] sm:max-w-[200px] md:max-w-none" :title="character.name">
                         {{ character.name }}
                       </span>

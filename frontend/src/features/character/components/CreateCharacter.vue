@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { useCharacterStore } from '@/stores/characterStore.js';
+import { useCharacterStore } from '@/features/character/characterStore.js';
 import { useRouter } from 'vue-router';
 
 const characterStore = useCharacterStore();

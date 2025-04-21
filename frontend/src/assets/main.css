@@ -147,6 +147,20 @@ h5 {
     line-height: 1.3em;
 }
 
+textarea {
+    font-family: "Oswald", sans-serif;
+    font-size: 14px;
+    line-height: 1.3em;
+    color: var(--color-primary-900);
+}
+
+input {
+    font-family: "Oswald", sans-serif;
+    font-size: 14px;
+    line-height: 1.3em;
+    color: var(--color-primary-900);
+}
+
 /* Tablet (sm) */
 @media screen and (min-width: 640px) {
     h1 {

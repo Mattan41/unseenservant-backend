@@ -1,5 +1,5 @@
 <script setup>
-import {useAuthStore} from '../stores/authStore';
+import {useAuthStore} from '../features/auth/authStore.js';
 import {RouterLink} from 'vue-router';
 import {onBeforeMount, onMounted, ref} from 'vue';
 

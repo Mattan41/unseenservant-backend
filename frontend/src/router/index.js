@@ -1,11 +1,11 @@
 import {createRouter, createWebHistory} from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginComponent from "@/components/LoginComponent.vue";
-import CampaignView from "@/views/CampaignView.vue";
-import {useAuthStore} from "@/stores/authStore.js";
-import CharacterView from "@/views/characters/CharacterView.vue";
-import CreateCharacter from "@/views/characters/components/CreateCharacter.vue";
-import EditCharacter from "@/views/characters/components/EditCharacter.vue";
+import CampaignView from "@/features/campaign/views/CampaignView.vue";
+import {useAuthStore} from "@/features/auth/authStore.js";
+import CharacterView from "@/features/character/views/CharacterView.vue";
+import CreateCharacter from "@/features/character/components/CreateCharacter.vue";
+import EditCharacter from "@/features/character/components/EditCharacter.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -52,7 +52,7 @@ const router = createRouter({
     {
       path: '/user-profile',
       name: 'user-profile',
-      component: () => import('../views/UserProfileView.vue'),
+      component: () => import('../features/user/UserProfileView.vue'),
       meta: {requiresAuth: true}
     },
     {
@@ -65,7 +65,7 @@ const router = createRouter({
     {
       path: '/campaigns',
       name: 'CampaignsView',
-      component: () => import('../views/CampaignsView.vue'),
+      component: () => import('../features/campaign/views/CampaignsView.vue'),
       meta: {requiresAuth: true}
     },
     {
@@ -91,7 +91,7 @@ const router = createRouter({
     {
       path: '/characters',
       name: 'CharactersView',
-      component: () => import('../views/characters/CharactersView.vue'),
+      component: () => import('@/features/character/views/CharactersView.vue'),
       meta: {requiresAuth: true}
     },
     {

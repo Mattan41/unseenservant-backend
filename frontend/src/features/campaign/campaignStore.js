@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import CampaignService from '../services/CampaignService'
+import CampaignService from './CampaignService.js'
 import { useNotificationStore } from '@/stores/notificationStore.js'
 
 export const useCampaignStore = defineStore('campaign', {

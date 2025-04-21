@@ -1,9 +1,9 @@
 <script setup>
 import {RouterView} from 'vue-router'
-import Header from './components/Header.vue'
-import Footer from './components/Footer.vue'
-import {useUserStore} from "@/stores/userStore.js";
-import {useAuthStore} from "@/stores/authStore.js";
+import HeaderComponent from './components/HeaderComponent.vue'
+import FooterComponent from './components/FooterComponent.vue'
+import {useUserStore} from "@/features/user/userStore.js";
+import {useAuthStore} from "@/features/auth/authStore.js";
 import {onMounted, ref, watch} from "vue";
 import router from "@/router/index.js";
 import Notification from "@/components/Notification.vue";
@@ -58,10 +58,10 @@ watch(
 <template>
   <div class="flex flex-col min-h-screen overflow-x-hidden">
     <Notification/>
-    <Header/>
+    <HeaderComponent/>
     <main class="flex-grow bg-gradient-to-b from-primary-100 via-primary-300 to-primary-100">
       <RouterView/>
     </main>
-    <Footer/>
+    <FooterComponent/>
   </div>
 </template>

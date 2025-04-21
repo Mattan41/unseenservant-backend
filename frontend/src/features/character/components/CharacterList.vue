@@ -1,9 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useCharacterStore } from '@/stores/characterStore.js'
+import { useCharacterStore } from '@/features/character/characterStore.js'
 import { useRouter } from 'vue-router'
-import { useCampaignStore } from '@/stores/campaignStore.js'
-import CharacterImage from '@/views/characters/components/CharacterImage.vue'
+import { useCampaignStore } from '@/features/campaign/campaignStore.js'
+import CharacterImage from '@/features/character/components/CharacterImage.vue'
 
 const router = useRouter()
 const characterStore = useCharacterStore()

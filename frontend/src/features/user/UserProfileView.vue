@@ -1,9 +1,9 @@
 <script setup>
 import {computed, onMounted, ref} from 'vue';
-import {useUserStore} from '../stores/userStore';
-import CampaignList from '@/components/CampaignList.vue';
+import {useUserStore} from './userStore.js';
+import CampaignList from '@/features/campaign/components/CampaignList.vue';
 import {useNotificationStore} from "@/stores/notificationStore.js";
-import CharacterList from "@/views/characters/components/CharacterList.vue";
+import CharacterList from "@/features/character/components/CharacterList.vue";
 
 
 const userStore = useUserStore();

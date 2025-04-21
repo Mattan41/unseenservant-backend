@@ -1,7 +1,7 @@
 <script setup>
 import {onMounted, ref} from 'vue';
-import {useCampaignStore} from '@/stores/campaignStore';
-import CreateCampaign from '@/components/CreateCampaign.vue';
+import {useCampaignStore} from '@/features/campaign/campaignStore.js';
+import CreateCampaign from '@/features/campaign/components/CreateCampaign.vue';
 
 const campaignStore = useCampaignStore();
 const expandedDescriptions = ref({});

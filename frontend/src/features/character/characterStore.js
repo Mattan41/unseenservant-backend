@@ -1,6 +1,6 @@
 import {defineStore} from 'pinia';
 import {useNotificationStore} from "@/stores/notificationStore.js";
-import CharacterService from "@/services/CharacterService.js";
+import CharacterService from "@/features/character/CharacterService.js";
 
 export const useCharacterStore = defineStore('character', {
     state: () => ({
