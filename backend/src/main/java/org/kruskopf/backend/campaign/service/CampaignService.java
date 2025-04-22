@@ -8,6 +8,9 @@ import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
+import org.kruskopf.backend.playercharacter.dto.PlayerCharacterOutputDTO;
+import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
+import org.kruskopf.backend.playercharacter.service.PlayerCharacterService;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
@@ -27,11 +30,14 @@ public class CampaignService {
     private final CampaignRepository campaignRepository;
     private final UserService userService;
     private final CampaignUserRepository campaignUserRepository;
+    private final PlayerCharacterService playerCharacterService;
 
-    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignUserRepository campaignUserRepository) {
+// todo replace usage of Long with primitive type long in most cases
+    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignUserRepository campaignUserRepository, PlayerCharacterService playerCharacterService) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
         this.campaignUserRepository = campaignUserRepository;
+        this.playerCharacterService = playerCharacterService;
     }
 
     @Transactional
@@ -205,6 +211,12 @@ public class CampaignService {
                 throw new ResourceNotFoundException("The following users are not participants in the campaign: "
                         + String.join(", ", nonExistingIds.stream().map(String::valueOf).toList()));
             }
+
+            // Remove campaign reference from all player characters of the participants to be removed
+            for (Long userId : updateDTO.participantIdsToRemove()) {
+                playerCharacterService.removeAllCharactersFromCampaign(userId, campaignId);
+            }
+
 
             // remove the participants
             campaign.getParticipants().removeIf(participant ->

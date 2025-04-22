@@ -1,7 +1,7 @@
 import axios from '@/lib/axios.js';
-import {useAuthStore} from '../stores/authStore.js';
-import router from '../router/index.js';
-import {useUserStore} from "@/stores/userStore.js";
+import {useAuthStore} from './authStore.js';
+import router from '../../router/index.js';
+import {useUserStore} from "@/features/user/userStore.js";
 
 const API_GOOGLE_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
 const API_GITHUB_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/github`;

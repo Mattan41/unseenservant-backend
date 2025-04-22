@@ -1,6 +1,8 @@
 package org.kruskopf.backend.playercharacter.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.playercharacter.PlayerCharacterStats;
 import org.kruskopf.backend.playercharacter.PlayerCharacterStatsConverter;
@@ -34,7 +36,9 @@ public class PlayerCharacter {
     private String name;
 
     @Column(nullable = false)
-    private int level;
+    @Min(value = 1, message = "Level must be at least 1")
+    @Max(value = 20, message = "Level must be at most 20")
+    private int level = 1;
 
     @Column(nullable = false)
     private String characterClass;
@@ -42,7 +46,9 @@ public class PlayerCharacter {
     @Column(nullable = false)
     private String race;
 
-    //@Embedded ??
+    @Column
+    private String imageUrl;
+
     @Column(columnDefinition = "JSON")
     @Convert(converter = PlayerCharacterStatsConverter.class)
     private PlayerCharacterStats characterData;
@@ -125,6 +131,13 @@ public class PlayerCharacter {
 
     public void setRace(String race) {
         this.race = race;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public PlayerCharacterStats getCharacterData() {

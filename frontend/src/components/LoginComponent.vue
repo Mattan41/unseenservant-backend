@@ -1,5 +1,5 @@
 <script setup>
-import {useAuthStore} from '@/stores/authStore';
+import {useAuthStore} from '@/features/auth/authStore.js';
 
 const authStore = useAuthStore();
 

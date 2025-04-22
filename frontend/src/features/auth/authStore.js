@@ -1,5 +1,5 @@
 import {defineStore} from 'pinia';
-import AuthService from '../services/AuthService.js';
+import AuthService from './AuthService.js';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -44,8 +44,8 @@ export const useAuthStore = defineStore('auth', {
         try {
           console.log('Loading user from localStorage');
           this.user = JSON.parse(userData);
-        } catch (e) {
-          console.error('Error parsing user data from localStorage');
+        } catch (error) {
+          console.error('Error parsing user data from localStorage'+ error);
           localStorage.removeItem('userData');
           this.user = null;
         }

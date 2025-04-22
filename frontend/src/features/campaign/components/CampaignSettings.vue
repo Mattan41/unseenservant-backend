@@ -1,7 +1,7 @@
 <script setup>
 import {computed, ref, watch} from 'vue';
-import {useCampaignStore} from '@/stores/campaignStore';
-import {useUserStore} from "@/stores/userStore.js";
+import {useCampaignStore} from '@/features/campaign/campaignStore.js';
+import {useUserStore} from "@/features/user/userStore.js";
 import router from "@/router/index.js";
 import {useNotificationStore} from "@/stores/notificationStore.js";
 

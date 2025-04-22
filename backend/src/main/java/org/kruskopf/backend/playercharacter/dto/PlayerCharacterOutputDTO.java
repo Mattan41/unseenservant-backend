@@ -14,6 +14,7 @@ public record PlayerCharacterOutputDTO(
         int level,
         String characterClass,
         String race,
+        String imageUrl,
         @JsonProperty("playerCharacterData") PlayerCharacterStats characterData,
         LocalDateTime createdAt,
         @Nullable LocalDateTime updatedAt

@@ -1,5 +1,5 @@
 <script setup>
-import {useAuthStore} from '../stores/authStore';
+import {useAuthStore} from '../features/auth/authStore.js';
 import {RouterLink} from 'vue-router';
 import {onBeforeMount, onMounted, ref} from 'vue';
 
@@ -57,6 +57,10 @@ onBeforeMount(() => {
                     class="flex items-center justify-center bg-primary-500 hover:bg-primary-600 bg-opacity-70 px-4 rounded-full">
           <h5 class="p-2 uppercase">User Profile</h5>
         </RouterLink>
+        <RouterLink v-if="authStore.isLoggedIn" @click="closeMenu" to="/characters"
+                    class="flex items-center justify-center bg-primary-500 hover:bg-primary-600 bg-opacity-70 px-4 rounded-full">
+          <h5 class="p-2 uppercase">Characters</h5>
+        </RouterLink>
         <RouterLink v-if="authStore.isLoggedIn" @click="closeMenu" to="/campaigns"
                     class="flex items-center justify-center bg-primary-500 hover:bg-primary-600 bg-opacity-70 px-4 rounded-full">
           <h5 class="p-2 uppercase">Campaigns</h5>
@@ -84,6 +88,10 @@ onBeforeMount(() => {
         <RouterLink @click="closeMenu" v-if="authStore.isLoggedIn" to="/user-profile"
                     class="flex items-center justify-center bg-primary-500 hover:bg-primary-600 bg-opacity-70 px-4 rounded-full">
           <h5 class="p-2 uppercase">User Profile</h5>
+        </RouterLink>
+        <RouterLink @click="closeMenu" v-if="authStore.isLoggedIn" to="/characters"
+                    class="flex items-center justify-center bg-primary-500 hover:bg-primary-600 bg-opacity-70 px-4 rounded-full">
+          <h5 class="p-2 uppercase">Characters</h5>
         </RouterLink>
         <RouterLink v-if="authStore.isLoggedIn" @click="closeMenu" to="/campaigns"
                     class="flex items-center justify-center bg-primary-500 hover:bg-primary-600 bg-opacity-70 px-4 rounded-full">
