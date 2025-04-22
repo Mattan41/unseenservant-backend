@@ -304,6 +304,14 @@ export const useCampaignStore = defineStore('campaign', {
 
     getCampaignById: (state) => (id) => state.campaigns.find((campaign) => campaign.id === id),
 
+    isUserGM: (state) => (campaignId, userId) => {
+      const campaign = state.campaigns.find((c) => c.id === campaignId);
+      if (!campaign) return false;
+
+      const participant = campaign.participants.find((p) => p.id === userId);
+      return participant?.role === 'GM';
+    },
+
     ownerId: (state) => (id) => {
       const campaign = state.campaigns.find((c) => c.id === id)
       return campaign ? campaign.ownerId : null

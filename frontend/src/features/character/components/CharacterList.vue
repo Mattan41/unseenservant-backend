@@ -116,7 +116,7 @@ const viewCharacter = (id) => {
             >
           </div>
           <router-link
-            :to="{ name: 'CharacterView', params: { id: character.id } }"
+            :to="{ name: 'CharacterView', params: { id: character.id }, query: { from: 'characterList' } }"
             class="text-primary-600 hover:text-primary-800 font-medium text-sm transition-colors inline-flex items-center flex-shrink-0"
             @click.stop
           >

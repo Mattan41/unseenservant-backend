@@ -569,6 +569,14 @@ watch(
                         ({{ character.characterClass }}
                         <span v-if="character.level"> , Level {{ character.level }} </span>)
                       </span>
+
+                      <router-link
+                        v-if="userStore.userInfo && userStore.userInfo.id === character.ownerId || campaignStore.isUserGM(campaign.id,userStore.userInfo.id)"
+                        :to="{ name: 'CharacterView', params: { id: character.id }, query: { from: 'campaign', campaignId: campaign.id } }"
+                        class="button button-primary"
+                      >
+                        Open Character Details
+                      </router-link>
                       <button
                         v-if="userStore.userInfo && userStore.userInfo.id === character.ownerId"
                         @click="removeCharacter(character.id)"
@@ -610,7 +618,6 @@ watch(
           >
             <div
               class="bg-primary-100 p-6 rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto w-full m-4 shadow-lg border border-primary-300"
-
               @click.stop
             >
               <div class="flex justify-between items-center mb-4">

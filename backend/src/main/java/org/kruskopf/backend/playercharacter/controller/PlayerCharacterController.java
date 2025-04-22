@@ -85,9 +85,12 @@ public class PlayerCharacterController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PlayerCharacterOutputDTO> getCharacterById(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<PlayerCharacterOutputDTO> getCharacterById(@PathVariable Long id,
+                                                                     @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
         try {
-            return ResponseEntity.ok(playerCharacterService.getCharacterById(id));
+            return ResponseEntity.ok(playerCharacterService.getCharacterById(id, userId));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }

@@ -1,6 +1,7 @@
 package org.kruskopf.backend.playercharacter.service;
 
 import org.kruskopf.backend.campaign.entity.Campaign;
+import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
 import org.kruskopf.backend.campaign.service.CampaignService;
@@ -43,6 +44,7 @@ public class PlayerCharacterService {
         this.campaignUserRepository = campaignUserRepository;
         this.fileStorageService = fileStorageService;
     }
+
     public PlayerCharacterOutputDTO createCharacter(PlayerCharacterInputDTO inputDTO) {
         User owner = userRepository.findById(inputDTO.ownerId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + inputDTO.ownerId()));
@@ -81,11 +83,23 @@ public class PlayerCharacterService {
                 .collect(Collectors.toList());
     }
 
-    public PlayerCharacterOutputDTO getCharacterById(long id) {
-        return playerCharacterRepository.findById(id)
+    public PlayerCharacterOutputDTO getCharacterById(long id, long userId) {
+        PlayerCharacterOutputDTO character = playerCharacterRepository.findById(id)
                 .map(playerCharacterMapper::toOutputDTO)
-                .orElseThrow(() -> new RuntimeException("Character not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + id));
+
+        if (character.campaignId() == null) {
+            if (!isOwner(character, userId)) {
+                throw new UnauthorizedAccessException("User is not the owner of the character");
+            }
+        } else {
+            if (!isOwner(character, userId) && !isUserGM(character.campaignId(), userId)) {
+                throw new UnauthorizedAccessException("User is not the owner of the character, nor GM of the campaign");
+            }
+        }
+        return character;
     }
+
 
     @Transactional
     public PlayerCharacterOutputDTO updateCharacter(long characterId, PlayerCharacterInputDTO inputDTO, long userId) {
@@ -120,7 +134,6 @@ public class PlayerCharacterService {
             throw new RuntimeException("Failed to store file", e);
         }
     }
-
 
 
     @Transactional
@@ -191,7 +204,7 @@ public class PlayerCharacterService {
      * <p>This method is part of the participant removal process and ensures that when a user
      * is removed from a campaign, all their characters are properly disassociated from that campaign.</p>
      *
-     * @param userId The ID of the user whose characters should be disassociated from the campaign
+     * @param userId     The ID of the user whose characters should be disassociated from the campaign
      * @param campaignId The ID of the campaign from which to remove the character associations
      */
     @Transactional
@@ -214,4 +227,22 @@ public class PlayerCharacterService {
                 .map(playerCharacterMapper::toOutputDTO)
                 .collect(Collectors.toList());
     }
+
+    // helper methods
+
+    private boolean isUserGM(long campaignId, long userId) {
+        campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + campaignId));
+
+        return campaignUserRepository.existsByCampaignIdAndUserIdAndRole(
+                campaignId, userId, CampaignRole.GM
+        );
+    }
+
+
+    private boolean isOwner(PlayerCharacterOutputDTO character, long userId) {
+        return character.ownerId().equals(userId);
+    }
+
+
 }

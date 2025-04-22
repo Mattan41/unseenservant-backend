@@ -194,7 +194,7 @@ const submitCharacter = async () => {
               type="file"
               ref="fileInput"
               @change="handleImageChange"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.gif,.webp"
               class="hidden"
             />
 
@@ -202,10 +202,13 @@ const submitCharacter = async () => {
             <button
               type="button"
               @click="triggerFileInput"
-              class="text-primary-600 hover:text-primary-800 text-sm"
+              class="button button-secondary"
             >
               Upload new image
             </button>
+          </div>
+          <div class="text-xs text-gray-500 mt-1">
+            Supported formats: *.jpg, *.png, *.gif, *.webp. Max size: 5 MB.
           </div>
         </div>
 
