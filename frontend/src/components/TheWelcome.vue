@@ -11,10 +11,10 @@ const username = computed(() => userStore.getDisplayName);
   <main>
     <section class="text-center">
       <h1>Unseen Servant</h1>
+      <p class="text-lg">A service that does not get in your way</p>
       <div class="logo-container">
         <img src="@/assets/logo.svg" alt="Unseen Servant Logo" class="logo max-w-[150px] h-auto my-4 mx-auto block" />
       </div>
-      <p class="text-lg">A service that does not get in your way</p>
       <HelloComponent v-if="username" :msg="username"/>
     </section>
   </main>
