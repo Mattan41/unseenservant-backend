@@ -1,8 +1,8 @@
 // features/auth/authStore.js
-import { defineStore } from 'pinia';
-import authService from './authService.js';
+import {defineStore} from 'pinia';
+import authService from './AuthService.js';
 import router from '@/router/index.js';
-import { useUserStore } from "@/features/user/userStore.js";
+import {useUserStore} from "@/features/user/userStore.js";
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
