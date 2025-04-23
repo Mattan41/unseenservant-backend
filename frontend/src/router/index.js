@@ -123,6 +123,12 @@ const router = createRouter({
       meta: {requiresAuth: true}
     },
     {
+      path: '/under-construction',
+      name: 'underConstructionView',
+      component: () => import('@/views/UnderConstructionView.vue'),
+      meta: {requiresAuth: false}
+    },
+    {
       path: '/:catchAll(.*)*',
       name: 'notFound',
       component: () => import('../views/NotFoundView.vue'),
