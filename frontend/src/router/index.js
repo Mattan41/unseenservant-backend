@@ -110,11 +110,6 @@ router.beforeEach(async (to, from, next) => {
     await authStore.checkAuth();
   }
 
-  // Debugging
-  console.log('Current route:', to.name);
-  console.log('Auth status:', authStore.isLoggedIn);
-  console.log('Route requires auth:', to.meta.requiresAuth);
-
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     console.log('Redirecting to home - auth required but not logged in');
     next({name: 'home'});
