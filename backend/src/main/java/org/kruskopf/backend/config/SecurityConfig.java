@@ -3,6 +3,7 @@ package org.kruskopf.backend.config;
 import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.component.CustomOAuth2SuccessHandler;
 import org.kruskopf.backend.user.entity.UserRole;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
@@ -33,6 +34,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class SecurityConfig {
 
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
+
+    @Value("${FRONTEND_URL}")
+    private String frontendUrl;
+
 
     public SecurityConfig(
             CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
@@ -93,7 +98,7 @@ public class SecurityConfig {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:5173", "https://unseenservant.se")
+                        .allowedOrigins(frontendUrl, "https://unseenservant.se")
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true)

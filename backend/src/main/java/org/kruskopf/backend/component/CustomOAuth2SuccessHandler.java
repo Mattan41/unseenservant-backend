@@ -9,6 +9,7 @@ import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
 import org.kruskopf.backend.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,7 +26,6 @@ import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -35,6 +35,13 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     private final UserRepository userRepository;
     private final OAuth2AuthorizedClientService authorizedClientService;
     private RestClient restClient;
+    @Value("${FRONTEND_URL}")
+    private String frontendUrl;
+    @Value("#{'${ADMIN_WHITELIST:}'.split(',')}")
+    private List<String> adminWhitelist;
+
+    @Value("#{'${USER_WHITELIST:}'.split(',')}")
+    private List<String> userWhitelist;
 
 
     public CustomOAuth2SuccessHandler(UserRepository userRepository, OAuth2AuthorizedClientService authorizedClientService) {
@@ -75,11 +82,18 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         String providerId = userAttributes.providerId();
 
 
-        // Check for admin role in whitelist
-         String adminWhitelist = System.getenv("ADMIN_WHITELIST");
-        // todo whiteList need to be populated with emails of admins
+        // this is a temporary blocker to allow only whitelisted users to access the app
+        if (userWhitelist != null && !userWhitelist.isEmpty() && adminWhitelist != null && !adminWhitelist.isEmpty()) {
+            if (!userWhitelist.contains(email) && !adminWhitelist.contains(email)) {
+                response.sendRedirect(frontendUrl + "/under-construction");
+                return;
+            }
+        }
 
-        boolean isAdmin = adminWhitelist != null && adminWhitelist.contains(Objects.requireNonNull(email));
+
+//       boolean isAdmin = adminWhitelist != null && adminWhitelist.contains(Objects.requireNonNull(email));
+        boolean isAdmin = adminWhitelist != null && adminWhitelist.contains(email);
+
 
         UserRole role = isAdmin ? UserRole.ADMIN : UserRole.USER;
 
@@ -102,11 +116,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         setUserDataIntoSessionForFrontendCommunication(request, user);
 
         // Redirect to frontend
-        String redirectUrl = System.getenv("FRONTEND_REDIRECT_URL");
-        if (redirectUrl == null) {
-            redirectUrl = "http://localhost:5173";
-        }
-        response.sendRedirect(redirectUrl + "/oauth-redirect");
+        response.sendRedirect(frontendUrl + "/oauth-redirect");
     }
 
     private static void setUserDataIntoSessionForFrontendCommunication(HttpServletRequest request, User user) {
@@ -189,7 +199,3 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     }
 
 }
-
-
-// todo replace hardcoded url with env variable or investigate if possibble to use the redirectonsucces as relative path and configure spring/vue.
-//  verify that System.getenv works for email whitelist and frontendurl or find another way
