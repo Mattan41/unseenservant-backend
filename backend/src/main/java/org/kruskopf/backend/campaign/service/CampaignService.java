@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class CampaignService {
@@ -32,7 +34,6 @@ public class CampaignService {
     private final CampaignUserRepository campaignUserRepository;
     private final PlayerCharacterService playerCharacterService;
 
-// todo replace usage of Long with primitive type long in most cases
     public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignUserRepository campaignUserRepository, PlayerCharacterService playerCharacterService) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
@@ -92,20 +93,20 @@ public class CampaignService {
     }
 
     @Transactional(readOnly = true)
-    public List<CampaignResponseDTO> getAllCampaignsForCurrentUser(Long userId) {
+    public List<CampaignResponseDTO> getAllCampaignsForCurrentUser(long userId) {
         return campaignRepository.findAllByParticipantsUserId(userId).stream()
                 .map(this::mapToResponseDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public CampaignResponseDTO getCampaignById(Long id) {
+    public CampaignResponseDTO getCampaignById(long id) {
         Campaign campaign = findCampaignOrThrow(id);
         return mapToResponseDTO(campaign);
     }
 
     @Transactional(readOnly = true)
-    public CampaignResponseDTO getCampaignByIdIfAuthorized(Long campaignId, Long userId) {
+    public CampaignResponseDTO getCampaignByIdIfAuthorized(long campaignId, long userId) {
 
         Campaign campaign = findCampaignOrThrow(campaignId);
 
@@ -122,7 +123,7 @@ public class CampaignService {
 
 
     @Transactional
-    public CampaignResponseDTO updateCampaign(Long id, CampaignUpdateDTO dto, Long currentUserId) {
+    public CampaignResponseDTO updateCampaign(long id, CampaignUpdateDTO dto, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(id);
 
         if (!campaign.isOwnedBy(currentUserId)) {
@@ -138,7 +139,7 @@ public class CampaignService {
     }
 
     @Transactional
-    public CampaignResponseDTO updateCampaignImage(Long id, String imageUrl, Long currentUserId) {
+    public CampaignResponseDTO updateCampaignImage(long id, String imageUrl, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(id);
 
         if (!campaign.isOwnedBy(currentUserId)) {
@@ -152,7 +153,7 @@ public class CampaignService {
 
     // participants management
     @Transactional
-    public CampaignResponseDTO updateParticipants(Long campaignId, UpdateParticipantsDTO updateDTO, Long currentUserId) {
+    public CampaignResponseDTO updateParticipants(long campaignId, UpdateParticipantsDTO updateDTO, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(campaignId);
 
         // control owner
@@ -169,7 +170,6 @@ public class CampaignService {
             throw new UnauthorizedAccessException("Owner cannot be removed from campaign");
         }
 
-
         if (!(updateDTO.participantsToAdd() == null || updateDTO.participantsToAdd().isEmpty())) {
             updateDTO.participantsToAdd().forEach(participantDTO -> {
                 User user = userService.findById(participantDTO.id())
@@ -177,12 +177,11 @@ public class CampaignService {
 
                 // Check if user is already a participant
                 boolean isExistingParticipant = campaign.getParticipants().stream()
-                        .anyMatch(p -> p.getUser().getId().equals(user.getId()));
+                        .anyMatch(p -> Objects.equals(p.getUser().getId(), user.getId()));
 
                 if (isExistingParticipant) {
                     // User is already a participant, log and skip
                     logger.info("User {} is already a participant in campaign {}. Skipping addition", user.getId(), campaign.getId());
-
                 } else {
                     // Define nickname, with fallback to user's display name
                     String effectiveNickname = getEffectiveNickname(participantDTO, user);
@@ -204,40 +203,38 @@ public class CampaignService {
             // Verify that all participant IDs to remove are actually participants in the campaign
             List<Long> nonExistingIds = updateDTO.participantIdsToRemove().stream()
                     .filter(participantId -> campaign.getParticipants().stream()
-                            .noneMatch(p -> p.getUser().getId().equals(participantId)))
+                            .noneMatch(p -> p.getUser().getId() == participantId))
                     .toList();
 
             if (!nonExistingIds.isEmpty()) {
                 throw new ResourceNotFoundException("The following users are not participants in the campaign: "
-                        + String.join(", ", nonExistingIds.stream().map(String::valueOf).toList()));
+                                                    + String.join(", ", nonExistingIds.stream().map(String::valueOf).toList()));
             }
 
             // Remove campaign reference from all player characters of the participants to be removed
-            for (Long userId : updateDTO.participantIdsToRemove()) {
+            for (long userId : updateDTO.participantIdsToRemove()) {
                 playerCharacterService.removeAllCharactersFromCampaign(userId, campaignId);
             }
-
 
             // remove the participants
             campaign.getParticipants().removeIf(participant ->
                     updateDTO.participantIdsToRemove().contains(participant.getUser().getId()));
         }
 
-
         Campaign savedCampaign = campaignRepository.save(campaign);
         return mapToResponseDTO(savedCampaign);
     }
 
     @Transactional
-    public CampaignResponseDTO updateParticipantNickname(Long campaignId, Long participantId, String nickname, Long currentUserId) {
+    public CampaignResponseDTO updateParticipantNickname(long campaignId, long participantId, String nickname, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(campaignId);
 
-        if (!campaign.isOwnedBy(currentUserId) && !currentUserId.equals(participantId)) {
+        if (!campaign.isOwnedBy(currentUserId) && currentUserId != participantId) {
             throw new UnauthorizedAccessException("Only owner of the campaign is allowed to update other participants nickname");
         }
 
         CampaignUser participant = campaign.getParticipants().stream()
-                .filter(p -> p.getUser().getId().equals(participantId))
+                .filter(p -> p.getUser().getId() == participantId)
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Participant not found with id: " + participantId));
 
@@ -247,8 +244,9 @@ public class CampaignService {
         return mapToResponseDTO(campaign);
     }
 
+
     @Transactional
-    public CampaignResponseDTO updateParticipantRole(Long campaignId, Long participantId, String roleString, Long currentUserId) {
+    public CampaignResponseDTO updateParticipantRole(long campaignId, long participantId, String roleString, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(campaignId);
 
         // Only the owner can change participant roles
@@ -277,7 +275,7 @@ public class CampaignService {
 
     // campaign management
     @Transactional
-    public CampaignResponseDTO transferOwnership(Long campaignId, Long newOwnerId, Long currentUserId) {
+    public CampaignResponseDTO transferOwnership(long campaignId, long newOwnerId, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(campaignId);
 
         // Validate ownership
@@ -309,15 +307,21 @@ public class CampaignService {
     }
 
     @Transactional
-    public void deleteCampaign(Long id, Long currentUserId) {
-
+    public void deleteCampaign(long id, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(id);
 
         if (!campaign.isOwnedBy(currentUserId)) {
             throw new UnauthorizedAccessException("Only the campaign owner can delete the campaign");
         }
+
+    campaign.getParticipants().stream()
+            .map(participant -> participant.getUser().getId())
+            .forEach(userId -> playerCharacterService.removeAllCharactersFromCampaign(userId, id));
+
+
         campaignRepository.delete(campaign);
     }
+
 
 
     // Helper methods
@@ -341,7 +345,7 @@ public class CampaignService {
                 : participantDTO.nickname();
     }
 
-    private Campaign findCampaignOrThrow(Long id) {
+    private Campaign findCampaignOrThrow(long id) {
         return campaignRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + id));
     }

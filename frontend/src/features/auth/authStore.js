@@ -39,7 +39,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // This matches what your App.vue is calling
+    // This matches what  App.vue is calling
     async checkAuth() {
       this.isAuthenticating = true;
       this.authInitialized = false;

@@ -7,6 +7,7 @@ import CampaignSettings from '@/features/campaign/components/CampaignSettings.vu
 import { useNotificationStore } from '@/stores/notificationStore.js'
 import ImportCharacterModal from '@/features/campaign/components/ImportCharacterModal.vue'
 import CharacterImage from "@/features/character/components/CharacterImage.vue";
+import EditCampaignModal from "@/features/campaign/components/EditCampaignModal.vue";
 
 const route = useRoute()
 const router = useRouter()
@@ -20,14 +21,16 @@ const descriptionExpanded = ref(false)
 const campaignListRef = ref(null)
 const isScrollable = ref(false)
 const showImportModal = ref(false);
+const showEditModal = ref(false)
+
 
 // Global edit mode state
-const isEditMode = ref(false)
-const editedName = ref('')
-const editedDescription = ref('')
-const editedImageUrl = ref('')
-const isUpdating = ref(false)
-const isUpdatingImage = ref(false)
+// const isEditMode = ref(false)
+// const editedName = ref('')
+// const editedDescription = ref('')
+// const editedImageUrl = ref('')
+// const isUpdating = ref(false)
+// const isUpdatingImage = ref(false)
 
 // Check if current user is the owner
 const isOwner = computed(() => {
@@ -139,97 +142,38 @@ const removeCharacter = async (characterId) => {
   }
 }
 
-// Start global editing function
-const startGlobalEditing = () => {
+const openEditModal = () => {
   if (!isOwner.value) return
-
-  editedName.value = campaign.value.name || ''
-  editedDescription.value = campaign.value.description || ''
-  editedImageUrl.value = campaign.value.imageUrl || ''
-  isEditMode.value = true
+  showEditModal.value = true
 }
 
-// Cancel editing function
-const cancelGlobalEditing = () => {
-  isEditMode.value = false
-}
-
-// Save campaign info changes
-const saveChanges = async () => {
-  isUpdating.value = true
+const handleSaveCampaign = async (updatedCampaign) => {
   const notificationStore = useNotificationStore()
 
   try {
+    // Update campaign info in the store
     await campaignStore.updateCampaignInfo(campaign.value.id, {
-      name: editedName.value,
-      description: editedDescription.value,
+      name: updatedCampaign.title,
+      description: updatedCampaign.description,
     })
 
-    // Update local campaign object with edited values - todo: perhaps update the store instead?
-    campaign.value.name = editedName.value
-    campaign.value.description = editedDescription.value
+    // Update image URL if it has changed
+    if (updatedCampaign.imageUrl !== campaign.value.imageUrl) {
+      await campaignStore.updateCampaignImage(campaign.value.id, updatedCampaign.imageUrl)
+    }
 
+    // Update local campaign object with edited values
+    campaign.value.name = updatedCampaign.title
+    campaign.value.description = updatedCampaign.description
+    campaign.value.imageUrl = updatedCampaign.imageUrl
+
+    // close the modal
+    showEditModal.value = false
+
+    notificationStore.addNotification('Campaign updated successfully', 'success')
   } catch (error) {
     console.error('Failed to update campaign:', error)
     notificationStore.addNotification('Failed to update campaign: ' + error.message, 'error')
-  } finally {
-    isUpdating.value = false
-  }
-}
-
-// Update campaign image
-const saveImageUrl = async () => {
-  isUpdatingImage.value = true
-  const notificationStore = useNotificationStore()
-  try {
-    // Validate the image URL (basic validation)
-    if (editedImageUrl.value && !editedImageUrl.value.startsWith('http')) {
-      notificationStore.addNotification('Invalid image URL', 'error')
-      return
-    }
-
-    if (!editedImageUrl.value) {
-      const confirmClear = confirm('Are you sure you want to clear the image?')
-      if (!confirmClear) {
-        isUpdatingImage.value = false
-        return
-      }
-    }
-
-    await campaignStore.updateCampaignImage(campaign.value.id, editedImageUrl.value)
-
-    // Update local campaign object with edited image URL
-    campaign.value.imageUrl = editedImageUrl.value
-    notificationStore.addNotification('Campaign image updated successfully', 'success')
-  } catch (error) {
-    console.error('Failed to update campaign image:', error)
-    notificationStore.addNotification('Failed to update image: ' + error.message, 'error')
-  } finally {
-    isUpdatingImage.value = false
-  }
-}
-
-// Combined save function for the global edit mode
-const saveAllChanges = async () => {
-  // First update basic info
-  isUpdating.value = true
-  try {
-    await saveChanges()
-
-    // Then update image if it's changed
-    if (editedImageUrl.value !== campaign.value.imageUrl) {
-      await saveImageUrl()
-    }
-
-    // Exit edit mode when all is saved
-    isEditMode.value = false
-  } catch (error) {
-    console.error('Error saving changes:', error)
-    // use notification store to show error message
-    const notificationStore = useNotificationStore()
-    notificationStore.addNotification('Failed to save changes: ' + error.message, 'error')
-  } finally {
-    isUpdating.value = false
   }
 }
 
@@ -376,19 +320,21 @@ watch(
       </RouterLink>
     </aside>
 
+
+
     <!-- Main content area -->
     <div class="flex-1 p-4 overflow-y-auto">
       <!-- Campaign header with edit button -->
       <div class="mb-6">
-        <div v-if="!isEditMode" class="group relative">
+        <div class="group relative">
           <div class="flex justify-between items-start">
             <h2 class="text-xl sm:text-2xl font-bold">
               {{ campaignStore.getCampaignTitle(campaign.id) }}
             </h2>
             <button
               v-if="isOwner"
-              @click="startGlobalEditing"
-              class="button button-small button-outline"
+              @click="openEditModal"
+              class="button button-primary button-small button-outline"
             >
               Edit Campaign
             </button>
@@ -432,78 +378,8 @@ watch(
           </div>
         </div>
 
-        <!-- Global Edit Mode -->
-        <div v-else class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-          <h3 class="text-lg font-medium mb-4">Edit Campaign</h3>
 
-          <!-- Campaign Name -->
-          <div class="mb-3">
-            <label for="campaign-name" class="block text-sm font-medium text-gray-700 mb-1">
-              Campaign Name
-            </label>
-            <input
-              id="campaign-name"
-              v-model="editedName"
-              type="text"
-              class="input input-bordered w-full mb-3"
-              placeholder="Enter campaign name"
-            />
-          </div>
 
-          <!-- Campaign Description -->
-          <div class="mb-3">
-            <label for="campaign-description" class="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              id="campaign-description"
-              v-model="editedDescription"
-              class="textarea textarea-bordered w-full"
-              rows="4"
-              placeholder="Enter campaign description"
-            ></textarea>
-          </div>
-
-          <!-- Campaign Image URL -->
-          <div class="mb-3">
-            <label for="campaign-image-url" class="block text-sm font-medium text-gray-700 mb-1">
-              Image URL
-            </label>
-            <input
-              id="campaign-image-url"
-              v-model="editedImageUrl"
-              type="text"
-              class="input input-bordered w-full mb-3"
-              placeholder="Enter image URL"
-            />
-          </div>
-
-          <!-- Preview if URL exists -->
-          <div v-if="editedImageUrl" class="mb-3">
-            <p class="text-sm font-medium mb-1">Preview:</p>
-            <img
-              :src="editedImageUrl"
-              alt="Preview"
-              class="max-h-32 rounded object-contain bg-gray-100"
-              @error="
-                (e) => (e.target.src = 'https://via.placeholder.com/150?text=Invalid+Image+URL')
-              "
-            />
-          </div>
-
-          <div class="flex space-x-3">
-            <button
-              @click="cancelGlobalEditing"
-              class="button button-secondary"
-              :disabled="isUpdating"
-            >
-              Cancel
-            </button>
-            <button @click="saveAllChanges" class="button button-primary" :disabled="isUpdating">
-              {{ isUpdating ? 'Saving...' : 'Save All Changes' }}
-            </button>
-          </div>
-        </div>
 
         <!-- Campaign content -->
         <section class="mb-6">
@@ -602,6 +478,19 @@ watch(
               IMPORT CHARACTER
             </button>
           </div>
+
+
+          <EditCampaignModal
+            v-if="showEditModal && campaign"
+            :campaign="{
+              id: campaign.id,
+              title: campaignStore.getCampaignTitle(campaign.id),
+              description: campaignStore.getCampaignDescription(campaign.id),
+              imageUrl: campaignStore.getCampaignImageUrl(campaign.id)
+            }"
+            @close="showEditModal = false"
+            @save="handleSaveCampaign"
+          />
 
           <!-- Import modal-component -->
           <ImportCharacterModal
