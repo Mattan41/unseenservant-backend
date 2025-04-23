@@ -10,49 +10,6 @@
   </div>
 </template>
 
-<!--<script setup>-->
-<!--import { useNotificationStore } from "@/stores/notificationStore";-->
-<!--const { notifications } = useNotificationStore();-->
-<!--</script>-->
-
-<!--<template>-->
-<!--  <div class="notifications-container">-->
-<!--&lt;!&ndash;    <div&ndash;&gt;-->
-<!--&lt;!&ndash;      v-for="notification in notifications"&ndash;&gt;-->
-<!--&lt;!&ndash;      :key="notification.id"&ndash;&gt;-->
-<!--&lt;!&ndash;      :class="['notification', notification.type]"&ndash;&gt;-->
-<!--&lt;!&ndash;    >&ndash;&gt;-->
-<!--&lt;!&ndash;      {{ notification.message }}&ndash;&gt;-->
-<!--      <div v-for="notification in notifications" :key="notification.id" @click="debug(notification)">-->
-<!--        {{ notification.message }}-->
-<!--      </div>-->
-<!--    </div>-->
-<!--&lt;!&ndash;  </div>&ndash;&gt;-->
-<!--</template>-->
-
-<!--<script setup>-->
-<!--import { useNotificationStore } from "@/stores/notificationStore";-->
-<!--const notificationStore = useNotificationStore();-->
-<!--const notifications = notificationStore.notifications; // Reactive binding-->
-
-<!--const debug = (notification) => {-->
-<!--  console.log("Rendered notification:", notification);-->
-<!--};-->
-<!--</script>-->
-
-<!--<template>-->
-<!--  <div class="notifications-container">-->
-<!--    <div-->
-<!--      v-for="(notification, index) in notifications"-->
-<!--      :key="notification.id"-->
-<!--      @click="debug(notification)"-->
-<!--      :class="['notification', notification.type]"-->
-<!--    >-->
-<!--      {{ notification.message }}-->
-<!--    </div>-->
-<!--  </div>-->
-<!--</template>-->
-
 <script setup>
 import {useNotificationStore} from "@/stores/notificationStore";
 import {computed} from "vue";

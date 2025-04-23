@@ -6,7 +6,7 @@ import {useUserStore} from "@/features/user/userStore.js";
 import {useAuthStore} from "@/features/auth/authStore.js";
 import {onMounted, ref, watch} from "vue";
 import router from "@/router/index.js";
-import Notification from "@/components/Notification.vue";
+import Notification from "@/components/NotificationComponent.vue";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
