@@ -1,99 +1,114 @@
-import {defineStore} from 'pinia';
-import AuthService from './AuthService.js';
+// features/auth/authStore.js
+import { defineStore } from 'pinia';
+import authService from './authService.js';
+import router from '@/router/index.js';
+import { useUserStore } from "@/features/user/userStore.js";
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
-    isAuthenticating: false, // new flag to indicate if the user is in process of authentication
-    authInitialized: false // New flag to track if authentication is done
+    isLoggedIn: false,
+    isAuthenticating: false,
+    authInitialized: false,
+    error: null
   }),
-  persist: {
-    key: 'auth-store',
-    paths: ['user'],
-  },
-  actions: {
 
+  actions: {
+    clearUser() {
+      this.user = null;
+      this.isLoggedIn = false;
+      this.error = null;
+    },
+
+    async fetchCurrentUser() {
+      try {
+        const userData = await authService.getCurrentUser();
+        if (userData) {
+          this.user = userData;
+          this.isLoggedIn = true;
+          return userData;
+        } else {
+          this.clearUser();
+          return null;
+        }
+      } catch (error) {
+        console.error('Error fetching user in store:', error);
+        this.error = 'Failed to fetch user data';
+        this.clearUser();
+        return null;
+      }
+    },
+
+    // This matches what your App.vue is calling
     async checkAuth() {
       this.isAuthenticating = true;
+      this.authInitialized = false;
+
       try {
-        this.loadUserFromLocalStorage();
-        // If no user in localStorage, fetch from API
-        if (!this.user) {
-          const user = await AuthService.getCurrentUser();
-          this.user = user;
-
-          // Save user data to localStorage if it exists
-          if (user) {
-            localStorage.setItem('userData', JSON.stringify(user));
-          }
-        }
-        return this.user;
-
+        const userData = await this.fetchCurrentUser();
+        this.isLoggedIn = !!userData;
       } catch (error) {
-        console.error('Error fetching current user:', error);
-        this.user = null;
-        return null;
+        console.error('Auth check failed:', error);
+        this.isLoggedIn = false;
       } finally {
         this.isAuthenticating = false;
         this.authInitialized = true;
       }
     },
+
+    // This is being called from HeaderComponent
     loadUserFromLocalStorage() {
-      const userData = localStorage.getItem('userData');
-      if (userData) {
-        try {
-          console.log('Loading user from localStorage');
+      try {
+        const userData = localStorage.getItem('userData');
+        if (userData) {
           this.user = JSON.parse(userData);
-        } catch (error) {
-          console.error('Error parsing user data from localStorage'+ error);
-          localStorage.removeItem('userData');
-          this.user = null;
+          this.isLoggedIn = true;
         }
-      } else {
-        console.log('No user data in localStorage');
-        this.user = null;
+      } catch (error) {
+        console.error('Failed to load user from localStorage', error);
       }
     },
 
     async logout() {
-      await AuthService.logout();
-    },
-    async processSuccessfulLogin(userData) {
-      this.user = userData; // Pinia-plugin handles the persistence
-      window.dispatchEvent(new Event('storage')); // keep for compatibility with other tabs
+      try {
+        const success = await authService.logoutAPI();
+
+        if (success) {
+          // Clear auth store
+          this.clearUser();
+
+          // Clear user store
+          const userStore = useUserStore();
+          userStore.clearUserInfo();
+
+          // Clear storage
+          localStorage.removeItem('userData');
+          sessionStorage.removeItem('userData');
+
+          // Notify other tabs
+          window.dispatchEvent(new Event('storage'));
+
+          // Navigate to home page
+          router.push('/');
+        }
+      } catch (error) {
+        console.error('Logout failed:', error);
+        this.error = 'Failed to log out';
+      }
     },
 
-    async loginWithGoogle(idToken) {
-      try {
-        const response = await AuthService.loginWithGoogle(idToken);
-        if (response.data) {
-          await this.processSuccessfulLogin(response.data);
-          return true;
-        }
-        return false;
-      } catch (error) {
-        console.error('Google login failed', error);
-        return false;
-      }
+    async loginWithGoogle() {
+      return authService.loginWithGoogle();
     },
 
     async loginWithGithub() {
-      try {
-        const response = await AuthService.loginWithGithub();
-        if (response && response.data) {
-          await this.processSuccessfulLogin(response.data);
-          return true;
-        }
-        return false;
-      } catch (error) {
-        console.error('GitHub login failed', error);
-        return false;
-      }
-    },
+      return authService.loginWithGithub();
+    }
+  },
 
-  },
-  getters: {
-    isLoggedIn: (state) => !!state.user,
-    getUser: (state) => state.user,
-  },
+  persist: {
+    key: 'auth',
+    storage: localStorage,
+    paths: ['user', 'isLoggedIn']
+  }
 });
