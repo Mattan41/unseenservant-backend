@@ -10,20 +10,22 @@ const props = defineProps({
     default: '/defaultCharacter.svg'
   }
 });
+  const isAbsolute = src =>
+    src.startsWith('http://') ||
+    src.startsWith('https://') ||
+    src.startsWith('blob:');
 
-const fullSrc = computed(() => {
-  if (!props.src) return props.defaultSrc
-  if (
-    props.src.startsWith('blob:') ||
-    props.src.startsWith('http://') ||
-    props.src.startsWith('https://') ||
-    props.src.startsWith('/')
-  ) {
-    return props.src
-  }
-  // Om uppladdad bild saknar / i början, lägg till den!
-  return '/' + props.src
+  const fullSrc = computed(() => {
+    if (!props.src) return props.defaultSrc;
+    if (isAbsolute(props.src)) return props.src;
+    if (import.meta.env.DEV) {
+      // In dev: prefix with api-url if you are using a relative path
+      return `${import.meta.env.VITE_API_BASE_URL}${props.src}`;
+    }
+    // In prod: relativ paths (or nginx should proxy)
+    return props.src;
 });
+
 </script>
 
 <template>
