@@ -5,7 +5,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import router from '@/router';
 
 const axios = Axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL +'/' || '/',
   timeout: 60000,
   withCredentials: true,
   withXSRFToken: true,

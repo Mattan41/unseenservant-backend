@@ -7,24 +7,22 @@ const props = defineProps({
   alt: { type: String, default: '' },
   defaultSrc: {
     type: String,
-    default: '/src/assets/defaultCharacter.svg'
+    default: '/defaultCharacter.svg'
   }
 });
 
 const fullSrc = computed(() => {
-  // If no src is provided, return defaultSrc
-  if (!props.src) return props.defaultSrc;
-
-  // If local asset or blob URL, return as is
-  if (props.src.startsWith('/src/') ||
+  if (!props.src) return props.defaultSrc
+  if (
     props.src.startsWith('blob:') ||
     props.src.startsWith('http://') ||
-    props.src.startsWith('https://')) {
-    return props.src;
+    props.src.startsWith('https://') ||
+    props.src.startsWith('/')
+  ) {
+    return props.src
   }
-
-  // Assuming src is a relative URL, prepend the base URL
-  return `${import.meta.env.VITE_API_BASE_URL}${props.src}`;
+  // Om uppladdad bild saknar / i början, lägg till den!
+  return '/' + props.src
 });
 </script>
 
