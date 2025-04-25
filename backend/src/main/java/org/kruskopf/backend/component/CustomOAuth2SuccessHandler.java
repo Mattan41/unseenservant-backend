@@ -91,7 +91,6 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         }
 
 
-//       boolean isAdmin = adminWhitelist != null && adminWhitelist.contains(Objects.requireNonNull(email));
         boolean isAdmin = adminWhitelist != null && adminWhitelist.contains(email);
 
 
@@ -115,7 +114,6 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         // Set user data (AuthDTO) into session for easy frontend communication
         setUserDataIntoSessionForFrontendCommunication(request, user);
 
-        // Redirect to frontend
         response.sendRedirect(frontendUrl + "/oauth-redirect");
     }
 

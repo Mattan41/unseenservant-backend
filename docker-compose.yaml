@@ -31,7 +31,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mydatabase
       SPRING_DATASOURCE_USERNAME: myuser
       SPRING_DATASOURCE_PASSWORD: secret
-      FRONTEND_URL: http://localhost # Sätt till din domän i prod om du vill!
+      FRONTEND_URL: https://unseenservant.se
       CLIENT_ID: ${CLIENT_ID}
       CLIENT_SECRET: ${CLIENT_SECRET}
       ID: ${ID}
@@ -41,7 +41,7 @@ services:
         condition: service_healthy
 
   nginx:
-    build: ./frontend             # Använd frontend-Dockerfile för att bygga Nginx+frontend!
+    build: ./frontend
     container_name: my-nginx
     depends_on:
       - backend
