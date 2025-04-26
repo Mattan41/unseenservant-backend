@@ -11,12 +11,12 @@ export const useUserStore = defineStore('user', {
 
   actions: {
     // fetch the current user's information
-    async fetchCurrentUser() {
+    async fetchCurrentUserInfo() {
       this.isLoading = true
       this.error = null
 
       try {
-        this.userInfo = await UserService.fetchCurrentUser()
+        this.userInfo = await UserService.fetchCurrentUserInfo()
       } catch (error) {
         console.error('Failed to fetch current user info:', error)
         this.error = 'Could not fetch user information.'

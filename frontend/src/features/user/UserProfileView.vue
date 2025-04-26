@@ -17,7 +17,7 @@ const user = computed(() => userStore.userInfo);
 
 onMounted(async () => {
   if (!userStore.userInfo) {
-    await userStore.fetchCurrentUser();
+    await userStore.fetchCurrentUserInfo();
   }
   displayName.value = userStore.getDisplayName;
 });
