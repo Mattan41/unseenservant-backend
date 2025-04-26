@@ -42,10 +42,9 @@ axios.interceptors.response.use(
           3000
         );
 
-        if (router.currentRoute.value.name !== 'login') {
+        if (router.currentRoute.value.meta.requiresAuth && router.currentRoute.value.name !== 'login') {
           router.push({ name: 'login' });
         }
-
       }
 
       console.error(`API Error (${status}):`, error.response?.data || error.message);

@@ -12,7 +12,7 @@ onMounted(async () => {
   try {
     await authStore.logout()
     notificationStore.addNotification('You have been logged out!', 'success')
-    router.push({ name: 'home' }) // eller var du vill landa efter logout
+    router.push({ name: 'home' })
   } catch (error) {
     console.error('Logout failed:', error)
     notificationStore.addNotification('Failed to log out', 'error')
