@@ -14,7 +14,6 @@ const axios = Axios.create({
 // Request interceptor
 axios.interceptors.request.use(
   config => {
-
     return config;
   },
   error => Promise.reject(error)
@@ -30,21 +29,23 @@ axios.interceptors.response.use(
 
       // Handle authentication errors
       if (status === 401) {
-        console.warn('Unauthorized access detected, logging out');
         const authStore = useAuthStore();
+        if (authStore.isLoggingOut) return Promise.reject(error);
+        console.warn('Unauthorized access detected, logging out');
         const notificationStore = useNotificationStore();
-
+        authStore.isLoggingOut = true;
         authStore.clearUser();
 
         notificationStore.addNotification(
           'Your session has expired. Please log in again.',
           'warning',
-          5000
+          3000
         );
 
         if (router.currentRoute.value.name !== 'login') {
           router.push({ name: 'login' });
         }
+
       }
 
       console.error(`API Error (${status}):`, error.response?.data || error.message);

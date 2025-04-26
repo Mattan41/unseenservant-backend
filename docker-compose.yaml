@@ -32,10 +32,10 @@ services:
       SPRING_DATASOURCE_USERNAME: myuser
       SPRING_DATASOURCE_PASSWORD: secret
       FRONTEND_URL: https://unseenservant.se
-      CLIENT_ID: ${CLIENT_ID}
-      CLIENT_SECRET: ${CLIENT_SECRET}
-      ID: ${ID}
-      SECRET: ${SECRET}
+      CLIENT_ID: ${GITHUB_ID}
+      CLIENT_SECRET: ${GITHUB_SECRET}
+      GOOGLE_ID: ${GOOGLE_ID}
+      GOOGLE_SECRET: ${GOOGLE_SECRET}
     depends_on:
       mysql:
         condition: service_healthy
@@ -47,6 +47,7 @@ services:
       - backend
     ports:
       - "80:80"
+    #  - "443:443"
 
 volumes:
   mysql-data:

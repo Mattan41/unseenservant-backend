@@ -14,45 +14,21 @@ const isLoading = ref(true);
 
 onMounted(async () => {
   window.addEventListener("storage", () => {
-    if (!localStorage.getItem("userData")) {
+    if (!authStore.isLoggedIn) {
       router.push("/");
     }
   });
 
-  console.log('App mounted. Checking authentication...');
-
-  if (!authStore.authInitialized) {
-    await authStore.checkAuth();
-  }
-  console.log('AuthStore after checkAuth:', authStore.user);
-
-  if (authStore.isLoggedIn) {
-    console.log('Fetching user info after authentication.');
-    await userStore.fetchCurrentUser();
-  } else {
-    console.log('No authenticated user found.');
-    userStore.clearUserInfo();
-  }
-
+  await authStore.checkAuth();
   isLoading.value = false;
 });
 
-// Watch to observe changes of isAuthenticating, react every change of authentication status
-watch(
-  () => authStore.isAuthenticating,
-  async (isAuthenticating) => {
-    if (!isAuthenticating) {
-      if (authStore.isLoggedIn) {
-        console.log('Auth verification complete. Fetching current user info...');
-        await userStore.fetchCurrentUser();
-      } else {
-        console.log('Auth verification complete. No user logged in.');
-        userStore.clearUserInfo();
-      }
-    }
-  },
-  {immediate: false} // Do not run the watcher immediately, as we already did that in onMounted
-);
+watch(() => authStore.isLoggedIn, async (isLoggedIn) => {
+  if (isLoggedIn) {await userStore.fetchCurrentUser();
+  } else {
+    userStore.clearUserInfo();
+  }
+});
 
 </script>
 <template>

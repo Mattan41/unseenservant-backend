@@ -51,9 +51,8 @@ export const useUserStore = defineStore('user', {
         this.userInfo = {...this.userInfo, ...updatedUser};
         // Notify the user about the successful update
         notificationStore.addNotification(`Successfully updated ${field}.`, 'success');
-        //  update the store with the new value
+        //  update the store with the new value todo remove this line?
         this.userInfo[field] = value;
-
         return true;
       } catch (error) {
         // Handle HTTP 409 Conflict (UniqueConstraintViolation) if the field is unique and already taken
@@ -93,8 +92,7 @@ export const useUserStore = defineStore('user', {
       this.userInfo = null;
       this.error = null;
       this.isLoading = false;
-      localStorage.removeItem('userData');
-      console.log('User info cleared and localStorage cleaned.');
+      console.log('User info cleared');
     },
   },
 
