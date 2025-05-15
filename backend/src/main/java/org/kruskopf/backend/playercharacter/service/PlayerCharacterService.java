@@ -54,6 +54,24 @@ public class PlayerCharacterService {
 
         return playerCharacterMapper.toOutputDTO(savedCharacter);
     }
+    // Only for test/dummy data with startuprunner
+    public PlayerCharacterOutputDTO createCharacterFromDto(PlayerCharacterInputDTO inputDTO) {
+        User owner = userRepository.findById(inputDTO.ownerId())
+                .orElseThrow(() ->  new ResourceNotFoundException("User not found with id: " + inputDTO.ownerId()));
+
+        Campaign campaign = null;
+        if (inputDTO.campaignId() != null) {
+            campaign = campaignRepository.findById(inputDTO.campaignId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + inputDTO.campaignId()));
+        }
+
+        PlayerCharacter character = playerCharacterMapper.toEntity(inputDTO, owner, campaign);
+        PlayerCharacter savedCharacter = playerCharacterRepository.save(character);
+
+        return playerCharacterMapper.toOutputDTO(savedCharacter);
+    }
+
+
 
     public List<PlayerCharacterOutputDTO> getAllCharacters() {
         return playerCharacterRepository.findAll()

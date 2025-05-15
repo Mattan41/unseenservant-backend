@@ -1,12 +1,24 @@
 # Stage 1: Build the backend application
-FROM maven:3.9.9-eclipse-temurin-23-alpine AS build
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Stage 2: Run the backend application
-FROM eclipse-temurin:23-jdk-alpine
-VOLUME /tmp
+# Stage 2: Create the runtime image
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+
+# Installera netcat för hälsokontrollerna i skriptet
+RUN apk add --no-cache netcat-openbsd
+
+# Kopiera JAR-filen från build-steget
 COPY --from=build /app/target/*.jar app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+RUN mkdir -p /opt/crac-files
+VOLUME /opt/crac-files
+
+# Exponera portar
+EXPOSE 8080
+
+# Skript för att starta applikationen
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

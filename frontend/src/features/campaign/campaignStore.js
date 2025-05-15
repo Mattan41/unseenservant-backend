@@ -328,7 +328,7 @@ export const useCampaignStore = defineStore('campaign', {
     },
     getCampaignImageUrl: (state) => (id) => {
       const campaign = state.campaigns.find((campaign) => campaign.id === id)
-      return campaign?.imageUrl || '/src/assets/default-campaign.svg'
+      return campaign?.imageUrl || '/default-campaign.svg'
     },
     getCharactersByCampaignId: (state) => (campaignId) => {
       return [...(state.campaignCharacters[campaignId] || [])]

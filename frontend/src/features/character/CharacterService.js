@@ -2,7 +2,7 @@ import axios from '@/lib/axios.js'
 
 const CharacterService = {
 
-  // create a character - we will wait to implement this until we have the character creation form. start with viewing a character
+  // create a character
   async createCharacter(data) {
     const response = await axios.post('api/characters', data, {
     });

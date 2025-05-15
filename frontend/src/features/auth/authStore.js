@@ -1,13 +1,13 @@
 // features/auth/authStore.js
 import {defineStore} from 'pinia';
-import authService from './AuthService.js';
-import router from '@/router/index.js';
+import AuthService from './AuthService.js';
 import {useUserStore} from "@/features/user/userStore.js";
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
     isLoggedIn: false,
+    isLoggingOut: false,
     isAuthenticating: false,
     authInitialized: false,
     error: null
@@ -17,12 +17,13 @@ export const useAuthStore = defineStore('auth', {
     clearUser() {
       this.user = null;
       this.isLoggedIn = false;
+      this.isLoggingOut = false;
       this.error = null;
     },
 
     async fetchCurrentUser() {
       try {
-        const userData = await authService.getCurrentUser();
+        const userData = await AuthService.getCurrentUser();
         if (userData) {
           this.user = userData;
           this.isLoggedIn = true;
@@ -56,53 +57,33 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // This is being called from HeaderComponent
-    loadUserFromLocalStorage() {
-      try {
-        const userData = localStorage.getItem('userData');
-        if (userData) {
-          this.user = JSON.parse(userData);
-          this.isLoggedIn = true;
-        }
-      } catch (error) {
-        console.error('Failed to load user from localStorage', error);
-      }
-    },
-
     async logout() {
+       if (this.isLoggingOut) return;
+      this.isLoggingOut = true;
       try {
-        const success = await authService.logoutAPI();
-
-        if (success) {
-          // Clear auth store
-          this.clearUser();
-
-          // Clear user store
-          const userStore = useUserStore();
-          userStore.clearUserInfo();
-
-          // Clear storage
-          localStorage.removeItem('userData');
-          sessionStorage.removeItem('userData');
-
-          // Notify other tabs
-          window.dispatchEvent(new Event('storage'));
-
-          // Navigate to home page
-          router.push('/');
-        }
+        await AuthService.logoutAPI();
       } catch (error) {
         console.error('Logout failed:', error);
-        this.error = 'Failed to log out';
+      } finally {
+        this.clearUser();
+
+        const userStore = useUserStore();
+        userStore.clearUserInfo();
+
+        localStorage.removeItem('auth');
+        localStorage.removeItem('userData');
+        sessionStorage.removeItem('userData');
+
+        window.dispatchEvent(new Event('storage'));
       }
     },
 
     async loginWithGoogle() {
-      return authService.loginWithGoogle();
+      return AuthService.loginWithGoogle();
     },
 
     async loginWithGithub() {
-      return authService.loginWithGithub();
+      return AuthService.loginWithGithub();
     }
   },
 

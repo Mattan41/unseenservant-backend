@@ -18,7 +18,6 @@ const handleClickOutside = (event) => {
 };
 
 onMounted(() => {
-  authStore.loadUserFromLocalStorage();
   document.addEventListener('click', handleClickOutside);
 });
 

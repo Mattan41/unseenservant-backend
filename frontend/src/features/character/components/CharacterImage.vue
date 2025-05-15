@@ -7,25 +7,25 @@ const props = defineProps({
   alt: { type: String, default: '' },
   defaultSrc: {
     type: String,
-    default: '/src/assets/defaultCharacter.svg'
+    default: '/defaultCharacter.svg'
   }
 });
+  const isAbsolute = src =>
+    src.startsWith('http://') ||
+    src.startsWith('https://') ||
+    src.startsWith('blob:');
 
-const fullSrc = computed(() => {
-  // If no src is provided, return defaultSrc
-  if (!props.src) return props.defaultSrc;
-
-  // If local asset or blob URL, return as is
-  if (props.src.startsWith('/src/') ||
-    props.src.startsWith('blob:') ||
-    props.src.startsWith('http://') ||
-    props.src.startsWith('https://')) {
+  const fullSrc = computed(() => {
+    if (!props.src) return props.defaultSrc;
+    if (isAbsolute(props.src)) return props.src;
+    if (import.meta.env.DEV) {
+      // In dev: prefix with api-url if you are using a relative path
+      return `${import.meta.env.VITE_API_BASE_URL}${props.src}`;
+    }
+    // In prod: relativ paths (or nginx should proxy)
     return props.src;
-  }
-
-  // Assuming src is a relative URL, prepend the base URL
-  return `${import.meta.env.VITE_API_BASE_URL}${props.src}`;
 });
+
 </script>
 
 <template>

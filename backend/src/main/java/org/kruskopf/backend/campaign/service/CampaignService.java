@@ -381,7 +381,7 @@ public class CampaignService {
     }
 
     /**
-     * For data initialization and testing only
+        * For data initialization and testing only
      */
     @Transactional
     public void createCampaignRaw(Campaign campaign) {

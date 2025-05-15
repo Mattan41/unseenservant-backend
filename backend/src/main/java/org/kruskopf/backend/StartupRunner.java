@@ -66,15 +66,20 @@ public class StartupRunner implements CommandLineRunner {
 
 
             // Create and add participants
-            campaign1.getParticipants().add(new CampaignUser(campaign1, user1, CampaignRole.PLAYER, "Mattan"));
-            campaign1.getParticipants().add(new CampaignUser(campaign1, user2, CampaignRole.PLAYER, "Mats"));
-            campaign1.getParticipants().add(new CampaignUser(campaign1, user3, CampaignRole.PLAYER, "User1"));
+            campaign1.getParticipants().add(new CampaignUser(campaign1, user1, CampaignRole.GM, "User1"));
+            campaign1.getParticipants().add(new CampaignUser(campaign1, user2, CampaignRole.PLAYER, "user2"));
+            campaign1.getParticipants().add(new CampaignUser(campaign1, user3, CampaignRole.PLAYER, "User3"));
+            campaign1.getParticipants().add(new CampaignUser(campaign1, user4, CampaignRole.PLAYER, "User4"));
 
-            campaign2.getParticipants().add(new CampaignUser(campaign2, user2, CampaignRole.PLAYER, "Mats"));
-            campaign2.getParticipants().add(new CampaignUser(campaign2, user4, CampaignRole.PLAYER, "User2"));
+            campaign2.getParticipants().add(new CampaignUser(campaign2, user1, CampaignRole.PLAYER, "User1"));
+            campaign2.getParticipants().add(new CampaignUser(campaign2, user2, CampaignRole.GM, "User2"));
+            campaign2.getParticipants().add(new CampaignUser(campaign2, user3, CampaignRole.PLAYER, "User3"));
+            campaign2.getParticipants().add(new CampaignUser(campaign2, user4, CampaignRole.PLAYER, "User4"));
 
-            campaign3.getParticipants().add(new CampaignUser(campaign3, user1, CampaignRole.PLAYER, "Mattan"));
-            campaign3.getParticipants().add(new CampaignUser(campaign3, user2, CampaignRole.PLAYER, "Mats"));
+            campaign3.getParticipants().add(new CampaignUser(campaign3, user1, CampaignRole.PLAYER, "User1"));
+            campaign3.getParticipants().add(new CampaignUser(campaign3, user2, CampaignRole.PLAYER, "User2"));
+            campaign3.getParticipants().add(new CampaignUser(campaign3, user3, CampaignRole.GM, "User3"));
+            campaign3.getParticipants().add(new CampaignUser(campaign3, user4, CampaignRole.PLAYER, "User4"));
 
             campaignService.createCampaignRaw(campaign1);
             campaignService.createCampaignRaw(campaign2);
@@ -93,16 +98,22 @@ public class StartupRunner implements CommandLineRunner {
         // Create and save characters
         if (playerCharacterService.getAllCharacters().isEmpty()) {
             // Characters for campaign 1
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(1L, 1L, "Gandalf", 10, "Wizard", null, "Human", new PlayerCharacterStats(11, 11, 11, 11, 15, 13)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(2L, 1L, "Frodo", 8, "Rogue",null, "Halfling", new PlayerCharacterStats(10, 18, 12, 12, 13, 10)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(3L, 1L, "Galadriel", 10, "Cleric",null, "Elf", new PlayerCharacterStats(10, 10, 10, 14, 18, 16)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(4L, 1L, "Gimli", 8, "Fighter",null, "Dwarf", new PlayerCharacterStats(19, 8, 16, 9, 11, 8)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(1L, 1L, "Gandalf", 10, "Wizard", null, "Human", new PlayerCharacterStats(11, 11, 11, 11, 15, 13)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(2L, 1L, "Frodo", 8, "Rogue",null, "Halfling", new PlayerCharacterStats(10, 18, 12, 12, 13, 10)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(3L, 1L, "Galadriel", 10, "Cleric",null, "Elf", new PlayerCharacterStats(10, 10, 10, 14, 18, 16)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(4L, 1L, "Gimli", 8, "Fighter",null, "Dwarf", new PlayerCharacterStats(19, 8, 16, 9, 11, 8)));
 
             // Character for campaign 2
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(1L, 2L, "Rincewind", 1, "Wizard",null, "Human", new PlayerCharacterStats(9, 9, 9, 14, 9, 9)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(2L, 2L, "Twoflower", 1, "Rogue", null,"Halfling", new PlayerCharacterStats(9, 14, 9, 9, 9, 14)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(3L, 2L, "Mightily Oats", 1, "Cleric",null, "Human", new PlayerCharacterStats(10, 10, 10, 10, 16, 10)));
-            playerCharacterService.createCharacter(new PlayerCharacterInputDTO(4L, 2L, "Carrot Ironfoundersson", 1, "Fighter", null,"Dwarf", new PlayerCharacterStats(16, 10, 14, 10, 14, 12)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(1L, 2L, "Rincewind", 1, "Wizard",null, "Human", new PlayerCharacterStats(9, 9, 9, 14, 9, 9)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(2L, 2L, "Twoflower", 1, "Rogue", null,"Halfling", new PlayerCharacterStats(9, 14, 9, 9, 9, 14)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(3L, 2L, "Mightily Oats", 1, "Cleric",null, "Human", new PlayerCharacterStats(10, 10, 10, 10, 16, 10)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(4L, 2L, "Carrot Ironfoundersson", 1, "Fighter", null,"Dwarf", new PlayerCharacterStats(16, 10, 14, 10, 14, 12)));
+
+            // Characters for campaign 3
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(1L, 3L, "Ironclad", 1, "Paladin", null,"Dragonborn", new PlayerCharacterStats(10, 10, 10, 10, 10, 10)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(2L, 3L, "Gearspark", 1, "Rogue", null,"Gnome", new PlayerCharacterStats(10, 10, 10, 10, 10, 10)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(3L, 3L, "Steamwhistle", 1, "Bard", null,"Halfling", new PlayerCharacterStats(10, 10, 10, 10, 10, 10)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(4L, 3L, "Cogsworth", 1, "Fighter", null,"Human", new PlayerCharacterStats(10, 10, 10, 10, 10, 10)));
         }
 
 

@@ -1,7 +1,8 @@
 import axios from '@/lib/axios.js';
 
-const API_GOOGLE_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
-const API_GITHUB_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/github`;
+const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+const API_GOOGLE_LOGIN_URL = `${apiBase}/oauth2/authorization/google`;
+const API_GITHUB_LOGIN_URL = `${apiBase}/oauth2/authorization/github`;
 
 class AuthService {
   async loginWithGoogle() {

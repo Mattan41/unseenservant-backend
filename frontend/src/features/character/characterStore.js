@@ -207,7 +207,7 @@ export const useCharacterStore = defineStore('character', {
     },
     getCharacterImageUrl: (state) => (id) => {
       const character = state.characters.find((char) => char.id === id)
-      return character?.imageUrl || '/src/assets/defaultCharacter.svg'
+      return character?.imageUrl || '/defaultCharacter.svg'
     },
   },
 })
