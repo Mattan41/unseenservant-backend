@@ -111,7 +111,7 @@ public class StartupRunner implements CommandLineRunner {
 
             // Characters for campaign 3
             playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(1L, 3L, "Ironclad", 1, "Paladin", null,"Dragonborn", new PlayerCharacterStats(10, 10, 10, 10, 10, 10)));
-            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(2L, 3L, "Gearspark", 1, "Rouge", null,"Gnome", new PlayerCharacterStats(10, 10, 10, 10, 10, 10)));
+            playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(2L, 3L, "Gearspark", 1, "Rogue", null,"Gnome", new PlayerCharacterStats(10, 10, 10, 10, 10, 10)));
             playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(3L, 3L, "Steamwhistle", 1, "Bard", null,"Halfling", new PlayerCharacterStats(10, 10, 10, 10, 10, 10)));
             playerCharacterService.createCharacterFromDto(new PlayerCharacterInputDTO(4L, 3L, "Cogsworth", 1, "Fighter", null,"Human", new PlayerCharacterStats(10, 10, 10, 10, 10, 10)));
         }
