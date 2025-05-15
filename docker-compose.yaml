@@ -43,11 +43,18 @@ services:
   nginx:
     build: ./frontend
     container_name: my-nginx
+    restart: unless-stopped
     depends_on:
       - backend
     ports:
       - "80:80"
     #  - "443:443"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: my-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
 
 volumes:
   mysql-data:
