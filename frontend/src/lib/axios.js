@@ -31,16 +31,20 @@ axios.interceptors.response.use(
       if (status === 401) {
         const authStore = useAuthStore();
         if (authStore.isLoggingOut) return Promise.reject(error);
-        console.warn('Unauthorized access detected, logging out');
-        const notificationStore = useNotificationStore();
+
+        if (authStore.isLoggedIn) {
+          console.warn('Session expired, logging out');
+          const notificationStore = useNotificationStore();
+
+          notificationStore.addNotification(
+            'Your session has expired. Please log in again.',
+            'warning',
+            3000
+          );
+        }
+
         authStore.isLoggingOut = true;
         authStore.clearUser();
-
-        notificationStore.addNotification(
-          'Your session has expired. Please log in again.',
-          'warning',
-          3000
-        );
 
         if (router.currentRoute.value.meta.requiresAuth && router.currentRoute.value.name !== 'login') {
           router.push({ name: 'login' });
