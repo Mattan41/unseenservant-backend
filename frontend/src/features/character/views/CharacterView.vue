@@ -115,8 +115,8 @@ const deleteCharacter = async () => {
                 :key="stat"
                 class="bg-third-200 p-2 rounded-lg shadow text-center"
               >
-                <div class="text-lg font-bold text-primary-600">{{ value }}</div>
-                <div class="text-xs uppercase tracking-wide text-gray-500">{{ stat }}</div>
+                <div class="text-lg font-bold text-primary-700">{{ value }}</div>
+                <div class="text-xs uppercase tracking-wide text-third-600">{{ stat }}</div>
               </div>
             </div>
           </div>

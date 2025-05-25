@@ -1,10 +1,10 @@
 <template>
   <div class="about">
     <div class="about-content max-w-4xl mx-auto p-6 bg-primary-50 rounded-lg shadow-md">
-      <h2 class="text-2xl md:text-3xl font-bold text-primary-800 mb-6">About Unseen Servant</h2>
+      <h1 class="font-bold mb-6 text-xs">About Unseen Servant</h1>
 
       <div class="mb-8">
-        <h3 class="text-xl font-semibold text-primary-700 mb-3">Your Tabletop Companion</h3>
+        <h3 class="text-xl font-semibold mb-3">Your Tabletop Companion</h3>
         <p class="mb-4 text-gray-700">
           Unseen Servant is a web application designed to enhance your tabletop roleplaying experience,
           specifically for the 5th Edition of the world's most popular roleplaying game.
@@ -15,7 +15,7 @@
 
       <div class="grid md:grid-cols-2 gap-6 mb-8">
         <div class="feature-card">
-          <h3 class="text-primary-700 feature-title">🎭 Character Management</h3>
+          <h3 class="feature-title">🎭 Character Management</h3>
           <p class="text-gray-600">
             Create, update, and manage your characters with our intuitive interface.
             Track stats, inventory, spells, and abilities with ease whether your character
@@ -24,7 +24,7 @@
         </div>
 
         <div class="feature-card">
-          <h3 class="text-primary-700 feature-title">🏰 Campaign Organization</h3>
+          <h3 class="feature-title">🏰 Campaign Organization</h3>
           <p class="text-gray-600">
             Game Masters can create and manage campaigns, invite players,
             track campaign details, and keep everything organized in one place.
@@ -33,7 +33,7 @@
         </div>
 
         <div class="feature-card">
-          <h3 class="text-primary-700 feature-title">👥 Collaborative Play</h3>
+          <h3 class="feature-title">👥 Collaborative Play</h3>
           <p class="text-gray-600">
             Designed for both Game Masters and players, Unseen Servant facilitates
             collaboration between all participants with clear role distinctions and
@@ -42,7 +42,7 @@
         </div>
 
         <div class="feature-card">
-          <h3 class="text-primary-700 feature-title">📱 Responsive Design</h3>
+          <h3 class="feature-title">📱 Responsive Design</h3>
           <p class="text-gray-600">
             Access your campaigns and characters from any device.
             Our responsive design ensures a seamless experience whether
@@ -52,7 +52,7 @@
       </div>
 
       <div class="bg-primary-100 p-4 rounded-md border border-primary-200 mb-6">
-        <h3 class="text-lg font-semibold text-primary-800 mb-2">Our Mission</h3>
+        <h3 class="text-lg font-semibold mb-2">Our Mission</h3>
         <p class="text-gray-700">
           We believe that the administrative aspects of tabletop roleplaying games
           shouldn't get in the way of the storytelling and adventure.

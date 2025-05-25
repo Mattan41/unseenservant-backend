@@ -53,7 +53,7 @@ public class PlayerCharacterMapper {
         if (dto.race() != null) entity.setRace(dto.race());
         if (dto.playerCharacterData() != null) entity.setCharacterData(dto.playerCharacterData());
 
-        // Lägg till denna rad för att kunna uppdatera imageUrl
+        // this is to be able to update the imageUrl
         if (dto.imageUrl() != null) entity.setImageUrl(dto.imageUrl());
     }
 
