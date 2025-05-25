@@ -8,7 +8,7 @@ const username = computed(() => userStore.getDisplayName);
 </script>
 
 <template>
-  <main>
+
     <section class="text-center">
       <h1>Unseen Servant</h1>
       <p class="text-lg">A service that does not get in your way</p>
@@ -17,7 +17,7 @@ const username = computed(() => userStore.getDisplayName);
       </div>
       <HelloComponent v-if="username" :msg="username"/>
     </section>
-  </main>
+
 </template>
 
 <style scoped>

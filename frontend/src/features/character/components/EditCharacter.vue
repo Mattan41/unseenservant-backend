@@ -234,14 +234,14 @@ const submitCharacter = async () => {
           <button
             type="button"
             @click="router.push(goToCharacterView())"
-            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100"
+            class="px-4 py-2 border rounded-md border-third-300 button-secondary"
             :disabled="isSubmitting"
           >
             Cancel
           </button>
           <button
             type="submit"
-            class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            class="px-4 py-2 border rounded-md border-third-300 button-add"
             :disabled="isSubmitting"
           >
             <span v-if="isSubmitting">Saving...</span>

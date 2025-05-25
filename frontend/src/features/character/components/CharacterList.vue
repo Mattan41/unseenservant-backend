@@ -29,6 +29,7 @@ const viewCharacter = (id) => {
 
 <template>
   <div class="container mx-auto p-4">
+    <h1 class="bg-primary-100 text-primary-900 p-4 mb-4 rounded-lg font-bold">Characters</h1>
     <div v-if="characterStore.isLoading || loading" class="text-center py-8">
       <div
         class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"

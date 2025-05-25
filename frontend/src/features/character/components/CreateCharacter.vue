@@ -73,7 +73,7 @@ const submitCharacter = async () => {
 
         <!-- Basic Info -->
         <div class="mb-6">
-          <h2 class="text-lg font-semibold mb-3 text-primary-600">Basic Information</h2>
+          <h3 class="text-lg font-semibold mb-3 text-primary-700">Basic Information</h3>
 
           <div class="mb-4">
             <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Character Name</label>
@@ -127,7 +127,7 @@ const submitCharacter = async () => {
 
         <!-- Character Stats -->
         <div class="mb-6">
-          <h2 class="text-lg font-semibold mb-3 text-primary-600">Character Stats</h2>
+          <h3 class="text-lg font-semibold mb-3 text-primary-700">Character Stats</h3>
 
           <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div class="mb-4" v-for="(value, stat) in character.playerCharacterData" :key="stat">
@@ -148,14 +148,14 @@ const submitCharacter = async () => {
         <div class="flex justify-end space-x-3 mt-8">
           <router-link
             :to="{ name: 'CharactersView' }"
-            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100"
+            class="px-4 py-2 border rounded-md border-third-300 button-secondary"
           >
             Cancel
           </router-link>
 
           <button
             type="submit"
-            class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            class="px-4 py-2 border rounded-md border-third-300 button-add"
             :disabled="isSubmitting"
           >
             <span v-if="isSubmitting">Creating...</span>

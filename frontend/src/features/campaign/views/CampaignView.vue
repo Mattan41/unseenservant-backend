@@ -252,20 +252,20 @@ watch(
     <p class="mt-2">Loading campaign...</p>
   </div>
 
-  <!-- Campaign loaded successfully -->
-  <div v-else-if="campaign" class="flex h-full">
-    <!-- Campaign selector sidebar - same for all screen sizes -->
-    <aside class="w-16 flex flex-col items-center py-4 space-y-4 custom-gradient relative">
-      <!-- Scroll hint at top if scrollable -->
-      <div
-        v-if="isScrollable"
-        class="absolute top-2 left-1/2 transform -translate-x-1/2 w-5 h-1 bg-primary-400 rounded-full animate-pulse"
-      ></div>
+        <!-- Campaign loaded successfully -->
+        <div v-else-if="campaign" class="flex h-full">
+          <!-- Campaign selector sidebar - same for all screen sizes -->
+          <aside class="w-16 flex flex-col min-h-screen items-center py-4 space-y-4 relative custom-gradient">
+            <!-- Scroll hint at top if scrollable -->
+            <div
+              v-if="isScrollable"
+              class="absolute top-2 left-1/2 transform -translate-x-1/2 w-5 h-1 bg-primary-400 rounded-full animate-pulse"
+            ></div>
 
-      <div
-        ref="campaignListRef"
-        class="campaign-list flex-1 flex flex-col items-center space-y-4 max-h-[calc(10*2.5rem+2rem)]"
-      >
+            <div
+              ref="campaignListRef"
+              class="campaign-list flex-1 flex flex-col items-center space-y-4 max-h-[calc(10*2.5rem+2rem)]"
+            >
         <RouterLink
           v-for="userCampaign in campaignStore.campaigns"
           :key="userCampaign.id"
@@ -528,7 +528,7 @@ watch(
   background: linear-gradient(
     to bottom,
     var(--color-primary-100) 0%,
-    var(--color-primary-300) 50%,
+    var(--color-primary-600) 50%,
     var(--color-primary-100) 100%
   );
 }
