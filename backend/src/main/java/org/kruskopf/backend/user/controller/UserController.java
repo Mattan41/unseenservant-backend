@@ -20,7 +20,7 @@ public class UserController {
 
     public UserService userService;
 
-    // todo: add @PreAuthorize on relevanr endpoints
+    // todo: add @PreAuthorize on relevant endpoints
     public UserController(UserService userService) {
         this.userService = userService;
     }
@@ -35,7 +35,7 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
-
+// preauthorize that only the logged in user can access their own data
     @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getLoggedInUser(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
@@ -75,6 +75,7 @@ public class UserController {
 
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<User> updateProfile(@PathVariable Long id, @RequestBody User user) {
         return userService.update(id, user)
                 .map(ResponseEntity::ok)

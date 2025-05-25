@@ -22,7 +22,7 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public List<UserDTO> searchUsers(String query, Long currentUserId) {
+    public List<UserDTO> searchUsers(String query, long currentUserId) {
         List<User> users = userRepository.findByUserNameContainingOrEmailContainingOrFullNameContaining(
                 query, query, query);
 
@@ -47,7 +47,7 @@ public class UserService {
         return userRepository.save(admin);
     }
 
-    public Optional<User> findById(Long id) {
+    public Optional<User> findById(long id) {
         return userRepository.findById(id);
     }
 
@@ -65,7 +65,7 @@ public class UserService {
     }
 
     // (Partial Update - PATCH) - update specific fields of a user
-    public Optional<User> partialUpdate(Long id, Map<String, Object> updates) {
+    public Optional<User> partialUpdate(long id, Map<String, Object> updates) {
         Optional<User> existingUserOpt = userRepository.findById(id);
         if (existingUserOpt.isEmpty()) {
             return Optional.empty();
@@ -95,7 +95,7 @@ public class UserService {
     }
 
     // Method to update a user fully by ID
-    public Optional<User> update(Long id, User updatedUser) {
+    public Optional<User> update(long id, User updatedUser) {
         if (!userRepository.existsById(id)) {
             return Optional.empty();
         }
@@ -106,8 +106,8 @@ public class UserService {
         return Optional.of(savedUser);
     }
 
-    // Method to delete a user by ID
-    public boolean deleteById(Long id) {
+    // Method to delete a user by ID - we could also use soft delete with a boolean field, perhaps remove this method
+    public boolean deleteById(long id) {
         if (userRepository.existsById(id)) {
             userRepository.deleteById(id);
             return true;
@@ -119,7 +119,7 @@ public class UserService {
         return UserDTO.fromUser(user);
     }
 
-    public UserDTO findUserDTOById(Long id) {
+    public UserDTO findUserDTOById(long id) {
         return userRepository.findById(id)
                 .map(this::toDTO) // convert User to UserDTO
                 .orElse(null);

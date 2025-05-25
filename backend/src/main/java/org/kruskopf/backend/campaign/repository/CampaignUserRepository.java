@@ -1,5 +1,6 @@
 package org.kruskopf.backend.campaign.repository;
 
+import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -11,4 +12,5 @@ public interface CampaignUserRepository extends JpaRepository<CampaignUser, Long
     List<CampaignUser> findByUserId(Long userId);
 
     boolean existsByCampaignIdAndUserId(Long campaignId, Long userId);
+    boolean existsByCampaignIdAndUserIdAndRole(Long campaign_id, Long user_id, CampaignRole role);
 }

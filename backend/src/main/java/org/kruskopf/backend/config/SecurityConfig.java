@@ -3,6 +3,7 @@ package org.kruskopf.backend.config;
 import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.component.CustomOAuth2SuccessHandler;
 import org.kruskopf.backend.user.entity.UserRole;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
@@ -34,6 +35,10 @@ public class SecurityConfig {
 
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
 
+    @Value("${FRONTEND_URL}")
+    private String frontendUrl;
+
+
     public SecurityConfig(
             CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
         this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
@@ -47,18 +52,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-                //.csrf(AbstractHttpConfigurer::disable) // Disable CSRF protection if needed for manual testing todo: remove this line
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
                 )
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/", "/oauth2/**", "/logout").permitAll();
-                    auth.requestMatchers("/admin").hasRole(UserRole.ADMIN.name());
+                    auth.requestMatchers("/api/admin").hasRole(UserRole.ADMIN.name());
                     auth.requestMatchers("/api/auth/**", "/api/auth/login").permitAll();
-                    auth.requestMatchers("/api/auth/me").authenticated();
+                    auth.requestMatchers("/api/auth/me","/images/**").authenticated();
                     auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**").authenticated();
-                    // auth.anyRequest().permitAll(); // switch for postman testing without need for authentication todo: remove this line
                     auth.anyRequest().denyAll();
 
                 }).exceptionHandling(exceptionHandling ->
@@ -93,7 +96,7 @@ public class SecurityConfig {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:5173", "https://unseenservant.se")
+                        .allowedOrigins(frontendUrl)
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true)

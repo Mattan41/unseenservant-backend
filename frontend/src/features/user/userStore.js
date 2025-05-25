@@ -1,6 +1,6 @@
 import {defineStore} from 'pinia'
-import UserService from '../services/UserService'
-import {useNotificationStore} from "@/stores/notificationStore.js"; // Importera UserService
+import UserService from './UserService.js'
+import {useNotificationStore} from "@/stores/notificationStore.js";
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -11,12 +11,12 @@ export const useUserStore = defineStore('user', {
 
   actions: {
     // fetch the current user's information
-    async fetchCurrentUser() {
+    async fetchCurrentUserInfo() {
       this.isLoading = true
       this.error = null
 
       try {
-        this.userInfo = await UserService.fetchCurrentUser()
+        this.userInfo = await UserService.fetchCurrentUserInfo()
       } catch (error) {
         console.error('Failed to fetch current user info:', error)
         this.error = 'Could not fetch user information.'
@@ -41,20 +41,6 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    // async updateProfileField(field, value) {
-    //   this.isLoading = true
-    //   this.error = null
-    //
-    //   try {
-    //     const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value)
-    //     this.userInfo = { ...this.userInfo, ...updatedUser }
-    //   } catch (error) {
-    //     console.error('Failed to update profile field:', error)
-    //     this.error = 'Failed to update profile.'
-    //   } finally {
-    //     this.isLoading = false
-    //   }
-    // },
     async updateProfileField(field, value) {
       const notificationStore = useNotificationStore();
       this.isLoading = true;
@@ -65,6 +51,8 @@ export const useUserStore = defineStore('user', {
         this.userInfo = {...this.userInfo, ...updatedUser};
         // Notify the user about the successful update
         notificationStore.addNotification(`Successfully updated ${field}.`, 'success');
+        //  update the store with the new value todo remove this line?
+        this.userInfo[field] = value;
         return true;
       } catch (error) {
         // Handle HTTP 409 Conflict (UniqueConstraintViolation) if the field is unique and already taken
@@ -85,6 +73,7 @@ export const useUserStore = defineStore('user', {
     },
 
     // We might not need this function, since we can update the profile with the updateProfileField function
+    // todo remove this function if we don't need it
     async updateProfile(data) {
       this.isLoading = true
       this.error = null
@@ -103,8 +92,7 @@ export const useUserStore = defineStore('user', {
       this.userInfo = null;
       this.error = null;
       this.isLoading = false;
-      localStorage.removeItem('userData');
-      console.log('User info cleared and localStorage cleaned.');
+      console.log('User info cleared');
     },
   },
 
