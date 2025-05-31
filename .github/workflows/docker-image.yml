@@ -6,14 +6,38 @@ on:
       - docker-release
   pull_request: 
     branches:
-     - docker-release
+      - docker-release
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0.42
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
     permissions:
       contents: read
       packages: write
+
+    env:
+      GOOGLE_ID: ${{ secrets.GOOGLE_ID }}
+      GOOGLE_SECRET: ${{ secrets.GOOGLE_SECRET }}
+      GITHUB_ID: ${{ secrets.GITHUB_ID }}
+      GITHUB_SECRET: ${{ secrets.GITHUB_SECRET }}
+      SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+      SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+      SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
 
     steps:
       - name: Checkout
