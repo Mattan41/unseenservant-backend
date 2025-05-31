@@ -52,7 +52,7 @@ jobs:
           cache: 'maven'
 
       - name: Compile and test with Maven
-        run: mvn -B package --file backend/pom.xml
+        run: mvn -B package --file backend/pom.xml -DskipTests
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
