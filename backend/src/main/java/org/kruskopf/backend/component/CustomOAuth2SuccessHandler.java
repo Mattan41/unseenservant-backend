@@ -9,6 +9,7 @@ import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
 import org.kruskopf.backend.user.repository.UserRepository;
+import org.kruskopf.backend.whitelist.EmailWhitelistService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.retry.annotation.Retryable;
@@ -34,19 +35,17 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
     private final UserRepository userRepository;
     private final OAuth2AuthorizedClientService authorizedClientService;
+    private final EmailWhitelistService emailWhitelistService;
+
     private RestClient restClient;
+
     @Value("${FRONTEND_URL}")
     private String frontendUrl;
-    @Value("#{'${ADMIN_WHITELIST:}'.split(',')}")
-    private List<String> adminWhitelist;
 
-    @Value("#{'${USER_WHITELIST:}'.split(',')}")
-    private List<String> userWhitelist;
-
-
-    public CustomOAuth2SuccessHandler(UserRepository userRepository, OAuth2AuthorizedClientService authorizedClientService) {
+    public CustomOAuth2SuccessHandler(UserRepository userRepository, OAuth2AuthorizedClientService authorizedClientService, EmailWhitelistService emailWhitelistService) {
         this.userRepository = userRepository;
         this.authorizedClientService = authorizedClientService;
+        this.emailWhitelistService = emailWhitelistService;
     }
 
     public void setRestClient(RestClient restClient) {
@@ -81,20 +80,13 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         String name = userAttributes.name();
         String providerId = userAttributes.providerId();
 
-
-        // this is a temporary blocker to allow only whitelisted users to access the app
-        if (userWhitelist != null && !userWhitelist.isEmpty() && adminWhitelist != null && !adminWhitelist.isEmpty()) {
-            if (!userWhitelist.contains(email) && !adminWhitelist.contains(email)) {
-                response.sendRedirect(frontendUrl + "/under-construction");
-                return;
-            }
+        if (!emailWhitelistService.isEmailWhitelisted(email)) {
+            response.sendRedirect(frontendUrl + "/under-construction");
+            return;
         }
 
-
-        boolean isAdmin = adminWhitelist != null && adminWhitelist.contains(email);
-
-
-        UserRole role = isAdmin ? UserRole.ADMIN : UserRole.USER;
+        UserRole role = emailWhitelistService.getEmailRole(email)
+                .orElse(UserRole.USER);
 
         // Find or Create the user in the database
         User user = userRepository.findByProviderId(providerId)
