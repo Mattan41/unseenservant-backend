@@ -1,6 +1,6 @@
-import {defineStore} from 'pinia'
+import { defineStore } from 'pinia'
 import UserService from './UserService.js'
-import {useNotificationStore} from "@/stores/notificationStore.js";
+import { useNotificationStore } from '@/stores/notificationStore.js'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -42,33 +42,31 @@ export const useUserStore = defineStore('user', {
     },
 
     async updateProfileField(field, value) {
-      const notificationStore = useNotificationStore();
-      this.isLoading = true;
-      this.error = null;
+      const notificationStore = useNotificationStore()
+      this.isLoading = true
+      this.error = null
 
       try {
-        const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value);
-        this.userInfo = {...this.userInfo, ...updatedUser};
+        const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value)
+        this.userInfo = { ...this.userInfo, ...updatedUser }
         // Notify the user about the successful update
-        notificationStore.addNotification(`Successfully updated ${field}.`, 'success');
-        //  update the store with the new value todo remove this line?
-        this.userInfo[field] = value;
-        return true;
+        notificationStore.addNotification(`Successfully updated ${field}.`, 'success')
+        return true
       } catch (error) {
         // Handle HTTP 409 Conflict (UniqueConstraintViolation) if the field is unique and already taken
         if (error.response?.status === 409) {
-          const data = error.response.data;
-          const errorMessage = data.message || `This ${field} is already taken`;
-          this.error = errorMessage;
-          notificationStore.addNotification(errorMessage, 'error');
+          const data = error.response.data
+          const errorMessage = data.message || `This ${field} is already taken`
+          this.error = errorMessage
+          notificationStore.addNotification(errorMessage, 'error')
         } else {
-          const errorMessage = `Failed to update ${field}. Please try again.`;
-          this.error = errorMessage;
-          notificationStore.addNotification(errorMessage, 'error');
+          const errorMessage = `Failed to update ${field}. Please try again.`
+          this.error = errorMessage
+          notificationStore.addNotification(errorMessage, 'error')
         }
-        return false;
+        return false
       } finally {
-        this.isLoading = false;
+        this.isLoading = false
       }
     },
 
@@ -89,15 +87,16 @@ export const useUserStore = defineStore('user', {
     },
 
     clearUserInfo() {
-      this.userInfo = null;
-      this.error = null;
-      this.isLoading = false;
-      console.log('User info cleared');
+      this.userInfo = null
+      this.error = null
+      this.isLoading = false
+      console.log('User info cleared')
     },
   },
 
   getters: {
-    getDisplayName: (state) => state.userInfo?.displayName || state.userInfo?.username || 'Traveler',
+    getDisplayName: (state) =>
+      state.userInfo?.displayName || state.userInfo?.username || 'Traveler',
     getRole: (state) => state.userInfo?.role || 'Standard user',
     isLoadingProfile: (state) => state.isLoading,
     getUserId: (state) => state.userInfo?.id || null,

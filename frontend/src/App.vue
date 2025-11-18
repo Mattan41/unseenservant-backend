@@ -5,7 +5,6 @@ import FooterComponent from './components/FooterComponent.vue'
 import { useUserStore } from '@/features/user/userStore.js'
 import { useAuthStore } from '@/features/auth/authStore.js'
 import { onMounted, ref, watch } from 'vue'
-import router from '@/router/index.js'
 import Notification from '@/components/NotificationComponent.vue'
 
 const authStore = useAuthStore()
@@ -18,18 +17,18 @@ onMounted(async () => {
     await userStore.fetchCurrentUserInfo()
   }
   isLoading.value = false
-  if (!authStore.isLoggedIn && router.currentRoute.value.meta.requiresAuth) {
-    router.push({ name: 'login' })
-  }
 })
 
-watch(() => authStore.isLoggedIn,async (isLoggedIn) => {
+watch(
+  () => authStore.isLoggedIn,
+  async (isLoggedIn) => {
     if (isLoggedIn) {
-      await userStore.fetchCurrentUserInfo();
+      await userStore.fetchCurrentUserInfo()
     } else {
-      userStore.clearUserInfo();
+      userStore.clearUserInfo()
     }
-    });
+  },
+)
 </script>
 <template>
   <div v-if="isLoading" class="flex items-center justify-center h-screen">

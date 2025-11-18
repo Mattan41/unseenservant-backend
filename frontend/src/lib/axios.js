@@ -1,20 +1,39 @@
 // axios.js
-import Axios from 'axios';
-import { useAuthStore } from '@/features/auth/authStore';
-import { useNotificationStore } from '@/stores/notificationStore';
-import router from '@/router';
+import Axios from 'axios'
+import { useAuthStore } from '@/features/auth/authStore'
+import { useNotificationStore } from '@/stores/notificationStore'
+import router from '@/router'
+
+// Compute a safe base URL (avoid the string "undefined/")
+const rawBase = import.meta.env.VITE_API_BASE_URL ?? '';
+const normalizedBase = rawBase
+  ? (rawBase.endsWith('/') ? rawBase : `${rawBase}/`)
+  : '/';
 
 const axios = Axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL +'/' || '/',
+  baseURL: normalizedBase,
   timeout: 60000,
   withCredentials: true,
   withXSRFToken: true,
-});
+})
 
 // Request interceptor
 axios.interceptors.request.use(
   config => {
-    return config;
+    // Prepare for JWT: attach Authorization header if a token exists in the auth store
+    try {
+      const authStore = useAuthStore()
+      if (authStore?.token) {
+        // Do not overwrite if already explicitly set
+        if (!config.headers) config.headers = {}
+        if (!config.headers['Authorization']) {
+          config.headers['Authorization'] = `Bearer ${authStore.token}`
+        }
+      }
+    } catch (_) {
+      // No-op if store not available during app bootstrap
+    }
+    return config
   },
   error => Promise.reject(error)
 );
