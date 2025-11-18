@@ -66,6 +66,14 @@ public class SecurityConfig {
 
                 }).exceptionHandling(exceptionHandling ->
                         exceptionHandling
+                                .authenticationEntryPoint((request, response, authException) -> {
+                                    // Return 401 for API requests, redirect to /login for browser requests
+                                    if (request.getRequestURI().startsWith("/api/")) {
+                                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                                    } else {
+                                        response.sendRedirect("/login");
+                                    }
+                                })
                                 .accessDeniedHandler((request, response, accessDeniedException) -> {
                                     if (request.getUserPrincipal() != null) {
                                         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied");
