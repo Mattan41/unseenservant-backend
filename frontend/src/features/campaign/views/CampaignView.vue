@@ -6,8 +6,8 @@ import { useUserStore } from '@/features/user/userStore.js'
 import CampaignSettings from '@/features/campaign/components/CampaignSettings.vue'
 import { useNotificationStore } from '@/stores/notificationStore.js'
 import ImportCharacterModal from '@/features/campaign/components/ImportCharacterModal.vue'
-import CharacterImage from "@/features/character/components/CharacterImage.vue";
-import EditCampaignModal from "@/features/campaign/components/EditCampaignModal.vue";
+import CharacterImage from '@/features/character/components/CharacterImage.vue'
+import EditCampaignModal from '@/features/campaign/components/EditCampaignModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,18 +20,18 @@ const showSettings = ref(false)
 const descriptionExpanded = ref(false)
 const campaignListRef = ref(null)
 const isScrollable = ref(false)
-const showImportModal = ref(false);
+const showImportModal = ref(false)
 const showEditModal = ref(false)
 
 // Check if current user is the owner
 const isOwner = computed(() => {
-  if (!campaign.value || !userStore.userInfo) return false
-  return campaign.value.ownerId === userStore.userInfo.id
+  if (!campaign.value || !userStore.currentUser) return false
+  return campaign.value.ownerId === userStore.userId
 })
 
 // Load user data for ownership check
 const loadUserData = async () => {
-  if (!userStore.userInfo) {
+  if (!userStore.currentUser) {
     await userStore.fetchCurrentUser()
   }
 }
@@ -116,8 +116,8 @@ const charactersByParticipant = computed(() => {
 })
 
 const onCharacterImported = () => {
-   loadCampaignData(); // perhaps all that is needed?
-};
+  loadCampaignData() // perhaps all that is needed?
+}
 
 // Remove character function
 const removeCharacter = async (characterId) => {
@@ -195,7 +195,6 @@ const checkScrollable = () => {
 }
 
 onMounted(async () => {
-  await loadUserData()
   await loadCampaignData()
 
   // Check if scrollable after component is mounted and campaigns are loaded
@@ -252,20 +251,22 @@ watch(
     <p class="mt-2">Loading campaign...</p>
   </div>
 
-        <!-- Campaign loaded successfully -->
-        <div v-else-if="campaign" class="flex h-full">
-          <!-- Campaign selector sidebar - same for all screen sizes -->
-          <aside class="w-16 flex flex-col min-h-screen items-center py-4 space-y-4 relative custom-gradient">
-            <!-- Scroll hint at top if scrollable -->
-            <div
-              v-if="isScrollable"
-              class="absolute top-2 left-1/2 transform -translate-x-1/2 w-5 h-1 bg-primary-400 rounded-full animate-pulse"
-            ></div>
+  <!-- Campaign loaded successfully -->
+  <div v-else-if="campaign" class="flex h-full">
+    <!-- Campaign selector sidebar - same for all screen sizes -->
+    <aside
+      class="w-16 flex flex-col min-h-screen items-center py-4 space-y-4 relative custom-gradient"
+    >
+      <!-- Scroll hint at top if scrollable -->
+      <div
+        v-if="isScrollable"
+        class="absolute top-2 left-1/2 transform -translate-x-1/2 w-5 h-1 bg-primary-400 rounded-full animate-pulse"
+      ></div>
 
-            <div
-              ref="campaignListRef"
-              class="campaign-list flex-1 flex flex-col items-center space-y-4 max-h-[calc(10*2.5rem+2rem)]"
-            >
+      <div
+        ref="campaignListRef"
+        class="campaign-list flex-1 flex flex-col items-center space-y-4 max-h-[calc(10*2.5rem+2rem)]"
+      >
         <RouterLink
           v-for="userCampaign in campaignStore.campaigns"
           :key="userCampaign.id"
@@ -310,8 +311,6 @@ watch(
         </span>
       </RouterLink>
     </aside>
-
-
 
     <!-- Main content area -->
     <div class="flex-1 p-4 overflow-y-auto">
@@ -369,16 +368,13 @@ watch(
           </div>
         </div>
 
-
-
-
         <!-- Campaign content -->
         <section class="mb-6">
           <!-- Participants collapsible section -->
           <div class="mb-4 border rounded p-3">
             <h3 class="font-medium cursor-pointer flex items-center" @click="toggleCharactersList">
               <span v-if="isCharactersListVisible" class="transform rotate-90 inline-block mr-1"
-              >›</span
+                >›</span
               >
               <span v-else class="inline-block mr-1">›</span>
               Participants & Characters
@@ -402,7 +398,10 @@ watch(
                 >
                   <div class="pl-4 py-1 font-medium flex flex-wrap items-center">
                     <span class="mr-2 flex-shrink-0">•</span>
-                    <span class="truncate max-w-[150px] sm:max-w-none" :title="data.participant.nickname">
+                    <span
+                      class="truncate max-w-[150px] sm:max-w-none"
+                      :title="data.participant.nickname"
+                    >
                       {{ data.participant.nickname }}
                     </span>
                     <span v-if="data.participant.role" class="text-gray-600 ml-1 truncate">
@@ -427,25 +426,39 @@ watch(
                       <CharacterImage
                         :src="character.imageUrl"
                         :alt="`${character.name} portrait`"
-                        class="w-10 h-10 rounded-lg border-2 border-primary-300 shadow-sm flex-shrink-0 object-cover">
+                        class="w-10 h-10 rounded-lg border-2 border-primary-300 shadow-sm flex-shrink-0 object-cover"
+                      >
                       </CharacterImage>
-                      <span class="truncate max-w-[120px] sm:max-w-[200px] md:max-w-none" :title="character.name">
+                      <span
+                        class="truncate max-w-[120px] sm:max-w-[200px] md:max-w-none"
+                        :title="character.name"
+                      >
                         {{ character.name }}
                       </span>
-                      <span v-if="character.characterClass" class="text-sm text-gray-600 ml-1 truncate">
+                      <span
+                        v-if="character.characterClass"
+                        class="text-sm text-gray-600 ml-1 truncate"
+                      >
                         ({{ character.characterClass }}
                         <span v-if="character.level"> , Level {{ character.level }} </span>)
                       </span>
 
                       <router-link
-                        v-if="userStore.userInfo && userStore.userInfo.id === character.ownerId || campaignStore.isUserGM(campaign.id,userStore.userInfo.id)"
-                        :to="{ name: 'CharacterView', params: { id: character.id }, query: { from: 'campaign', campaignId: campaign.id } }"
+                        v-if="
+                          (userStore.currentUser && userStore.userId === character.ownerId) ||
+                          campaignStore.isUserGM(campaign.id, userStore.userId)
+                        "
+                        :to="{
+                          name: 'CharacterView',
+                          params: { id: character.id },
+                          query: { from: 'campaign', campaignId: campaign.id },
+                        }"
                         class="button button-primary"
                       >
                         Open Character Details
                       </router-link>
                       <button
-                        v-if="userStore.userInfo && userStore.userInfo.id === character.ownerId"
+                        v-if="userStore.currentUser && userStore.userId === character.ownerId"
                         @click="removeCharacter(character.id)"
                         class="button button-remove ml-auto mt-1 sm:mt-0"
                         aria-label="Remove character"
@@ -465,11 +478,10 @@ watch(
           <!-- Action Buttons -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
             <button class="button button-primary" @click="toggleSettings">Campaign Settings</button>
-            <button class="button button-primary" @click="showImportModal = true" >
+            <button class="button button-primary" @click="showImportModal = true">
               IMPORT CHARACTER
             </button>
           </div>
-
 
           <EditCampaignModal
             v-if="showEditModal && campaign"
@@ -477,7 +489,7 @@ watch(
               id: campaign.id,
               title: campaignStore.getCampaignTitle(campaign.id),
               description: campaignStore.getCampaignDescription(campaign.id),
-              imageUrl: campaignStore.getCampaignImageUrl(campaign.id)
+              imageUrl: campaignStore.getCampaignImageUrl(campaign.id),
             }"
             @close="showEditModal = false"
             @save="handleSaveCampaign"
@@ -523,7 +535,6 @@ watch(
 </template>
 
 <style scoped>
-
 .custom-gradient {
   background: linear-gradient(
     to bottom,

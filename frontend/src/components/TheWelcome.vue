@@ -1,23 +1,23 @@
 <script setup>
-import {computed} from 'vue';
-import {useUserStore} from "@/features/user/userStore.js";
-import HelloComponent from './HelloComponent.vue';
+import { useUserStore } from '@/features/user/userStore.js'
+import HelloComponent from './HelloComponent.vue'
 
-const userStore = useUserStore();
-const username = computed(() => userStore.getDisplayName);
+const userStore = useUserStore()
 </script>
 
 <template>
-
-    <section class="text-center">
-      <h1>Unseen Servant</h1>
-      <p class="text-lg">A service that does not get in your way</p>
-      <div class="logo-container">
-        <img src="@/assets/logo.svg" alt="Unseen Servant Logo" class="logo max-w-[150px] h-auto my-4 mx-auto block" />
-      </div>
-      <HelloComponent v-if="username" :msg="username"/>
-    </section>
-
+  <section class="text-center">
+    <h1>Unseen Servant</h1>
+    <p class="text-lg">A service that does not get in your way</p>
+    <div class="logo-container">
+      <img
+        src="@/assets/logo.svg"
+        alt="Unseen Servant Logo"
+        class="logo max-w-[150px] h-auto my-4 mx-auto block"
+      />
+    </div>
+    <HelloComponent :msg="userStore.displayName" />
+  </section>
 </template>
 
 <style scoped>
@@ -48,7 +48,8 @@ const username = computed(() => userStore.getDisplayName);
 }
 
 @keyframes hover {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -58,7 +59,9 @@ const username = computed(() => userStore.getDisplayName);
 
 .logo {
   position: relative;
-  animation: float 15s infinite ease-in-out, hover 3s infinite ease-in-out;
+  animation:
+    float 15s infinite ease-in-out,
+    hover 3s infinite ease-in-out;
   filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.1));
   transform-origin: center center;
   transition: all 0.3s ease;

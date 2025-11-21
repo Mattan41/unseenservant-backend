@@ -1,47 +1,49 @@
 <script setup>
 import { RouterView } from 'vue-router'
+import { onMounted, ref, watch } from 'vue'
 import HeaderComponent from './components/HeaderComponent.vue'
 import FooterComponent from './components/FooterComponent.vue'
-import { useUserStore } from '@/features/user/userStore.js'
+import NotificationComponent from '@/components/NotificationComponent.vue'
 import { useAuthStore } from '@/features/auth/authStore.js'
-import { onMounted, ref, watch } from 'vue'
-import Notification from '@/components/NotificationComponent.vue'
+import { useUserStore } from '@/features/user/userStore.js'
 
 const authStore = useAuthStore()
 const userStore = useUserStore()
-const isLoading = ref(true)
+const isInitializing = ref(true)
 
 onMounted(async () => {
-  await authStore.checkAuth()
-  if (authStore.isLoggedIn) {
-    await userStore.fetchCurrentUserInfo()
+  await authStore.initializeAuth()
+
+  if (authStore.isAuthenticated) {
+    await userStore.fetchCurrentUser()
   }
-  isLoading.value = false
+
+  isInitializing.value = false
 })
 
 watch(
-  () => authStore.isLoggedIn,
-  async (isLoggedIn) => {
-    if (isLoggedIn) {
-      await userStore.fetchCurrentUserInfo()
+  () => authStore.isAuthenticated,
+  async (isAuth) => {
+    if (isAuth) {
+      await userStore.fetchCurrentUser()
     } else {
-      userStore.clearUserInfo()
+      userStore.clearUser()
     }
   },
 )
 </script>
+
 <template>
-  <div v-if="isLoading" class="flex items-center justify-center h-screen">
+  <div v-if="isInitializing" class="flex items-center justify-center h-screen">
     <div class="loader">Loading...</div>
   </div>
-  <div v-else>
-    <div class="flex flex-col min-h-screen overflow-x-hidden">
-      <Notification />
-      <HeaderComponent />
-      <main class="flex-grow bg-gradient-to-b from-primary-100 via-primary-300 to-primary-100">
-        <RouterView />
-      </main>
-      <FooterComponent />
-    </div>
+
+  <div v-else class="flex flex-col min-h-screen overflow-x-hidden">
+    <NotificationComponent />
+    <HeaderComponent />
+    <main class="flex-grow bg-gradient-to-b from-primary-100 via-primary-300 to-primary-100">
+      <RouterView />
+    </main>
+    <FooterComponent />
   </div>
 </template>

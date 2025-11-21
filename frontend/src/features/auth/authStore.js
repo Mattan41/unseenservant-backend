@@ -1,110 +1,104 @@
-// features/auth/authStore.js
 import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 import AuthService from './AuthService.js'
-import { useUserStore } from '@/features/user/userStore.js'
 
-export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    user: null,
-    isLoggedIn: false,
-    isLoggingOut: false,
-    isAuthenticating: false,
-    authInitialized: false,
-    error: null,
-    // Prepare for JWT-based auth; token is optional for current cookie-based flow
-    token: null,
-  }),
+export const useAuthStore = defineStore('auth', () => {
+  // State
+  const token = ref(null)
+  const authStatus = ref('idle')
+  const error = ref(null)
+  const isInitializing = ref(false)
 
-  actions: {
-    clearUser() {
-      this.user = null
-      this.isLoggedIn = false
-      this.isLoggingOut = false
-      this.error = null
-      this.token = null
-    },
+  // Computed
+  const isAuthenticated = computed(() => authStatus.value === 'authenticated')
+  const isLoading = computed(() => authStatus.value === 'loading')
+  const isInitialized = computed(() => authStatus.value !== 'idle')
 
-    async fetchCurrentUser() {
-      try {
-        const userData = await AuthService.getCurrentUser()
-        if (userData) {
-          this.user = userData
-          this.isLoggedIn = true
-          return userData
-        } else {
-          this.clearUser()
-          return null
-        }
-      } catch (error) {
-        console.error('Error fetching user in store:', error)
-        this.error = 'Failed to fetch user data'
-        this.clearUser()
-        return null
-      }
-    },
+  // Actions
+  async function initializeAuth() {
+    // Prevent multiple simultaneous initializations
+    if (isInitializing.value) {
+      console.log('Already initializing, skipping...')
+      return
+    }
 
-    // This matches what  App.vue is calling
-    async checkAuth() {
-      this.isAuthenticating = true
-      this.authInitialized = false
+    if (authStatus.value !== 'idle') {
+      console.log('Already initialized:', authStatus.value)
+      return
+    }
 
-      try {
-        const userData = await this.fetchCurrentUser()
-        this.isLoggedIn = !!userData
-      } catch (error) {
-        console.error('Auth check failed:', error)
-        this.isLoggedIn = false
-      } finally {
-        this.isAuthenticating = false
-        this.authInitialized = true
-      }
-    },
+    isInitializing.value = true
+    authStatus.value = 'loading'
 
-    async logout() {
-      if (this.isLoggingOut) return
-      this.isLoggingOut = true
-      try {
-        await AuthService.logoutAPI()
-      } catch (error) {
-        console.error('Logout failed:', error)
-      } finally {
-        this.clearUser()
+    try {
+      const userData = await AuthService.getCurrentUser()
 
-        const userStore = useUserStore()
-        userStore.clearUserInfo()
-
-        localStorage.removeItem('auth')
-        localStorage.removeItem('userData')
-        sessionStorage.removeItem('userData')
-        localStorage.removeItem('token')
-
-        window.dispatchEvent(new Event('storage'))
-      }
-    },
-
-    async loginWithGoogle() {
-      return AuthService.loginWithGoogle()
-    },
-
-    async loginWithGithub() {
-      return AuthService.loginWithGithub()
-    },
-
-    // Set token for future JWT-based flow (e.g., after exchange)
-    setToken(token) {
-      this.token = token
-      if (token) {
-        localStorage.setItem('token', token)
+      if (userData) {
+        authStatus.value = 'authenticated'
       } else {
-        localStorage.removeItem('token')
+        authStatus.value = 'unauthenticated'
       }
-    },
-  },
+    } catch (err) {
+      console.error('Auth initialization failed:', err)
+      authStatus.value = 'unauthenticated'
+      error.value = err.message
+    } finally {
+      isInitializing.value = false
+    }
+  }
 
-  persist: {
-    key: 'auth',
-    storage: localStorage,
-    // Persist token to allow attaching Authorization header on app reloads
-    paths: ['user', 'isLoggedIn', 'token'],
-  },
+  async function loginWithGoogle() {
+    error.value = null
+    return AuthService.loginWithGoogle()
+  }
+
+  async function loginWithGithub() {
+    error.value = null
+    return AuthService.loginWithGithub()
+  }
+
+  async function logout() {
+    authStatus.value = 'loading'
+
+    try {
+      await AuthService.logoutAPI()
+    } catch (err) {
+      console.error('Logout API call failed:', err)
+    } finally {
+      clearAuth()
+    }
+  }
+
+  function setToken(newToken) {
+    token.value = newToken
+    if (newToken) {
+      localStorage.setItem('auth_token', newToken)
+    } else {
+      localStorage.removeItem('auth_token')
+    }
+  }
+
+  function clearAuth() {
+    setToken(null)
+    authStatus.value = 'unauthenticated'
+    error.value = null
+  }
+
+  return {
+    // State
+    token,
+    authStatus,
+    error,
+    // Computed
+    isAuthenticated,
+    isLoading,
+    isInitialized,
+    // Actions
+    initializeAuth,
+    loginWithGoogle,
+    loginWithGithub,
+    logout,
+    setToken,
+    clearAuth,
+  }
 })
