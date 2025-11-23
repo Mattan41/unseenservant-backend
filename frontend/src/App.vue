@@ -1,6 +1,6 @@
 <script setup>
 import { RouterView } from 'vue-router'
-import { onMounted, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import HeaderComponent from './components/HeaderComponent.vue'
 import FooterComponent from './components/FooterComponent.vue'
 import NotificationComponent from '@/components/NotificationComponent.vue'
@@ -9,17 +9,7 @@ import { useUserStore } from '@/features/user/userStore.js'
 
 const authStore = useAuthStore()
 const userStore = useUserStore()
-const isInitializing = ref(true)
-
-onMounted(async () => {
-  await authStore.initializeAuth()
-
-  if (authStore.isAuthenticated) {
-    await userStore.fetchCurrentUser()
-  }
-
-  isInitializing.value = false
-})
+const isReady = computed(() => authStore.isAuthChecked)
 
 watch(
   () => authStore.isAuthenticated,
@@ -34,7 +24,7 @@ watch(
 </script>
 
 <template>
-  <div v-if="isInitializing" class="flex items-center justify-center h-screen">
+  <div v-if="!isReady" class="flex items-center justify-center h-screen">
     <div class="loader">Loading...</div>
   </div>
 

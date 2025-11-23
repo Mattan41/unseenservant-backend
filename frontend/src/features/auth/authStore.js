@@ -8,22 +8,20 @@ export const useAuthStore = defineStore('auth', () => {
   const authStatus = ref('idle')
   const error = ref(null)
   const isInitializing = ref(false)
+  const isAuthChecked = ref(false)
 
   // Computed
   const isAuthenticated = computed(() => authStatus.value === 'authenticated')
   const isLoading = computed(() => authStatus.value === 'loading')
-  const isInitialized = computed(() => authStatus.value !== 'idle')
 
   // Actions
   async function initializeAuth() {
-    // Prevent multiple simultaneous initializations
-    if (isInitializing.value) {
-      console.log('Already initializing, skipping...')
+    if (isAuthChecked.value) {
       return
     }
 
-    if (authStatus.value !== 'idle') {
-      console.log('Already initialized:', authStatus.value)
+    if (isInitializing.value) {
+      console.warn('Already initializing, skipping...')
       return
     }
 
@@ -32,7 +30,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const userData = await AuthService.getCurrentUser()
-
       if (userData) {
         authStatus.value = 'authenticated'
       } else {
@@ -43,6 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
       authStatus.value = 'unauthenticated'
       error.value = err.message
     } finally {
+      isAuthChecked.value = true
       isInitializing.value = false
     }
   }
@@ -89,10 +87,10 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     authStatus,
     error,
+    isAuthChecked,
     // Computed
     isAuthenticated,
     isLoading,
-    isInitialized,
     // Actions
     initializeAuth,
     loginWithGoogle,

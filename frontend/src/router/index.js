@@ -1,11 +1,7 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import {createRouter, createWebHistory} from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginComponent from '@/components/LoginComponent.vue'
-import CampaignView from '@/features/campaign/views/CampaignView.vue'
-import { useAuthStore } from '@/features/auth/authStore.js'
-import CharacterView from '@/features/character/views/CharacterView.vue'
-import CreateCharacter from '@/features/character/components/CreateCharacter.vue'
-import EditCharacter from '@/features/character/components/EditCharacter.vue'
+import {useAuthStore} from '@/features/auth/authStore.js'
 
 /**
  * @typedef {Object} RouteMeta
@@ -37,52 +33,52 @@ const router = createRouter({
     {
       path: '/oauth-redirect',
       name: 'oauth-redirect',
-      component: () => import('../components/OAuthRedirect.vue')
+      component: () => import('../components/OAuthRedirect.vue'),
     },
     {
       path: '/user-profile',
       name: 'user-profile',
       component: () => import('../features/user/UserProfileView.vue'),
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/campaign/:id',
       name: 'CampaignView',
-      component: CampaignView,
+      component: () => import('@/features/campaign/views/CampaignView.vue'),
       props: true,
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/campaigns',
       name: 'CampaignsView',
       component: () => import('../features/campaign/views/CampaignsView.vue'),
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/characters/create',
       name: 'CreateCharacter',
-      component: CreateCharacter,
-      meta: {requiresAuth: true}
+      component: () => import('@/features/character/components/CreateCharacter.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/characters/:id/edit',
       name: 'EditCharacter',
-      component: EditCharacter,
+      component: () => import('@/features/character/components/EditCharacter.vue'),
       props: true,
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/characters/:id',
       name: 'CharacterView',
-      component: CharacterView,
+      component: () => import('@/features/character/views/CharacterView.vue'),
       props: true,
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/characters',
       name: 'CharactersView',
       component: () => import('@/features/character/views/CharactersView.vue'),
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/under-construction',
@@ -100,8 +96,15 @@ const router = createRouter({
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  if (!authStore.isInitialized) {
-    await authStore.initializeAuth()
+  if (!authStore.isAuthChecked) {
+    const requiresBlockingWait = to.meta?.requiresAuth
+    if (requiresBlockingWait) {
+      await authStore.initializeAuth()
+    } else {
+      authStore.initializeAuth().catch((e) => {
+        console.error('Background authentication initialization failed.', e)
+      })
+    }
   }
 
   if (to.meta?.requiresAuth && !authStore.isAuthenticated) {

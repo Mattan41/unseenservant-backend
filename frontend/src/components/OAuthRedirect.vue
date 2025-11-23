@@ -13,22 +13,26 @@ const isLoading = ref(true)
 
 onMounted(async () => {
   try {
-    console.log('OAuthRedirect: Starting')
-    const routeToken = router.currentRoute.value.query.token
-    if (routeToken) {
-      authStore.setToken(routeToken)
-      authStore.authStatus = 'authenticated'
-      await userStore.fetchCurrentUser()
-    } else {
-      authStore.authStatus = 'idle'
-      await authStore.initializeAuth()
-    }
+    // TODO: JWT IMPLEMENTATION. When switching backend to JWT, uncomment this block to capture the token from the URL query parameter and store it in Pinia/localStorage.
+    // const routeToken = router.currentRoute.value.query.token
+    // if (routeToken) {
+    //   authStore.setToken(routeToken)
+    // }
+    // --- END JWT IMPLEMENTATION ---
+
+    // --- Session Cookie Logic ---
+    await authStore.initializeAuth()
+
     if (authStore.isAuthenticated) {
+      // If authentication was successful based on the new cookie
+      await userStore.fetchCurrentUser()
       notificationStore.addNotification('Successfully logged in!', 'success')
+      await router.push({ name: 'home' })
     } else {
+      // If initializeAuth failed (e.g., server error or cookie rejection)
       notificationStore.addNotification('Authentication failed. Please try again.', 'error')
+      await router.push({ name: 'login' })
     }
-    await router.push({ name: authStore.isAuthenticated ? 'home' : 'login' })
   } catch (error) {
     console.error('OAuthRedirect: Error during authentication', error)
     notificationStore.addNotification('An error occurred during authentication.', 'error')
