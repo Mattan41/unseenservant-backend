@@ -13,9 +13,7 @@ const hasLoggedOut = ref(false)
 
 onMounted(async () => {
   if (hasLoggedOut.value) return
-
   hasLoggedOut.value = true
-
   try {
     await authStore.logout()
     userStore.clearUser()

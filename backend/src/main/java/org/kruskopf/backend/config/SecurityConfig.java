@@ -2,6 +2,7 @@ package org.kruskopf.backend.config;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.component.CustomOAuth2SuccessHandler;
+import org.kruskopf.backend.component.RestLogoutSuccessHandler;
 import org.kruskopf.backend.user.entity.UserRole;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,14 +35,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class SecurityConfig {
 
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
+    private final RestLogoutSuccessHandler restLogoutSuccessHandler;
+
 
     @Value("${FRONTEND_URL}")
     private String frontendUrl;
 
 
-    public SecurityConfig(
-            CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
+    public SecurityConfig(CustomOAuth2SuccessHandler customOAuth2SuccessHandler,
+                          RestLogoutSuccessHandler restLogoutSuccessHandler) {
         this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
+        this.restLogoutSuccessHandler = restLogoutSuccessHandler;
     }
 
     @Bean
@@ -60,19 +64,14 @@ public class SecurityConfig {
                     auth.requestMatchers("/", "/oauth2/**", "/logout").permitAll();
                     auth.requestMatchers("/api/admin").hasRole(UserRole.ADMIN.name());
                     auth.requestMatchers("/api/auth/**", "/api/auth/login").permitAll();
-                    auth.requestMatchers("/api/auth/me","/images/**").authenticated();
+                    auth.requestMatchers("/api/auth/me", "/images/**").authenticated();
                     auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**").authenticated();
                     auth.anyRequest().denyAll();
 
                 }).exceptionHandling(exceptionHandling ->
                         exceptionHandling
                                 .authenticationEntryPoint((request, response, authException) -> {
-                                    // Return 401 for API requests, redirect to /login for browser requests
-                                    if (request.getRequestURI().startsWith("/api/")) {
-                                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
-                                    } else {
-                                        response.sendRedirect("/login");
-                                    }
+                                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
                                 })
                                 .accessDeniedHandler((request, response, accessDeniedException) -> {
                                     if (request.getUserPrincipal() != null) {
@@ -86,8 +85,7 @@ public class SecurityConfig {
                         .maximumSessions(1)
                         .expiredUrl("/login"))
                 .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/")
+                        .logoutSuccessHandler(restLogoutSuccessHandler)
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID"))
                 .formLogin(AbstractHttpConfigurer::disable)

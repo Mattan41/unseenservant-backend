@@ -61,7 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await AuthService.logoutAPI()
     } catch (err) {
-      console.error('Logout API call failed:', err)
+      console.warn('Logout API call failed, but proceeding with local clear. : ', err)
     } finally {
       clearAuth()
     }
