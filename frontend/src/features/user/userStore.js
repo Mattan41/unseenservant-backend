@@ -9,7 +9,7 @@ export const useUserStore = defineStore('user', () => {
   const isLoading = ref(false)
   const error = ref(null)
 
-  // Computed/Getters
+  // Computed
   const displayName = computed(
     () => currentUser.value?.displayName || currentUser.value?.username || 'Traveler',
   )
@@ -69,7 +69,6 @@ export const useUserStore = defineStore('user', () => {
     try {
       const updatedUser = await UserService.updateProfileField(currentUser.value.id, field, value)
 
-      // Uppdatera endast ändrade fält
       currentUser.value = { ...currentUser.value, ...updatedUser }
 
       notificationStore.addNotification(`Successfully updated ${field}.`, 'success')

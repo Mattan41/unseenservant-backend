@@ -1,12 +1,15 @@
 <script setup>
 import {ref} from 'vue'
 import {useUserStore} from './userStore.js'
+import {storeToRefs} from 'pinia'
 import {useNotificationStore} from '@/stores/notificationStore.js'
 import CampaignList from '@/features/campaign/components/CampaignList.vue'
 import CharacterList from '@/features/character/components/CharacterList.vue'
 
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
+
+const { displayName, currentUser, isLoading, userRole } = storeToRefs(userStore)
 
 const editForm = ref({
   displayName: '',
@@ -15,7 +18,7 @@ const editForm = ref({
 })
 
 const startEditing = () => {
-  editForm.value.displayName = userStore.displayName
+  editForm.value.displayName = displayName.value
   editForm.value.isEditing = true
 }
 
@@ -50,7 +53,7 @@ const saveDisplayName = async () => {
 
       <div class="p-6">
         <!-- Loading state -->
-        <div v-if="userStore.isLoading" class="text-center p-8">
+        <div v-if="isLoading" class="text-center p-8">
           <div
             class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"
           ></div>
@@ -58,7 +61,7 @@ const saveDisplayName = async () => {
         </div>
 
         <!-- Profile content -->
-        <div v-else-if="userStore.currentUser" class="space-y-6">
+        <div v-else-if="currentUser" class="space-y-6">
           <!-- Basic info section -->
           <section class="bg-gray-50 p-4 rounded-lg">
             <h2 class="text-xl font-semibold mb-4 text-primary-700">Basic Information</h2>
@@ -67,10 +70,10 @@ const saveDisplayName = async () => {
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
 
-                <!-- View mode - direkt från store, uppdateras automatiskt! -->
+                <!-- View mode - uppdateras automatiskt! -->
                 <div v-if="!editForm.isEditing" class="flex justify-between items-center">
                   <div class="bg-gray-100 p-3 rounded flex-grow">
-                    {{ userStore.displayName }}
+                    {{ displayName }}
                   </div>
                   <button @click="startEditing" class="button button-primary ml-2">Edit</button>
                 </div>
@@ -109,7 +112,7 @@ const saveDisplayName = async () => {
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <div class="bg-gray-100 p-3 rounded">
-                  {{ userStore.currentUser.email || 'No email provided' }}
+                  {{ currentUser.email || 'No email provided' }}
                 </div>
               </div>
             </div>
@@ -121,7 +124,7 @@ const saveDisplayName = async () => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
-                <div class="bg-gray-100 p-3 rounded">{{ userStore.userRole }}</div>
+                <div class="bg-gray-100 p-3 rounded">{{ userRole }}</div>
               </div>
             </div>
           </section>

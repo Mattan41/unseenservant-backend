@@ -1,8 +1,10 @@
 <script setup>
 import { useUserStore } from '@/features/user/userStore.js'
 import HelloComponent from './HelloComponent.vue'
+import { storeToRefs } from 'pinia'
 
 const userStore = useUserStore()
+const { displayName } = storeToRefs(userStore)
 </script>
 
 <template>
@@ -16,7 +18,7 @@ const userStore = useUserStore()
         class="logo max-w-[150px] h-auto my-4 mx-auto block"
       />
     </div>
-    <HelloComponent :msg="userStore.displayName" />
+    <HelloComponent :msg="displayName" />
   </section>
 </template>
 
