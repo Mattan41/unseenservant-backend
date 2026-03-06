@@ -1,9 +1,9 @@
 <script setup>
-import {computed, onMounted, ref} from 'vue'
-import {useCharacterStore} from '@/features/character/characterStore.js'
-import {useUserStore} from "@/features/user/userStore.js"
-import {storeToRefs} from "pinia"
-import {useRoute, useRouter} from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useCharacterStore } from '@/features/character/characterStore.js'
+import { useUserStore } from '@/features/user/userStore.js'
+import { storeToRefs } from 'pinia'
+import { useRoute, useRouter } from 'vue-router'
 import CharacterImage from '@/features/character/components/CharacterImage.vue'
 
 const characterStore = useCharacterStore()
@@ -16,8 +16,8 @@ const characterId = computed(() => route.params.id)
 const from = route.query.from || 'characterList'
 const campaignId = route.query.campaignId || null
 
-const {getUserId} = storeToRefs(userStore)
-const {currentCharacter} = storeToRefs(characterStore)
+const { userId } = storeToRefs(userStore)
+const { currentCharacter } = storeToRefs(characterStore)
 
 onMounted(async () => {
   try {
@@ -27,17 +27,18 @@ onMounted(async () => {
   }
 })
 
-const isOwner = computed(() =>
-  !!currentCharacter.value &&
-  !!getUserId.value &&
-  String(currentCharacter.value.ownerId) === String(getUserId.value)
+const isOwner = computed(
+  () =>
+    !!currentCharacter.value &&
+    !!userId.value &&
+    String(currentCharacter.value.ownerId) === String(userId.value),
 )
 
 const deleteCharacter = async () => {
   if (confirm('Are you sure you want to delete this character? This action cannot be undone.')) {
     const success = await characterStore.deleteCharacter(characterId.value)
     if (success) {
-      await router.push({name: 'CharactersView'})
+      await router.push({ name: 'CharactersView' })
     }
   }
 }
@@ -67,17 +68,16 @@ const deleteCharacter = async () => {
         <!-- Top bar for actions (visible only if allowed) -->
         <div v-if="isOwner" class="flex justify-end p-2 space-x-2">
           <router-link
-            :to="{name: 'EditCharacter',
-            params: { id: currentCharacter.id },
-            query: from === 'campaign' && campaignId ? { from, campaignId } : {}
-          }"
+            :to="{
+              name: 'EditCharacter',
+              params: { id: currentCharacter.id },
+              query: from === 'campaign' && campaignId ? { from, campaignId } : {},
+            }"
             class="button button-secondary"
           >
             Edit
           </router-link>
-          <button @click="deleteCharacter" class="button button-remove">
-            Delete
-          </button>
+          <button @click="deleteCharacter" class="button button-remove">Delete</button>
         </div>
 
         <!-- Grid for main content -->
@@ -125,9 +125,10 @@ const deleteCharacter = async () => {
         <!-- Additional Character Information -->
         <div class="p-6 border-t border-gray-200">
           <h2 class="text-xl font-semibold mb-4 text-primary-700">Additional Information</h2>
-          <p><strong>Created:</strong> {{
-              new Date(currentCharacter.createdAt).toLocaleDateString()
-            }}</p>
+          <p>
+            <strong>Created:</strong>
+            {{ new Date(currentCharacter.createdAt).toLocaleDateString() }}
+          </p>
           <p>
             <strong>Last Updated:</strong>
             {{ new Date(currentCharacter.updatedAt).toLocaleDateString() }}

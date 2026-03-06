@@ -1,95 +1,87 @@
-// features/auth/authStore.js
-import {defineStore} from 'pinia';
-import AuthService from './AuthService.js';
-import {useUserStore} from "@/features/user/userStore.js";
+import AuthService from '@/features/auth/AuthService.js'
+import { computed, ref } from 'vue'
+import { defineStore } from 'pinia'
 
-export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    user: null,
-    isLoggedIn: false,
-    isLoggingOut: false,
-    isAuthenticating: false,
-    authInitialized: false,
-    error: null
-  }),
+export const useAuthStore = defineStore('auth', () => {
+  const token = ref(localStorage.getItem('auth_token'))
+  const authStatus = ref(token.value ? 'authenticated' : 'idle')
+  const isInitializing = ref(false)
+  const isAuthChecked = ref(false)
 
-  actions: {
-    clearUser() {
-      this.user = null;
-      this.isLoggedIn = false;
-      this.isLoggingOut = false;
-      this.error = null;
-    },
+  const isAuthenticated = computed(() => authStatus.value === 'authenticated')
 
-    async fetchCurrentUser() {
-      try {
-        const userData = await AuthService.getCurrentUser();
-        if (userData) {
-          this.user = userData;
-          this.isLoggedIn = true;
-          return userData;
-        } else {
-          this.clearUser();
-          return null;
-        }
-      } catch (error) {
-        console.error('Error fetching user in store:', error);
-        this.error = 'Failed to fetch user data';
-        this.clearUser();
-        return null;
-      }
-    },
-
-    // This matches what  App.vue is calling
-    async checkAuth() {
-      this.isAuthenticating = true;
-      this.authInitialized = false;
-
-      try {
-        const userData = await this.fetchCurrentUser();
-        this.isLoggedIn = !!userData;
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        this.isLoggedIn = false;
-      } finally {
-        this.isAuthenticating = false;
-        this.authInitialized = true;
-      }
-    },
-
-    async logout() {
-       if (this.isLoggingOut) return;
-      this.isLoggingOut = true;
-      try {
-        await AuthService.logoutAPI();
-      } catch (error) {
-        console.error('Logout failed:', error);
-      } finally {
-        this.clearUser();
-
-        const userStore = useUserStore();
-        userStore.clearUserInfo();
-
-        localStorage.removeItem('auth');
-        localStorage.removeItem('userData');
-        sessionStorage.removeItem('userData');
-
-        window.dispatchEvent(new Event('storage'));
-      }
-    },
-
-    async loginWithGoogle() {
-      return AuthService.loginWithGoogle();
-    },
-
-    async loginWithGithub() {
-      return AuthService.loginWithGithub();
+  function setToken(newToken) {
+    token.value = newToken
+    if (newToken) {
+      localStorage.setItem('auth_token', newToken)
+      authStatus.value = 'authenticated'
+    } else {
+      localStorage.removeItem('auth_token')
+      authStatus.value = 'unauthenticated'
     }
-  },
-
-  persist: {
-    key: 'auth',
-    storage: localStorage,
-    paths: ['user', 'isLoggedIn']
   }
-});
+
+  async function initializeAuth() {
+    console.log('Starting auth check...') // LOGGA HÄR
+    if (isAuthChecked.value || isInitializing.value) return
+
+    if (!token.value) {
+      console.log('No token found, skipping...') // LOGGA HÄR
+      authStatus.value = 'unauthenticated'
+      isAuthChecked.value = true
+      return
+    }
+
+    isInitializing.value = true
+    try {
+      console.log('Fetching user from backend...')
+      const userData = await AuthService.getCurrentUser()
+      authStatus.value = userData ? 'authenticated' : 'unauthenticated'
+    } catch (err) {
+      console.error('Auth verification failed:', err)
+      clearAuth()
+    } finally {
+      isAuthChecked.value = true
+      isInitializing.value = false
+      console.log('Auth check complete. isReady should now be true.')
+    }
+  }
+
+  function handleOAuthRedirect(tokenFromUrl) {
+    setToken(tokenFromUrl)
+  }
+
+  function clearAuth() {
+    setToken(null)
+    localStorage.removeItem('userData')
+    isAuthChecked.value = true
+  }
+
+  async function logout() {
+    clearAuth()
+  }
+
+  async function loginWithGoogle() {
+    return AuthService.loginWithGoogle()
+  }
+
+  async function loginWithGithub() {
+    return AuthService.loginWithGithub()
+  }
+  return {
+    // State & Computed
+    token,
+    authStatus,
+    isAuthChecked,
+    isAuthenticated,
+
+    // Actions
+    initializeAuth,
+    loginWithGoogle,
+    loginWithGithub,
+    handleOAuthRedirect,
+    logout,
+    clearAuth,
+    setToken,
+  }
+})

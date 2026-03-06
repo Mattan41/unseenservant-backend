@@ -1,12 +1,12 @@
 import {createRouter, createWebHistory} from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import LoginComponent from "@/components/LoginComponent.vue";
-import CampaignView from "@/features/campaign/views/CampaignView.vue";
-import {useAuthStore} from "@/features/auth/authStore.js";
-import CharacterView from "@/features/character/views/CharacterView.vue";
-import CreateCharacter from "@/features/character/components/CreateCharacter.vue";
-import EditCharacter from "@/features/character/components/EditCharacter.vue";
+import LoginComponent from '@/components/LoginComponent.vue'
+import {useAuthStore} from '@/features/auth/authStore.js'
 
+/**
+ * @typedef {Object} RouteMeta
+ * @property {boolean} [requiresAuth] - Whether the route requires authentication
+ */
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -33,58 +33,57 @@ const router = createRouter({
     {
       path: '/oauth-redirect',
       name: 'oauth-redirect',
-      component: () => import('../components/OAuthRedirect.vue')
+      component: () => import('../components/OAuthRedirect.vue'),
     },
     {
       path: '/user-profile',
       name: 'user-profile',
       component: () => import('../features/user/UserProfileView.vue'),
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/campaign/:id',
       name: 'CampaignView',
-      component: CampaignView,
+      component: () => import('@/features/campaign/views/CampaignView.vue'),
       props: true,
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/campaigns',
       name: 'CampaignsView',
       component: () => import('../features/campaign/views/CampaignsView.vue'),
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/characters/create',
       name: 'CreateCharacter',
-      component: CreateCharacter,
-      meta: {requiresAuth: true}
+      component: () => import('@/features/character/components/CreateCharacter.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/characters/:id/edit',
       name: 'EditCharacter',
-      component: EditCharacter,
+      component: () => import('@/features/character/components/EditCharacter.vue'),
       props: true,
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/characters/:id',
       name: 'CharacterView',
-      component: CharacterView,
+      component: () => import('@/features/character/views/CharacterView.vue'),
       props: true,
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/characters',
       name: 'CharactersView',
       component: () => import('@/features/character/views/CharactersView.vue'),
-      meta: {requiresAuth: true}
+      meta: { requiresAuth: true },
     },
     {
       path: '/under-construction',
       name: 'underConstructionView',
       component: () => import('@/views/UnderConstructionView.vue'),
-      meta: {requiresAuth: false}
     },
     {
       path: '/:catchAll(.*)*',
@@ -93,33 +92,23 @@ const router = createRouter({
     },
   ],
 })
-router.beforeEach(async (to, from, next) => {
-  const authStore = useAuthStore();
 
-  try {
-    // Initialize auth store if not already initialized
-    if (!authStore.authInitialized) {
-      console.log('Router guard: Auth not initialized, initializing...');
-      await authStore.checkAuth();
-    }
+router.beforeEach(async (to, _from, next) => {
+  const authStore = useAuthStore()
 
-    // Route navigation logic
-    if (to.meta.requiresAuth && !authStore.isLoggedIn) {
-      console.log('Redirecting to login - auth required but not logged in');
-      next({ name: 'login' });
-    } else if (to.name === 'login' && authStore.isLoggedIn) {
-      console.log('Already logged in, redirecting to homeView');
-      next({ name: 'home' });
-    } else {
-      console.log('Continuing to requested route:', to.path);
-      next();
-    }
-  } catch (error) {
-    console.error('Error in router guard:', error);
-    // Safely continue to requested route even if auth check fails
-    next();
+  if (!authStore.isAuthChecked) {
+    await authStore.initializeAuth()
   }
-});
 
+  const isAuthenticated = authStore.isAuthenticated
+
+  if (to.meta?.requiresAuth && !isAuthenticated) {
+    next({ name: 'login' })
+  } else if (to.name === 'login' && isAuthenticated) {
+    next({ name: 'home' })
+  } else {
+    next()
+  }
+})
 
 export default router

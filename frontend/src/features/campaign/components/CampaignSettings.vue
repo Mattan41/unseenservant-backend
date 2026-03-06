@@ -1,252 +1,245 @@
 <script setup>
-import {computed, ref, watch} from 'vue';
-import {useCampaignStore} from '@/features/campaign/campaignStore.js';
-import {useUserStore} from "@/features/user/userStore.js";
-import router from "@/router/index.js";
-import {useNotificationStore} from "@/stores/notificationStore.js";
+import { computed, ref, watch } from 'vue'
+import { useCampaignStore } from '@/features/campaign/campaignStore.js'
+import { useUserStore } from '@/features/user/userStore.js'
+import router from '@/router/index.js'
+import { useNotificationStore } from '@/stores/notificationStore.js'
 
 const props = defineProps({
   campaignId: {
     type: String,
-    required: true
-  }
-});
+    required: true,
+  },
+})
 
-const emit = defineEmits(['participants-updated'], ['close-modal']);
-const notificationStore = useNotificationStore();
+const emit = defineEmits(['participants-updated'], ['close-modal'])
+const notificationStore = useNotificationStore()
 
-const campaignStore = useCampaignStore();
-const userStore = useUserStore();
+const campaignStore = useCampaignStore()
+const userStore = useUserStore()
 
-const campaign = ref(null);
-const nickname = ref('');
-const isEditingNickname = ref(false);
-const isSaving = ref(false);
-const editingParticipantId = ref(null);
-const updatingRoles = ref(new Set());
+const campaign = ref(null)
+const nickname = ref('')
+const isEditingNickname = ref(false)
+const isSaving = ref(false)
+const editingParticipantId = ref(null)
+const updatingRoles = ref(new Set())
 
 // Search functionality
-const searchTerm = ref('');
-const searchResults = ref([]);
-const isSearching = ref(false);
+const searchTerm = ref('')
+const searchResults = ref([])
+const isSearching = ref(false)
 
 // Load campaign data before rendering the component
 const loadCampaignData = async () => {
   try {
-    campaign.value = await campaignStore.fetchCampaign(props.campaignId);
-    nickname.value = campaign.value.nickname;
+    campaign.value = await campaignStore.fetchCampaign(props.campaignId)
+    nickname.value = campaign.value.nickname
   } catch (error) {
-    console.error('Failed to load campaign:', error);
+    console.error('Failed to load campaign:', error)
   }
-};
+}
 
 // Use a computed property determine ownership based on the campaign data
 const isOwner = computed(() => {
-  if (!campaign.value || !userStore.userInfo) return false;
-  return campaign.value.ownerId === userStore.userInfo.id;
-});
+  if (!campaign.value || !userStore.currentUser) return false
+  return campaign.value.ownerId === userStore.userId
+})
 
 // Computed property to get the current user's nickname
 const currentUserNickname = computed(() => {
-  if (!campaign.value || !userStore.userInfo) return '';
-  const participant = campaign.value.participants.find(p => p.id === userStore.userInfo.id);
-  return participant ? participant.nickname : '';
-});
+  if (!campaign.value || !userStore.currentUser) return ''
+  const participant = campaign.value.participants.find((p) => p.id === userStore.userId)
+  return participant ? participant.nickname : ''
+})
 
-// Make sure user data is loaded
-const loadUserData = async () => {
-  if (!userStore.userInfo) {
-    await userStore.fetchCurrentUser();
-  }
-};
-
-// Load data when the component is mounted and when the campaign ID changes
-loadUserData();
-watch(() => props.campaignId, loadCampaignData, {immediate: true});
+watch(() => props.campaignId, loadCampaignData, { immediate: true })
 
 // Search for users by username or email
 const searchUsers = async () => {
-  const notificationStore = useNotificationStore();
-  if (!searchTerm.value.trim()) return;
+  const notificationStore = useNotificationStore()
+  if (!searchTerm.value.trim()) return
 
   try {
-    isSearching.value = true;
+    isSearching.value = true
 
-    const users = await campaignStore.searchUsers(searchTerm.value);
+    const users = await campaignStore.searchUsers(searchTerm.value)
 
     // Filter out users who are already participants
-    searchResults.value = users.filter(user =>
-      !campaign.value.participants.some(p => p.id === user.id)
-    );
+    searchResults.value = users.filter(
+      (user) => !campaign.value.participants.some((p) => p.id === user.id),
+    )
     // If no users found, set an error message - display for  3 seconds
     if (searchResults.value.length === 0) {
-      notificationStore.addNotification(`No users found matching "${searchTerm.value}"`, 'error');
+      notificationStore.addNotification(`No users found matching "${searchTerm.value}"`, 'error')
     }
-
   } catch (error) {
-    console.error('Search error:', error);
-    notificationStore.addNotification(`Error searching for users: ${error.message}`, 'error');
+    console.error('Search error:', error)
+    notificationStore.addNotification(`Error searching for users: ${error.message}`, 'error')
   } finally {
-    isSearching.value = false;
+    isSearching.value = false
   }
-};
+}
 
 // nickname editing functions
 const startEditingNickname = () => {
-  isEditingNickname.value = true;
-};
+  isEditingNickname.value = true
+}
 const cancelEditingNickname = () => {
-  isEditingNickname.value = false;
-  nickname.value = campaign.value.nickname;
-};
+  isEditingNickname.value = false
+  nickname.value = campaign.value.nickname
+}
 
 // Function to save the updated the nickname for a participant
 const saveParticipantNickname = async (participant) => {
-
   if (!participant.nickname.trim()) {
-    notificationStore.addNotification('Nickname cannot be empty', 'error');
-    return;
+    notificationStore.addNotification('Nickname cannot be empty', 'error')
+    return
   }
 
   try {
-    isSaving.value = true;
-    await campaignStore.updateParticipantNickname(props.campaignId, participant.id, participant.nickname.trim());
+    isSaving.value = true
+    await campaignStore.updateParticipantNickname(
+      props.campaignId,
+      participant.id,
+      participant.nickname.trim(),
+    )
 
-    editingParticipantId.value = null;
+    editingParticipantId.value = null
 
-    emit('participants-updated', 'Nickname updated successfully!');
-
+    emit('participants-updated', 'Nickname updated successfully!')
   } catch (error) {
-    console.error('Failed to update participant nickname:', error);
-    notificationStore.addNotification(`Failed to update participant nickname: ${error.message}`, 'error');
+    console.error('Failed to update participant nickname:', error)
+    notificationStore.addNotification(
+      `Failed to update participant nickname: ${error.message}`,
+      'error',
+    )
   } finally {
-    isSaving.value = false;
+    isSaving.value = false
   }
-};
+}
 // Function to save the current user's nickname
 const saveNickname = async () => {
   const participant = {
-    id: userStore.userInfo.id,
-    nickname: nickname.value
-  };
-  try {
-    await saveParticipantNickname(participant);
-    isEditingNickname.value = false;
-  } catch (error) {
-    notificationStore.addNotification(`Failed to update nickname: ${error.message}`, 'error');
+    id: userStore.userId,
+    nickname: nickname.value,
   }
-};
+  try {
+    await saveParticipantNickname(participant)
+    isEditingNickname.value = false
+  } catch (error) {
+    notificationStore.addNotification(`Failed to update nickname: ${error.message}`, 'error')
+  }
+}
 const updateNicknameForParticipant = (participant) => {
-  editingParticipantId.value = participant.id;
-};
+  editingParticipantId.value = participant.id
+}
 
 const addParticipant = async (user) => {
-
   try {
     // Convert campaignId to number if needed
-    const campaignIdNum = Number(props.campaignId);
+    const campaignIdNum = Number(props.campaignId)
 
     // call the store method to add the participant
-    await campaignStore.addParticipantsToCampaign(
-      campaignIdNum,
-      [
-        {id: user, nickname: user.username, role: 'PLAYER'}]
-    );
+    await campaignStore.addParticipantsToCampaign(campaignIdNum, [
+      { id: user, nickname: user.username, role: 'PLAYER' },
+    ])
 
     // remove the added user from the search results
-    searchResults.value = searchResults.value.filter(u => u.id !== user.id);
+    searchResults.value = searchResults.value.filter((u) => u.id !== user.id)
 
-    emit('participants-updated', `Participant ${user.displayName || user.username} added successfully!`);
-
-
+    emit(
+      'participants-updated',
+      `Participant ${user.displayName || user.username} added successfully!`,
+    )
   } catch (error) {
-    notificationStore.addNotification(`Failed to add participant: ${error.message}`, 'error');
+    notificationStore.addNotification(`Failed to add participant: ${error.message}`, 'error')
   }
-
-};
+}
 
 const removeParticipant = async (participant) => {
   if (!confirm(`Are you sure you want to remove ${participant.nickname || 'this participant'}?`))
-    return;
+    return
   try {
     // Convert campaignId to number if needed
-    const campaignIdNum = Number(props.campaignId);
+    const campaignIdNum = Number(props.campaignId)
 
-    await campaignStore.removeParticipantsFromCampaign(
-      campaignIdNum,
-      [participant.id]
-    );
-    emit('participants-updated', `Participant ${participant.nickname || participant.displayName || participant.username || participant.name} removed successfully!`);
-
+    await campaignStore.removeParticipantsFromCampaign(campaignIdNum, [participant.id])
+    emit(
+      'participants-updated',
+      `Participant ${participant.nickname || participant.displayName || participant.username || participant.name} removed successfully!`,
+    )
   } catch (error) {
-    console.error('Failed to remove participant:', error);
-    notificationStore.addNotification(`Failed to remove participant: ${error.message}`, 'error');
+    console.error('Failed to remove participant:', error)
+    notificationStore.addNotification(`Failed to remove participant: ${error.message}`, 'error')
   }
-};
+}
 
 const toggleRole = async (participant) => {
-
   try {
     // set a participant as updating
-    updatingRoles.value.add(participant.id);
+    updatingRoles.value.add(participant.id)
 
-    const newRole = participant.role === 'PLAYER' ? 'GM' : 'PLAYER';
+    const newRole = participant.role === 'PLAYER' ? 'GM' : 'PLAYER'
 
     // call the store method to update the participant's role
-    await campaignStore.updateParticipantRole(
-      props.campaignId,
-      participant.id,
-      newRole
-    );
+    await campaignStore.updateParticipantRole(props.campaignId, participant.id, newRole)
 
-    emit('participants-updated', `${participant.nickname || participant.displayName || participant.username || participant.name} updated to ${newRole}`);
+    emit(
+      'participants-updated',
+      `${participant.nickname || participant.displayName || participant.username || participant.name} updated to ${newRole}`,
+    )
   } catch (error) {
-
-    console.error('Failed to toggle role:', error);
-    notificationStore.addNotification(`Failed to update role for ${participant.displayName || participant.username}`);
+    console.error('Failed to toggle role:', error)
+    notificationStore.addNotification(
+      `Failed to update role for ${participant.displayName || participant.username}`,
+    )
   } finally {
-    updatingRoles.value.delete(participant.id);
+    updatingRoles.value.delete(participant.id)
   }
-};
+}
 
 const deleteCampaign = () => {
-  console.log('Deleting campaign:', props.campaignId);
-  const notificationStore = useNotificationStore();
+  console.log('Deleting campaign:', props.campaignId)
+  const notificationStore = useNotificationStore()
 
   if (confirm('Are you sure you want to delete this campaign?')) {
-    campaignStore.deleteCampaign(props.campaignId)
+    campaignStore
+      .deleteCampaign(props.campaignId)
       .then(() => {
-        campaign.value = null;
+        campaign.value = null
 
         setTimeout(() => {
-          router.push({name: 'CampaignsView'});
-        }, 100);
+          router.push({ name: 'CampaignsView' })
+        }, 100)
       })
       .catch((error) => {
-        notificationStore.addNotification(error.message || "Failed to delete campaign", "error");
-        console.error('Failed to delete campaign:', error);
-      });
+        notificationStore.addNotification(error.message || 'Failed to delete campaign', 'error')
+        console.error('Failed to delete campaign:', error)
+      })
   }
-};
+}
 
 const transferOwnership = (participant) => {
-  if (confirm(`Are you sure you want to transfer ownership to ${participant.nickname || 'this participant'}?`)) {
-    campaignStore.transferCampaignOwnership(props.campaignId, participant.id)
+  if (
+    confirm(
+      `Are you sure you want to transfer ownership to ${participant.nickname || 'this participant'}?`,
+    )
+  ) {
+    campaignStore
+      .transferCampaignOwnership(props.campaignId, participant.id)
       .then(() => {
-        emit('close-modal');
+        emit('close-modal')
       })
-      .catch(error => {
-        console.error('Error transferring ownership:', error);
-      });
+      .catch((error) => {
+        console.error('Error transferring ownership:', error)
+      })
   }
-};
-
-
+}
 </script>
 
 <template>
   <div class="bg-primary-200 rounded-lg shadow-md p-4">
-
     <!-- Non-owner settings -->
     <div v-if="!isOwner" class="mb-6">
       <div class="border rounded-lg p-4">
@@ -267,8 +260,11 @@ const transferOwnership = (participant) => {
             <span v-if="isSaving">Saving...</span>
             <span v-else>Save</span>
           </button>
-          <button @click="cancelEditingNickname" class="button button-primary flex-1"
-                  :disabled="isSaving">
+          <button
+            @click="cancelEditingNickname"
+            class="button button-primary flex-1"
+            :disabled="isSaving"
+          >
             Cancel
           </button>
         </div>
@@ -301,16 +297,21 @@ const transferOwnership = (participant) => {
           <h5 class="font-medium mb-2">Search Results</h5>
 
           <ul class="divide-y divide-gray-200">
-            <li v-for="user in searchResults" :key="user.id"
-                class="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <li
+              v-for="user in searchResults"
+              :key="user.id"
+              class="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between"
+            >
               <div class="mb-2 sm:mb-0">
                 <div class="font-medium">{{ user.displayName || user.username }}</div>
                 <div class="text-sm text-gray-500">{{ user.email }}</div>
               </div>
               <!--             todo: can we have a checkbox here instead of button? and add all selected users with a button -->
-              <button @click="addParticipant(user.id)"
-                      class="button button-add self-end sm:self-auto"
-                      :disabled="isSaving">
+              <button
+                @click="addParticipant(user.id)"
+                class="button button-add self-end sm:self-auto"
+                :disabled="isSaving"
+              >
                 Add to Campaign
               </button>
             </li>
@@ -323,15 +324,15 @@ const transferOwnership = (participant) => {
         <h4 class="text-lg font-semibold mb-3">Manage Participants</h4>
 
         <ul class="space-y-4">
-          <li v-for="participant in campaign?.participants || []"
-              :key="participant.id"
-              class="border rounded p-3"
-              :class="{
-          'bg-primary-100': participant.id === userStore.userInfo.id,
-          'bg-primary-200': participant.id !== userStore.userInfo.id
-        }"
+          <li
+            v-for="participant in campaign?.participants || []"
+            :key="participant.id"
+            class="border rounded p-3"
+            :class="{
+              'bg-primary-100': participant.id === userStore.userId,
+              'bg-primary-200': participant.id !== userStore.userId,
+            }"
           >
-
             <!-- View mode -->
             <div v-if="editingParticipantId !== participant.id" class="space-y-3">
               <!-- Participant info -->
@@ -341,27 +342,29 @@ const transferOwnership = (participant) => {
               </div>
 
               <!-- Owner info -->
-              <div v-if="participant.id === userStore.userInfo.id" class="text-sm text-gray-500">
+              <div v-if="participant.id === userStore.userId" class="text-sm text-gray-500">
                 This is you
               </div>
 
               <!-- Action buttons -->
               <div class="flex flex-wrap gap-2">
-                <button class="button button-update"
-                        @click="toggleRole(participant)">
+                <button class="button button-update" @click="toggleRole(participant)">
                   change to {{ participant.role === 'PLAYER' ? 'GM' : 'PLAYER' }}
                 </button>
-                <button class="button button-update"
-                        @click="updateNicknameForParticipant(participant)">
+                <button
+                  class="button button-update"
+                  @click="updateNicknameForParticipant(participant)"
+                >
                   Edit Nickname
                 </button>
-                <button class="button button-remove"
-                        @click="removeParticipant(participant)">
+                <button class="button button-remove" @click="removeParticipant(participant)">
                   Remove
                 </button>
-                <button v-if="participant.id !== userStore.userInfo.id"
-                        class="button button-update"
-                        @click="transferOwnership(participant)">
+                <button
+                  v-if="participant.id !== userStore.userId"
+                  class="button button-update"
+                  @click="transferOwnership(participant)"
+                >
                   Transfer Ownership of campaign
                 </button>
               </div>
@@ -378,15 +381,19 @@ const transferOwnership = (participant) => {
               />
 
               <div class="flex gap-2">
-                <button @click="saveParticipantNickname(participant)"
-                        class="button button-add flex-1"
-                        :disabled="isSaving">
+                <button
+                  @click="saveParticipantNickname(participant)"
+                  class="button button-add flex-1"
+                  :disabled="isSaving"
+                >
                   <span v-if="isSaving">Saving...</span>
                   <span v-else>Save</span>
                 </button>
-                <button @click="editingParticipantId = null"
-                        class="button button-primary flex-1"
-                        :disabled="isSaving">
+                <button
+                  @click="editingParticipantId = null"
+                  class="button button-primary flex-1"
+                  :disabled="isSaving"
+                >
                   Cancel
                 </button>
               </div>
@@ -394,8 +401,10 @@ const transferOwnership = (participant) => {
           </li>
         </ul>
 
-        <div v-if="(campaign?.participants || []).length === 0"
-             class="text-center py-3 text-gray-500">
+        <div
+          v-if="(campaign?.participants || []).length === 0"
+          class="text-center py-3 text-gray-500"
+        >
           No participants in this campaign yet.
         </div>
       </div>
@@ -412,5 +421,4 @@ const transferOwnership = (participant) => {
   </div>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

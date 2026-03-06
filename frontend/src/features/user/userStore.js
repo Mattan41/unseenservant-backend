@@ -1,105 +1,113 @@
-import {defineStore} from 'pinia'
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 import UserService from './UserService.js'
-import {useNotificationStore} from "@/stores/notificationStore.js";
+import { useNotificationStore } from '@/stores/notificationStore.js'
 
-export const useUserStore = defineStore('user', {
-  state: () => ({
-    userInfo: null,
-    isLoading: false,
-    error: null,
-  }),
+export const useUserStore = defineStore('user', () => {
+  // State
+  const currentUser = ref(null)
+  const isLoading = ref(false)
+  const error = ref(null)
 
-  actions: {
-    // fetch the current user's information
-    async fetchCurrentUserInfo() {
-      this.isLoading = true
-      this.error = null
+  // Computed
+  const displayName = computed(
+    () => currentUser.value?.displayName || currentUser.value?.username || 'Traveler',
+  )
 
-      try {
-        this.userInfo = await UserService.fetchCurrentUserInfo()
-      } catch (error) {
-        console.error('Failed to fetch current user info:', error)
-        this.error = 'Could not fetch user information.'
-        this.userInfo = null
-      } finally {
-        this.isLoading = false
+  const userRole = computed(() => currentUser.value?.role || 'Standard user')
+
+  const userId = computed(() => currentUser.value?.id || null)
+
+  const isUserLoaded = computed(() => currentUser.value !== null)
+
+  // Actions
+  async function fetchCurrentUser() {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const userData = await UserService.fetchCurrentUserInfo()
+      currentUser.value = userData
+      return userData
+    } catch (err) {
+      console.error('Failed to fetch current user:', err)
+      error.value = 'Could not fetch user information.'
+      currentUser.value = null
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function fetchUserById(userId) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const userData = await UserService.fetchUser(userId)
+      // Obs: Detta uppdaterar currentUser - anpassa om du vill hantera andra users annorlunda
+      currentUser.value = userData
+      return userData
+    } catch (err) {
+      console.error('Failed to fetch user:', err)
+      error.value = 'Failed to fetch user.'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function updateUserField(field, value) {
+    if (!currentUser.value?.id) {
+      throw new Error('No user loaded')
+    }
+
+    const notificationStore = useNotificationStore()
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const updatedUser = await UserService.updateProfileField(currentUser.value.id, field, value)
+
+      currentUser.value = { ...currentUser.value, ...updatedUser }
+
+      notificationStore.addNotification(`Successfully updated ${field}.`, 'success')
+      return true
+    } catch (err) {
+      let errorMessage = `Failed to update ${field}. Please try again.`
+
+      if (err.response?.status === 409) {
+        errorMessage = err.response.data.message || `This ${field} is already taken`
       }
-    },
 
-    //fetch user information by user id, could be used to fetch other users' information such as invites to campaigns, or by admin to view/edit user information
-    async fetchUserInfo(userId) {
-      this.isLoading = true
-      this.error = null
+      error.value = errorMessage
+      notificationStore.addNotification(errorMessage, 'error')
+      return false
+    } finally {
+      isLoading.value = false
+    }
+  }
 
-      try {
-        this.userInfo = await UserService.fetchUser(userId)
-      } catch (error) {
-        console.error('Failed to fetch user info:', error)
-        this.error = 'Failed to fetch user.'
-      } finally {
-        this.isLoading = false
-      }
-    },
+  function clearUser() {
+    currentUser.value = null
+    error.value = null
+    isLoading.value = false
+  }
 
-    async updateProfileField(field, value) {
-      const notificationStore = useNotificationStore();
-      this.isLoading = true;
-      this.error = null;
-
-      try {
-        const updatedUser = await UserService.updateProfileField(this.userInfo.id, field, value);
-        this.userInfo = {...this.userInfo, ...updatedUser};
-        // Notify the user about the successful update
-        notificationStore.addNotification(`Successfully updated ${field}.`, 'success');
-        //  update the store with the new value todo remove this line?
-        this.userInfo[field] = value;
-        return true;
-      } catch (error) {
-        // Handle HTTP 409 Conflict (UniqueConstraintViolation) if the field is unique and already taken
-        if (error.response?.status === 409) {
-          const data = error.response.data;
-          const errorMessage = data.message || `This ${field} is already taken`;
-          this.error = errorMessage;
-          notificationStore.addNotification(errorMessage, 'error');
-        } else {
-          const errorMessage = `Failed to update ${field}. Please try again.`;
-          this.error = errorMessage;
-          notificationStore.addNotification(errorMessage, 'error');
-        }
-        return false;
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    // We might not need this function, since we can update the profile with the updateProfileField function
-    // todo remove this function if we don't need it
-    async updateProfile(data) {
-      this.isLoading = true
-      this.error = null
-
-      try {
-        this.userInfo = await UserService.updateProfile(this.userInfo.id, data)
-      } catch (error) {
-        console.error('Failed to update profile:', error)
-        this.error = 'Failed to update profile.'
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    clearUserInfo() {
-      this.userInfo = null;
-      this.error = null;
-      this.isLoading = false;
-      console.log('User info cleared');
-    },
-  },
-
-  getters: {
-    getDisplayName: (state) => state.userInfo?.displayName || state.userInfo?.username || 'Traveler',
-    getRole: (state) => state.userInfo?.role || 'Standard user',
-    isLoadingProfile: (state) => state.isLoading,
-    getUserId: (state) => state.userInfo?.id || null,
-  },
+  return {
+    // State
+    currentUser,
+    isLoading,
+    error,
+    // Computed
+    displayName,
+    userRole,
+    userId,
+    isUserLoaded,
+    // Actions
+    fetchCurrentUser,
+    fetchUserById,
+    updateUserField,
+    clearUser,
+  }
 })

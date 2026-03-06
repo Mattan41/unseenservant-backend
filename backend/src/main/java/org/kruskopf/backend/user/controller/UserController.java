@@ -67,10 +67,12 @@ public class UserController {
 
     @PreAuthorize("hasRole('ROLE_USER')")
     @PatchMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
         User updatedUser = userService.partialUpdate(id, updates)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-        return ResponseEntity.ok(updatedUser);
+        UserDTO userDTO = userService.toDTO(updatedUser);
+
+        return ResponseEntity.ok(userDTO);
     }
 
 
