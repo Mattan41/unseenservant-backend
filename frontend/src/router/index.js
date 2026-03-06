@@ -97,19 +97,14 @@ router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
   if (!authStore.isAuthChecked) {
-    const requiresBlockingWait = to.meta?.requiresAuth
-    if (requiresBlockingWait) {
-      await authStore.initializeAuth()
-    } else {
-      authStore.initializeAuth().catch((e) => {
-        console.error('Background authentication initialization failed.', e)
-      })
-    }
+    await authStore.initializeAuth()
   }
 
-  if (to.meta?.requiresAuth && !authStore.isAuthenticated) {
+  const isAuthenticated = authStore.isAuthenticated
+
+  if (to.meta?.requiresAuth && !isAuthenticated) {
     next({ name: 'login' })
-  } else if (to.name === 'login' && authStore.isAuthenticated) {
+  } else if (to.name === 'login' && isAuthenticated) {
     next({ name: 'home' })
   } else {
     next()

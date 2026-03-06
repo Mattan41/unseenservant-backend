@@ -1,102 +1,87 @@
-import { defineStore } from 'pinia'
+import AuthService from '@/features/auth/AuthService.js'
 import { computed, ref } from 'vue'
-import AuthService from './AuthService.js'
+import { defineStore } from 'pinia'
 
 export const useAuthStore = defineStore('auth', () => {
-  // State
-  const token = ref(null)
-  const authStatus = ref('idle')
-  const error = ref(null)
+  const token = ref(localStorage.getItem('auth_token'))
+  const authStatus = ref(token.value ? 'authenticated' : 'idle')
   const isInitializing = ref(false)
   const isAuthChecked = ref(false)
 
-  // Computed
   const isAuthenticated = computed(() => authStatus.value === 'authenticated')
-  const isLoading = computed(() => authStatus.value === 'loading')
-
-  // Actions
-  async function initializeAuth() {
-    if (isAuthChecked.value) {
-      return
-    }
-
-    if (isInitializing.value) {
-      console.warn('Already initializing, skipping...')
-      return
-    }
-
-    isInitializing.value = true
-    authStatus.value = 'loading'
-
-    try {
-      const userData = await AuthService.getCurrentUser()
-      if (userData) {
-        authStatus.value = 'authenticated'
-      } else {
-        authStatus.value = 'unauthenticated'
-      }
-    } catch (err) {
-      console.error('Auth initialization failed:', err)
-      authStatus.value = 'unauthenticated'
-      error.value = err.message
-    } finally {
-      isAuthChecked.value = true
-      isInitializing.value = false
-    }
-  }
-
-  async function loginWithGoogle() {
-    error.value = null
-    return AuthService.loginWithGoogle()
-  }
-
-  async function loginWithGithub() {
-    error.value = null
-    return AuthService.loginWithGithub()
-  }
-
-  async function logout() {
-    authStatus.value = 'loading'
-
-    try {
-      await AuthService.logoutAPI()
-    } catch (err) {
-      console.warn('Logout API call failed, but proceeding with local clear. : ', err)
-    } finally {
-      clearAuth()
-    }
-  }
 
   function setToken(newToken) {
     token.value = newToken
     if (newToken) {
       localStorage.setItem('auth_token', newToken)
+      authStatus.value = 'authenticated'
     } else {
       localStorage.removeItem('auth_token')
+      authStatus.value = 'unauthenticated'
     }
+  }
+
+  async function initializeAuth() {
+    console.log('Starting auth check...') // LOGGA HÄR
+    if (isAuthChecked.value || isInitializing.value) return
+
+    if (!token.value) {
+      console.log('No token found, skipping...') // LOGGA HÄR
+      authStatus.value = 'unauthenticated'
+      isAuthChecked.value = true
+      return
+    }
+
+    isInitializing.value = true
+    try {
+      console.log('Fetching user from backend...')
+      const userData = await AuthService.getCurrentUser()
+      authStatus.value = userData ? 'authenticated' : 'unauthenticated'
+    } catch (err) {
+      console.error('Auth verification failed:', err)
+      clearAuth()
+    } finally {
+      isAuthChecked.value = true
+      isInitializing.value = false
+      console.log('Auth check complete. isReady should now be true.')
+    }
+  }
+
+  function handleOAuthRedirect(tokenFromUrl) {
+    setToken(tokenFromUrl)
   }
 
   function clearAuth() {
     setToken(null)
-    authStatus.value = 'unauthenticated'
-    error.value = null
+    localStorage.removeItem('userData')
+    isAuthChecked.value = true
   }
 
+  async function logout() {
+    clearAuth()
+  }
+
+  async function loginWithGoogle() {
+    return AuthService.loginWithGoogle()
+  }
+
+  async function loginWithGithub() {
+    return AuthService.loginWithGithub()
+  }
   return {
-    // State
+    // State & Computed
     token,
     authStatus,
-    error,
     isAuthChecked,
-    // Computed
     isAuthenticated,
-    isLoading,
+
     // Actions
     initializeAuth,
     loginWithGoogle,
     loginWithGithub,
+    handleOAuthRedirect,
     logout,
-    setToken,
     clearAuth,
+    setToken,
   }
 })
