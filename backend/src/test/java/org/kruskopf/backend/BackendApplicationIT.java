@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Backend Application Context Tests")
 class BackendApplicationIT extends AbstractIntegrationTest {
 
-    private ApplicationContext applicationContext;
+    private final ApplicationContext applicationContext;
 
     @Autowired
     BackendApplicationIT(ApplicationContext applicationContext) {
@@ -44,4 +44,11 @@ class BackendApplicationIT extends AbstractIntegrationTest {
         assertThat(applicationContext.containsBean("securityFilterChain")).isTrue();
         assertThat(applicationContext.containsBean("passwordEncoder")).isTrue();
     }
+
+    @Test
+    @DisplayName("JWT authentication filter should be present")
+    void jwtAuthenticationFilterIsPresent() {
+        assertThat(applicationContext.containsBean("jwtAuthenticationFilter")).isTrue();
+    }
+
 }

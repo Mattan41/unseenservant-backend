@@ -2,9 +2,8 @@ package org.kruskopf.backend.component;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.kruskopf.backend.auth.dto.AuthDTO;
+import org.kruskopf.backend.auth.JwtService;
 import org.kruskopf.backend.config.Email;
-import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
@@ -13,9 +12,7 @@ import org.kruskopf.backend.whitelist.EmailWhitelistService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.retry.annotation.Retryable;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -24,8 +21,11 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -36,16 +36,21 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     private final UserRepository userRepository;
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final EmailWhitelistService emailWhitelistService;
+    private final JwtService jwtService;
 
     private RestClient restClient;
 
     @Value("${FRONTEND_URL}")
     private String frontendUrl;
 
-    public CustomOAuth2SuccessHandler(UserRepository userRepository, OAuth2AuthorizedClientService authorizedClientService, EmailWhitelistService emailWhitelistService) {
+    public CustomOAuth2SuccessHandler(UserRepository userRepository,
+                                      OAuth2AuthorizedClientService authorizedClientService,
+                                      EmailWhitelistService emailWhitelistService,
+                                      JwtService jwtService) {
         this.userRepository = userRepository;
         this.authorizedClientService = authorizedClientService;
         this.emailWhitelistService = emailWhitelistService;
+        this.jwtService = jwtService;
     }
 
     public void setRestClient(RestClient restClient) {
@@ -64,17 +69,12 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         );
         OAuth2AccessToken accessToken = authorizedClient.getAccessToken();
 
+        ProviderType providerType = getProviderType(oauthToken);
 
-        // Fetch OAuth2-provider that the user used to login
-        ProviderType providerType = getProviderType((OAuth2AuthenticationToken) authentication);
-
-        UserAttributes userAttributes;
-
-        switch (providerType) {
-            case GOOGLE -> userAttributes = getGoogleAttributes(oAuth2User);
-            case GITHUB -> userAttributes = getGitHubAttributes(oAuth2User, accessToken);
-            default -> throw new IllegalArgumentException("Unknown provider: " + providerType);
-        }
+        UserAttributes userAttributes = switch (providerType) {
+            case GOOGLE -> getGoogleAttributes(oAuth2User);
+            case GITHUB -> getGitHubAttributes(oAuth2User, accessToken);
+        };
 
         String email = userAttributes.email();
         String name = userAttributes.name();
@@ -88,7 +88,6 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         UserRole role = emailWhitelistService.getEmailRole(email)
                 .orElse(UserRole.USER);
 
-        // Find or Create the user in the database
         User user = userRepository.findByProviderId(providerId)
                 .orElseGet(() -> userRepository.save(new User(
                         providerId,
@@ -100,32 +99,16 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                         "password"
                 )));
 
-        // Update Spring Security Context with new Authentication (using the user from DB)
-        updateSpringSecurityContextWithNewAuthentication(authentication, user);
+        // Generate JWT token
+        String jwtToken = jwtService.generateToken(user);
 
-        // Set user data (AuthDTO) into session for easy frontend communication
-        setUserDataIntoSessionForFrontendCommunication(request, user);
+        // Redirect to frontend with token as query parameter
+        String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth-redirect")
+                .queryParam("token", URLEncoder.encode(jwtToken, StandardCharsets.UTF_8))
+                .build()
+                .toUriString();
 
-        response.sendRedirect(frontendUrl + "/oauth-redirect");
-    }
-
-    private static void setUserDataIntoSessionForFrontendCommunication(HttpServletRequest request, User user) {
-        AuthDTO authDTO = new AuthDTO(
-                user.getId(),
-                user.getUserName(),
-                user.getEmail(),
-                user.getRole().toString()
-        );
-        request.getSession().setAttribute("user", authDTO);
-    }
-
-    private static void updateSpringSecurityContextWithNewAuthentication(Authentication authentication, User user) {
-        CustomUserDetails userDetails = new CustomUserDetails(user);
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                userDetails, null, userDetails.getAuthorities());
-        authToken.setDetails(authentication.getDetails());
-
-        SecurityContextHolder.getContext().setAuthentication(authToken);
+        response.sendRedirect(redirectUrl);
     }
 
     private static ProviderType getProviderType(OAuth2AuthenticationToken authentication) {

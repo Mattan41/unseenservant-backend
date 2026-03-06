@@ -87,11 +87,6 @@ class SecurityConfigIT extends AbstractIntegrationTest {
                     .andExpect(status().isOk());
         }
 
-        // NOTE: Removed tests for /api/characters and /api/auth/me
-        // These endpoints use @AuthenticationPrincipal CustomUserDetails in controllers,
-        // which @WithMockUser cannot provide. These will be tested in:
-        // - PlayerCharacterControllerIntegrationTest
-        // - AuthControllerIntegrationTest (already done!)
     }
 
     @Nested
@@ -136,19 +131,14 @@ class SecurityConfigIT extends AbstractIntegrationTest {
                     .andDo(print())
                     .andExpect(status().is3xxRedirection());
         }
-    }
-
-    @Nested
-    @DisplayName("CSRF Protection")
-    class CsrfProtection {
 
         @Test
-        @WithMockUser(roles = "USER")
-        @DisplayName("GET requests do not require CSRF token")
-        void getRequestsDoNotRequireCsrfToken() throws Exception {
-            mockMvc.perform(get("/api/campaigns"))
+        @DisplayName("Auth endpoints are publicly accessible")
+        void authEndpointsArePublic() throws Exception {
+            mockMvc.perform(get("/api/auth/status"))
                     .andDo(print())
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNotFound()); // 404 = passed security, no controller
         }
     }
+
 }

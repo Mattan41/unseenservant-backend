@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.kruskopf.backend.AbstractIntegrationTest;
-import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
@@ -16,7 +15,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.is;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -26,8 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>
  * Tests the /api/auth/me endpoint with different authentication scenarios:
  * - Unauthenticated requests
- * - Authenticated users with different roles
- * - OAuth2 authentication simulation
+ * - Authenticated users with different roles using JWT
+ * - JWT token validation
  */
 @AutoConfigureMockMvc
 @Transactional
@@ -36,12 +34,14 @@ class AuthControllerIT extends AbstractIntegrationTest {
 
     private final MockMvc mockMvc;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
-    AuthControllerIT(MockMvc mockMvc, UserRepository userRepository) {
+    AuthControllerIT(MockMvc mockMvc, UserRepository userRepository, JwtService jwtService) {
         this.mockMvc = mockMvc;
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
     }
 
     @BeforeEach
@@ -62,8 +62,8 @@ class AuthControllerIT extends AbstractIntegrationTest {
         }
 
         @Test
-        @DisplayName("Should return 200 OK with user data when authenticated")
-        void shouldReturn200WithUserDataWhenAuthenticated() throws Exception {
+        @DisplayName("Should return 200 OK with user data when authenticated with JWT")
+        void shouldReturn200WithUserDataWhenAuthenticatedWithJwt() throws Exception {
             // Arrange: Create a test user in database
             User testUser = new User(
                     "google-123456",
@@ -76,12 +76,12 @@ class AuthControllerIT extends AbstractIntegrationTest {
             );
             testUser = userRepository.save(testUser);
 
-            // Create CustomUserDetails for Spring Security
-            CustomUserDetails userDetails = new CustomUserDetails(testUser);
+            // Generate JWT token
+            String token = jwtService.generateToken(testUser);
 
-            // Act & Assert: Call endpoint with authentication
+            // Act & Assert: Call endpoint with JWT token
             mockMvc.perform(get("/api/auth/me")
-                            .with(user(userDetails)))
+                            .header("Authorization", "Bearer " + token))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(content().contentType("application/json"))
@@ -92,8 +92,8 @@ class AuthControllerIT extends AbstractIntegrationTest {
         }
 
         @Test
-        @DisplayName("Should return correct role for ADMIN user")
-        void shouldReturnCorrectRoleForAdmin() throws Exception {
+        @DisplayName("Should return correct role for ADMIN user with JWT")
+        void shouldReturnCorrectRoleForAdminWithJwt() throws Exception {
             // Arrange: Create an admin user
             User adminUser = new User(
                     "google-admin-123",
@@ -106,11 +106,12 @@ class AuthControllerIT extends AbstractIntegrationTest {
             );
             adminUser = userRepository.save(adminUser);
 
-            CustomUserDetails userDetails = new CustomUserDetails(adminUser);
+            // Generate JWT token
+            String token = jwtService.generateToken(adminUser);
 
             // Act & Assert
             mockMvc.perform(get("/api/auth/me")
-                            .with(user(userDetails)))
+                            .header("Authorization", "Bearer " + token))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id", is(adminUser.getId().intValue())))
@@ -118,8 +119,8 @@ class AuthControllerIT extends AbstractIntegrationTest {
         }
 
         @Test
-        @DisplayName("Should handle GitHub user correctly")
-        void shouldHandleGitHubUser() throws Exception {
+        @DisplayName("Should handle GitHub user correctly with JWT")
+        void shouldHandleGitHubUserWithJwt() throws Exception {
             // Arrange: Create a GitHub user
             User githubUser = new User(
                     "github-12345",
@@ -132,14 +133,35 @@ class AuthControllerIT extends AbstractIntegrationTest {
             );
             githubUser = userRepository.save(githubUser);
 
-            CustomUserDetails userDetails = new CustomUserDetails(githubUser);
+            // Generate JWT token
+            String token = jwtService.generateToken(githubUser);
 
             // Act & Assert
             mockMvc.perform(get("/api/auth/me")
-                            .with(user(userDetails)))
+                            .header("Authorization", "Bearer " + token))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.email", is("user2@test.com")));
+        }
+
+        @Test
+        @DisplayName("Should return 401 with invalid JWT token")
+        void shouldReturn401WithInvalidJwtToken() throws Exception {
+            // Act & Assert: Call endpoint with invalid JWT token
+            mockMvc.perform(get("/api/auth/me")
+                            .header("Authorization", "Bearer invalid-jwt-token"))
+                    .andDo(print())
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Should return 401 with malformed JWT token")
+        void shouldReturn401WithMalformedJwtToken() throws Exception {
+            // Act & Assert: Call endpoint with malformed JWT token
+            mockMvc.perform(get("/api/auth/me")
+                            .header("Authorization", "invalid-format"))
+                    .andDo(print())
+                    .andExpect(status().isUnauthorized());
         }
     }
 }
