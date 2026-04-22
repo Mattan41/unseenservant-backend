@@ -89,17 +89,16 @@ export const useCampaignStore = defineStore('campaign', {
       }
     },
 
-    async updateCampaignImage(campaignId, imageUrl) {
+    async uploadCampaignImage(campaignId, imageFile) {
       const notificationStore = useNotificationStore()
-      console.log('Updating campaign image:', campaignId, imageUrl)
       try {
-        return await CampaignService.updateCampaignImage(campaignId, imageUrl)
+        return await CampaignService.uploadCampaignImage(campaignId, imageFile)
       } catch (error) {
         notificationStore.addNotification(
-          error.message || 'Failed to update campaign image',
+          error.message || 'Failed to upload campaign image',
           'error',
         )
-        console.error('Failed to update campaign image:', error)
+        console.error('Failed to upload campaign image:', error)
         throw error
       }
     },
@@ -328,7 +327,16 @@ export const useCampaignStore = defineStore('campaign', {
     },
     getCampaignImageUrl: (state) => (id) => {
       const campaign = state.campaigns.find((campaign) => campaign.id === id)
-      return campaign?.imageUrl || '/default-campaign.svg'
+
+      const imageUrl = campaign?.imageUrl
+      if (!imageUrl) return '/default-campaign.svg'
+
+      // Prefix with API URL in dev-mode for relative paths
+      if (import.meta.env.DEV && imageUrl.startsWith('/images/')) {
+        return `${import.meta.env.VITE_API_BASE_URL}${imageUrl}`
+      }
+
+      return imageUrl
     },
     getCharactersByCampaignId: (state) => (campaignId) => {
       return [...(state.campaignCharacters[campaignId] || [])]

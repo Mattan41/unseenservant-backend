@@ -59,9 +59,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/", "/oauth2/**").permitAll();
+                    auth.requestMatchers("/images/**").permitAll();
                     auth.requestMatchers("/api/admin").hasRole(UserRole.ADMIN.name());
                     auth.requestMatchers("/api/auth/**").permitAll();
-                    auth.requestMatchers("/api/auth/me", "/images/**").authenticated();
+                    auth.requestMatchers("/api/auth/me").authenticated();
                     auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**").authenticated();
                     auth.anyRequest().denyAll();
                 })

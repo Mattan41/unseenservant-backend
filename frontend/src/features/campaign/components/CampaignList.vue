@@ -2,6 +2,7 @@
 import {onMounted, ref} from 'vue';
 import {useCampaignStore} from '@/features/campaign/campaignStore.js';
 import CreateCampaign from '@/features/campaign/components/CreateCampaign.vue';
+import CampaignImage from "@/features/campaign/components/CampaignImage.vue";
 
 const campaignStore = useCampaignStore();
 const expandedDescriptions = ref({});
@@ -38,12 +39,19 @@ onMounted(async () => {
           <h3 class="text-lg font-bold break-words">{{ campaignStore.getCampaignTitle(campaign.id) }}</h3>
 
           <!-- image component -->
+          <!--
           <div class="my-3">
             <img v-if="campaignStore.getCampaignImageUrl(campaign.id)"
                  :src="campaignStore.getCampaignImageUrl(campaign.id)"
                  :alt="campaignStore.getCampaignTitle(campaign.id)"
                  class="w-full h-48 object-cover rounded"/>
           </div>
+        -->
+          <CampaignImage
+            :src="campaignStore.getCampaignImageUrl(campaign.id)"
+            :alt="campaignStore.getCampaignTitle(campaign.id)"
+            class="w-full h-48 object-cover rounded"
+          />
 
           <!-- Description with read more/less -->
           <div class="break-words">

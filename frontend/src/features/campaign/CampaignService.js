@@ -34,11 +34,12 @@ const CampaignService = {
     return response.data;
   },
 
-  // Set Image url
-  async updateCampaignImage(campaignId, imageUrl) {
-    const response = await axios.patch(`/api/campaigns/${campaignId}/image`,
-      {imageUrl}, {}
-    );
+  async uploadCampaignImage(campaignId, imageFile) {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    const response = await axios.post(`/api/campaigns/${campaignId}/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
 

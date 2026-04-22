@@ -39,29 +39,39 @@
         ></textarea>
       </div>
 
-      <!-- Campaign Image URL -->
+      <!-- Campaign Image Upload -->
       <div class="mb-3">
-        <label for="campaign-image-url" class="block text-sm font-medium text-gray-700 mb-1">
-          Image URL
-        </label>
-        <input
-          id="campaign-image-url"
-          v-model="editedImageUrl"
-          type="text"
-          class="input input-bordered w-full mb-3"
-          placeholder="Enter image URL"
-        />
-      </div>
-
-      <!-- Preview if URL exists -->
-      <div v-if="editedImageUrl" class="mb-3">
-        <p class="text-sm font-medium mb-1">Preview:</p>
-        <img
-          :src="editedImageUrl"
-          alt="Preview"
-          class="max-h-32 rounded object-contain bg-gray-100"
-          @error="(e) => (e.target.src = 'https://via.placeholder.com/150?text=Invalid+Image+URL')"
-        />
+        <label class="block text-sm font-medium text-gray-700 mb-1">Campaign Image</label>
+        <div class="flex items-center space-x-4">
+          <div class="relative">
+            <img
+              v-if="previewImageUrl"
+              :src="previewImageUrl"
+              alt="Campaign image preview"
+              class="w-24 h-24 rounded-lg object-cover border-2 border-primary-300"
+            />
+            <div
+              v-if="previewImageUrl"
+              @click="triggerFileInput"
+              class="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+            >
+              <span class="text-white text-sm">Change</span>
+            </div>
+          </div>
+          <input
+            type="file"
+            ref="fileInput"
+            @change="handleImageChange"
+            accept=".jpg,.jpeg,.png,.gif,.webp"
+            class="hidden"
+          />
+          <button type="button" @click="triggerFileInput" class="button button-secondary">
+            {{ previewImageUrl ? 'Change image' : 'Upload image' }}
+          </button>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">
+          Supported formats: *.jpg, *.png, *.gif, *.webp. Max size: 5 MB.
+        </div>
       </div>
 
       <div class="flex space-x-3">
@@ -81,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
   campaign: {
@@ -94,8 +104,24 @@ const emit = defineEmits(['close', 'save']);
 
 const editedName = ref(props.campaign.title || '');
 const editedDescription = ref(props.campaign.description || '');
-const editedImageUrl = ref(props.campaign.imageUrl || '');
+const fileInput = ref(null);
+const selectedFile = ref(null);
+const localPreviewUrl = ref(null);
 const isUpdating = ref(false);
+
+const previewImageUrl = computed(() => localPreviewUrl.value || props.campaign.imageUrl || null);
+
+function triggerFileInput() {
+  fileInput.value.click();
+}
+
+function handleImageChange(event) {
+  const file = event.target.files[0];
+  if (file) {
+    selectedFile.value = file;
+    localPreviewUrl.value = URL.createObjectURL(file);
+  }
+}
 
 function emitClose() {
   emit('close');
@@ -109,7 +135,7 @@ async function saveChanges() {
       id: props.campaign.id,
       title: editedName.value,
       description: editedDescription.value,
-      imageUrl: editedImageUrl.value
+      imageFile: selectedFile.value,
     };
 
     emit('save', updatedData);
