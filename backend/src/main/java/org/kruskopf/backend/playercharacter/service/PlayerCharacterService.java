@@ -111,7 +111,7 @@ public class PlayerCharacterService {
                 throw new UnauthorizedAccessException("User is not the owner of the character");
             }
         } else {
-            if (!isOwner(character, userId) && !isUserGM(character.campaignId(), userId)) {
+            if (!isOwner(character, userId) && !isUserGameMaster(character.campaignId(), userId)) {
                 throw new UnauthorizedAccessException("User is not the owner of the character, nor GM of the campaign");
             }
         }
@@ -128,7 +128,7 @@ public class PlayerCharacterService {
             throw new UnauthorizedAccessException("User does not own this character");
         }
 
-        // Använd mapper för att uppdatera fälten
+        // Use mapper to update fields
         playerCharacterMapper.patchEntity(character, inputDTO);
 
         PlayerCharacter updatedCharacter = playerCharacterRepository.save(character);
@@ -248,7 +248,7 @@ public class PlayerCharacterService {
 
     // helper methods
 
-    private boolean isUserGM(long campaignId, long userId) {
+    private boolean isUserGameMaster(long campaignId, long userId) {
         campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + campaignId));
 
