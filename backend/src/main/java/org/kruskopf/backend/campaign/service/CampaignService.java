@@ -8,8 +8,7 @@ import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.playercharacter.dto.PlayerCharacterOutputDTO;
-import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
+import org.kruskopf.backend.filestorage.FileStorageService;
 import org.kruskopf.backend.playercharacter.service.PlayerCharacterService;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.User;
@@ -18,10 +17,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 public class CampaignService {
@@ -33,12 +33,14 @@ public class CampaignService {
     private final UserService userService;
     private final CampaignUserRepository campaignUserRepository;
     private final PlayerCharacterService playerCharacterService;
+    private final FileStorageService fileStorageService;
 
-    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignUserRepository campaignUserRepository, PlayerCharacterService playerCharacterService) {
+    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignUserRepository campaignUserRepository, PlayerCharacterService playerCharacterService, FileStorageService fileStorageService) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
         this.campaignUserRepository = campaignUserRepository;
         this.playerCharacterService = playerCharacterService;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -139,16 +141,21 @@ public class CampaignService {
     }
 
     @Transactional
-    public CampaignResponseDTO updateCampaignImage(long id, String imageUrl, long currentUserId) {
+    public CampaignResponseDTO uploadCampaignImage(long id, MultipartFile file, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(id);
 
         if (!campaign.isOwnedBy(currentUserId)) {
             throw new UnauthorizedAccessException("Only the campaign owner can update the campaign image");
         }
 
-        campaign.setImageUrl(imageUrl);
-        Campaign savedCampaign = campaignRepository.save(campaign);
-        return mapToResponseDTO(savedCampaign);
+        try {
+            String fileName = fileStorageService.storeFile(file, "campaign_" + id);
+            campaign.setImageUrl("/images/" + fileName);
+            Campaign savedCampaign = campaignRepository.save(campaign);
+            return mapToResponseDTO(savedCampaign);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store file", e);
+        }
     }
 
     // participants management
@@ -203,12 +210,12 @@ public class CampaignService {
             // Verify that all participant IDs to remove are actually participants in the campaign
             List<Long> nonExistingIds = updateDTO.participantIdsToRemove().stream()
                     .filter(participantId -> campaign.getParticipants().stream()
-                            .noneMatch(p -> p.getUser().getId() == participantId))
+                            .noneMatch(p -> p.getUser().getId().equals(participantId)))
                     .toList();
 
             if (!nonExistingIds.isEmpty()) {
                 throw new ResourceNotFoundException("The following users are not participants in the campaign: "
-                                                    + String.join(", ", nonExistingIds.stream().map(String::valueOf).toList()));
+                        + String.join(", ", nonExistingIds.stream().map(String::valueOf).toList()));
             }
 
             // Remove campaign reference from all player characters of the participants to be removed
@@ -314,14 +321,13 @@ public class CampaignService {
             throw new UnauthorizedAccessException("Only the campaign owner can delete the campaign");
         }
 
-    campaign.getParticipants().stream()
-            .map(participant -> participant.getUser().getId())
-            .forEach(userId -> playerCharacterService.removeAllCharactersFromCampaign(userId, id));
+        campaign.getParticipants().stream()
+                .map(participant -> participant.getUser().getId())
+                .forEach(userId -> playerCharacterService.removeAllCharactersFromCampaign(userId, id));
 
 
         campaignRepository.delete(campaign);
     }
-
 
 
     // Helper methods
@@ -381,7 +387,7 @@ public class CampaignService {
     }
 
     /**
-        * For data initialization and testing only
+     * For data initialization and testing only
      */
     @Transactional
     public void createCampaignRaw(Campaign campaign) {

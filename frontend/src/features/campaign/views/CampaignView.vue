@@ -8,6 +8,7 @@ import { useNotificationStore } from '@/stores/notificationStore.js'
 import ImportCharacterModal from '@/features/campaign/components/ImportCharacterModal.vue'
 import CharacterImage from '@/features/character/components/CharacterImage.vue'
 import EditCampaignModal from '@/features/campaign/components/EditCampaignModal.vue'
+import CampaignImage from "@/features/campaign/components/CampaignImage.vue";
 
 const route = useRoute()
 const router = useRouter()
@@ -148,15 +149,15 @@ const handleSaveCampaign = async (updatedCampaign) => {
       description: updatedCampaign.description,
     })
 
-    // Update image URL if it has changed
-    if (updatedCampaign.imageUrl !== campaign.value.imageUrl) {
-      await campaignStore.updateCampaignImage(campaign.value.id, updatedCampaign.imageUrl)
+    // Upload image file if one was selected
+    if (updatedCampaign.imageFile) {
+      const updated = await campaignStore.uploadCampaignImage(campaign.value.id, updatedCampaign.imageFile)
+      campaign.value.imageUrl = updated.imageUrl
     }
 
     // Update local campaign object with edited values
     campaign.value.name = updatedCampaign.title
     campaign.value.description = updatedCampaign.description
-    campaign.value.imageUrl = updatedCampaign.imageUrl
 
     // close the modal
     showEditModal.value = false
@@ -331,14 +332,11 @@ watch(
           </div>
 
           <!-- Campaign image -->
-          <div class="my-3 relative">
-            <img
-              v-if="campaignStore.getCampaignImageUrl(campaign.id)"
-              :src="campaignStore.getCampaignImageUrl(campaign.id)"
-              :alt="campaignStore.getCampaignTitle(campaign.id)"
-              class="w-full h-48 object-cover rounded"
-            />
-          </div>
+          <CampaignImage
+            :src="campaignStore.getCampaignImageUrl(campaign.id)"
+            :alt="campaignStore.getCampaignTitle(campaign.id)"
+            class="w-full h-48 object-cover rounded"
+          />
 
           <!-- Campaign description with line clamp -->
           <div class="mt-3 break-words whitespace-pre-line">

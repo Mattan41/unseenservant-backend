@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -71,13 +72,13 @@ public class CampaignController {
         return ResponseEntity.ok(updatedCampaign);
     }
 
-    @PatchMapping("/{id}/image")
-    public ResponseEntity<CampaignResponseDTO> updateCampaignImage(
+    @PostMapping("/{id}/image")
+    public ResponseEntity<CampaignResponseDTO> uploadCampaignImage(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long id,
-            @RequestBody ImageUpdateDTO imageDTO) {
+            @RequestParam("file") MultipartFile file) {
         Long userId = customUserDetails.user().getId();
-        CampaignResponseDTO updatedCampaign = campaignService.updateCampaignImage(id, imageDTO.imageUrl(), userId);
+        CampaignResponseDTO updatedCampaign = campaignService.uploadCampaignImage(id, file, userId);
         return ResponseEntity.ok(updatedCampaign);
     }
 

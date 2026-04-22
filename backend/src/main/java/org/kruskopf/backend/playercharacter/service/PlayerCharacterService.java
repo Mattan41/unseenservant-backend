@@ -107,11 +107,11 @@ public class PlayerCharacterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + id));
 
         if (character.campaignId() == null) {
-            if (!isOwner(character, userId)) {
+            if (isNotOwner(character, userId)) {
                 throw new UnauthorizedAccessException("User is not the owner of the character");
             }
         } else {
-            if (!isOwner(character, userId) && !isUserGameMaster(character.campaignId(), userId)) {
+            if (isNotOwner(character, userId) && !isUserGameMaster(character.campaignId(), userId)) {
                 throw new UnauthorizedAccessException("User is not the owner of the character, nor GM of the campaign");
             }
         }
@@ -258,8 +258,8 @@ public class PlayerCharacterService {
     }
 
 
-    private boolean isOwner(PlayerCharacterOutputDTO character, long userId) {
-        return character.ownerId().equals(userId);
+    private boolean isNotOwner(PlayerCharacterOutputDTO character, long userId) {
+        return !character.ownerId().equals(userId);
     }
 
 
