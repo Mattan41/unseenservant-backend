@@ -22,11 +22,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initializeAuth() {
-    console.log('Starting auth check...') // LOGGA HÄR
+    console.log('Starting auth check...')
     if (isAuthChecked.value || isInitializing.value) return
 
     if (!token.value) {
-      console.log('No token found, skipping...') // LOGGA HÄR
+      console.log('No token found, skipping...')
       authStatus.value = 'unauthenticated'
       isAuthChecked.value = true
       return
