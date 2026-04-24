@@ -45,7 +45,7 @@ export const useUserStore = defineStore('user', () => {
 
     try {
       const userData = await UserService.fetchUser(userId)
-      // Obs: Detta uppdaterar currentUser - anpassa om du vill hantera andra users annorlunda
+      // Obs: Updates currentUser only
       currentUser.value = userData
       return userData
     } catch (err) {

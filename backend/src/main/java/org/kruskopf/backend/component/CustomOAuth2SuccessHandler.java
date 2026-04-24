@@ -42,15 +42,18 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
     @Value("${FRONTEND_URL}")
     private String frontendUrl;
+    private final String[] allowedOrigins;
 
     public CustomOAuth2SuccessHandler(UserRepository userRepository,
                                       OAuth2AuthorizedClientService authorizedClientService,
                                       EmailWhitelistService emailWhitelistService,
-                                      JwtService jwtService) {
+                                      JwtService jwtService,
+                                      @Value("${ALLOWED_ORIGINS}") String[] allowedOrigins) {
         this.userRepository = userRepository;
         this.authorizedClientService = authorizedClientService;
         this.emailWhitelistService = emailWhitelistService;
         this.jwtService = jwtService;
+        this.allowedOrigins = allowedOrigins;
     }
 
     public void setRestClient(RestClient restClient) {
@@ -102,12 +105,28 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         // Generate JWT token
         String jwtToken = jwtService.generateToken(user);
 
+
+        String origin = request.getHeader("Referer"); // Referer often hold the whole URL
+        if (origin == null || origin.isEmpty()) {
+            origin = request.getHeader("Origin");
+        }
+
+        String dynamicFrontendUrl = frontendUrl; // Default-value is the old frontendUrl
+
+        if (origin != null) {
+            for (String allowed : allowedOrigins) {
+                if (origin.startsWith(allowed)) {
+                    dynamicFrontendUrl = allowed;
+                    break;
+                }
+            }
+        }
+
         // Redirect to frontend with token as query parameter
-        String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth-redirect")
+        String redirectUrl = UriComponentsBuilder.fromUriString(dynamicFrontendUrl + "/oauth-redirect")
                 .queryParam("token", URLEncoder.encode(jwtToken, StandardCharsets.UTF_8))
                 .build()
                 .toUriString();
-
         response.sendRedirect(redirectUrl);
     }
 

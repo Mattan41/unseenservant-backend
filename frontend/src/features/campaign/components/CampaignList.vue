@@ -38,15 +38,6 @@ onMounted(async () => {
                     class="element-link">
           <h3 class="text-lg font-bold break-words">{{ campaignStore.getCampaignTitle(campaign.id) }}</h3>
 
-          <!-- image component -->
-          <!--
-          <div class="my-3">
-            <img v-if="campaignStore.getCampaignImageUrl(campaign.id)"
-                 :src="campaignStore.getCampaignImageUrl(campaign.id)"
-                 :alt="campaignStore.getCampaignTitle(campaign.id)"
-                 class="w-full h-48 object-cover rounded"/>
-          </div>
-        -->
           <CampaignImage
             :src="campaignStore.getCampaignImageUrl(campaign.id)"
             :alt="campaignStore.getCampaignTitle(campaign.id)"
