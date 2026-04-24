@@ -37,7 +37,7 @@ const CampaignService = {
   async uploadCampaignImage(campaignId, imageFile) {
     const formData = new FormData();
     formData.append('file', imageFile);
-    const response = await axios.post(`/api/campaigns/${campaignId}/image`, formData, {
+    const response = await axios.post(`api/campaigns/${campaignId}/image`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
