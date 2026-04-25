@@ -10,10 +10,23 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.upload-dir}")
     private String uploadDir;
 
+    @Value("${ALLOWED_ORIGINS}")
+    private String[] allowedOrigins;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/images/**")
-                .addResourceLocations("file:" + uploadDir + "/");
+                .addResourceLocations("file:" + uploadDir + "/")
+                .setCachePeriod(3600)
+                .resourceChain(true);
+    }
+
+    @Override
+    public void addCorsMappings(org.springframework.web.servlet.config.annotation.CorsRegistry registry) {
+        registry.addMapping("/images/**")
+                .allowedOrigins(allowedOrigins)
+                .allowedMethods("GET")
+                .allowCredentials(true);
     }
 }
 

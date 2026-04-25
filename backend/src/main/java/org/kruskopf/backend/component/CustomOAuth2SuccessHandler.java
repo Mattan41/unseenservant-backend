@@ -146,10 +146,6 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             dynamicFrontendUrl = frontendUrl;
         }
 
-        // Temporary Pi debug
-        System.out.println("DEBUG: Forwarded-Host: " + forwardedHost);
-        System.out.println("DEBUG: Resolved dynamicFrontendUrl: " + dynamicFrontendUrl);
-
         // Redirect to frontend with token as query parameter
         String redirectUrl = UriComponentsBuilder.fromUriString(dynamicFrontendUrl + "/oauth-redirect")
                 .queryParam("token", URLEncoder.encode(jwtToken, StandardCharsets.UTF_8))
