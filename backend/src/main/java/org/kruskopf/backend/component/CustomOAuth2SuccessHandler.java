@@ -105,7 +105,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         // Generate JWT token
         String jwtToken = jwtService.generateToken(user);
 
-        // 1. Check X-Forwarded-Host first ( Nginx/Cloudflare sets this value)
+        // 1. Check X-Forwarded-Host first (Nginx/Cloudflare sets this value)
         String forwardedHost = request.getHeader("X-Forwarded-Host");
         String origin = request.getHeader("Referer");
 
