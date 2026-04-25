@@ -113,7 +113,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             origin = request.getHeader("Origin");
         }
 
-        String dynamicFrontendUrl = frontendUrl; // Default-value
+        String dynamicFrontendUrl = null;
 
         // Prioritise X-Forwarded-Host
         if (forwardedHost != null && !forwardedHost.isEmpty()) {
@@ -122,17 +122,18 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                 protocol = "https";
             }
 
-            String fullForwardedUrl = protocol + "://" + forwardedHost;
+            String cleanHost = forwardedHost.split(":")[0];
+            String fullForwardedUrl = protocol + "://" + cleanHost;
 
             for (String allowed : allowedOrigins) {
-                if (fullForwardedUrl.startsWith(allowed)) {
+                if (fullForwardedUrl.equalsIgnoreCase(allowed)) { // Exakt matchning är säkrare
                     dynamicFrontendUrl = allowed;
                     break;
                 }
             }
         }
         // Fallback on Referer/Origin if X-Forwarded-Host did not yield a match
-        else if (origin != null) {
+        if (dynamicFrontendUrl == null && origin != null) {
             for (String allowed : allowedOrigins) {
                 if (origin.startsWith(allowed)) {
                     dynamicFrontendUrl = allowed;
@@ -140,6 +141,14 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                 }
             }
         }
+
+        if (dynamicFrontendUrl == null) {
+            dynamicFrontendUrl = frontendUrl;
+        }
+
+        // Temporary Pi debug
+        System.out.println("DEBUG: Forwarded-Host: " + forwardedHost);
+        System.out.println("DEBUG: Resolved dynamicFrontendUrl: " + dynamicFrontendUrl);
 
         // Redirect to frontend with token as query parameter
         String redirectUrl = UriComponentsBuilder.fromUriString(dynamicFrontendUrl + "/oauth-redirect")
