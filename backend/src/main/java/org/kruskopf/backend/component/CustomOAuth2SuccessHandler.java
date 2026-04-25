@@ -105,15 +105,34 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         // Generate JWT token
         String jwtToken = jwtService.generateToken(user);
 
+        // 1. Check X-Forwarded-Host first ( Nginx/Cloudflare sets this value)
+        String forwardedHost = request.getHeader("X-Forwarded-Host");
+        String origin = request.getHeader("Referer");
 
-        String origin = request.getHeader("Referer"); // Referer often hold the whole URL
         if (origin == null || origin.isEmpty()) {
             origin = request.getHeader("Origin");
         }
 
-        String dynamicFrontendUrl = frontendUrl; // Default-value is the old frontendUrl
+        String dynamicFrontendUrl = frontendUrl; // Default-value
 
-        if (origin != null) {
+        // Prioritise X-Forwarded-Host
+        if (forwardedHost != null && !forwardedHost.isEmpty()) {
+            String protocol = request.getHeader("X-Forwarded-Proto");
+            if (protocol == null || protocol.isEmpty()) {
+                protocol = "https";
+            }
+
+            String fullForwardedUrl = protocol + "://" + forwardedHost;
+
+            for (String allowed : allowedOrigins) {
+                if (fullForwardedUrl.startsWith(allowed)) {
+                    dynamicFrontendUrl = allowed;
+                    break;
+                }
+            }
+        }
+        // Fallback on Referer/Origin if X-Forwarded-Host did not yield a match
+        else if (origin != null) {
             for (String allowed : allowedOrigins) {
                 if (origin.startsWith(allowed)) {
                     dynamicFrontendUrl = allowed;
