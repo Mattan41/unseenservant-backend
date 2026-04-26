@@ -105,6 +105,13 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         // Generate JWT token
         String jwtToken = jwtService.generateToken(user);
 
+        /* TODO: Refactor redirect URL logic and cleanup
+         Create a private helper method 'findMatchingOrigin(String candidate)' to eliminate redundant loops.
+         Consolidate headers (X-Forwarded-Host, Referer, Origin) into a single resolution flow.
+         Remove 'frontendUrl' dependency once dynamic resolution is verified stable across all environments.
+         Improve GitHub attribute mapping (prefer 'name' over 'login' for display purposes).
+         */
+
         // 1. Check X-Forwarded-Host first (Nginx/Cloudflare sets this value)
         String forwardedHost = request.getHeader("X-Forwarded-Host");
         String origin = request.getHeader("Referer");
@@ -126,7 +133,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             String fullForwardedUrl = protocol + "://" + cleanHost;
 
             for (String allowed : allowedOrigins) {
-                if (fullForwardedUrl.equalsIgnoreCase(allowed)) { // Exakt matchning är säkrare
+                if (fullForwardedUrl.equalsIgnoreCase(allowed)) {
                     dynamicFrontendUrl = allowed;
                     break;
                 }

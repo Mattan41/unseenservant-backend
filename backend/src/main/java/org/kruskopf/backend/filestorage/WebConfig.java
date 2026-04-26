@@ -20,7 +20,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .setCachePeriod(3600)
                 .resourceChain(true);
     }
-
+    // TODO: remove cors here if it is redundant since we have cors in securityconfig
     @Override
     public void addCorsMappings(org.springframework.web.servlet.config.annotation.CorsRegistry registry) {
         registry.addMapping("/images/**")

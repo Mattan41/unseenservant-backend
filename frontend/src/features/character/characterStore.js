@@ -207,7 +207,16 @@ export const useCharacterStore = defineStore('character', {
     },
     getCharacterImageUrl: (state) => (id) => {
       const character = state.characters.find((char) => char.id === id)
-      return character?.imageUrl || '/defaultCharacter.svg'
+      const imageUrl = character?.imageUrl
+      if (!imageUrl) return '/defaultCharacter.svg'
+
+      // Prefix with API URL for relative paths when API is on different domain
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+      if (apiBaseUrl && imageUrl.startsWith('/images/')) {
+        return `${apiBaseUrl}${imageUrl}`
+      }
+
+      return imageUrl
     },
   },
 })
