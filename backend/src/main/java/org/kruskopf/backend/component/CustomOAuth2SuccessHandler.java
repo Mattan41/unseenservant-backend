@@ -1,8 +1,11 @@
 package org.kruskopf.backend.component;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.auth.JwtService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.kruskopf.backend.config.Email;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
@@ -112,39 +115,62 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
          Improve GitHub attribute mapping (prefer 'name' over 'login' for display purposes).
          */
 
-        // 1. Check X-Forwarded-Host first (Nginx/Cloudflare sets this value)
-        String forwardedHost = request.getHeader("X-Forwarded-Host");
-        String origin = request.getHeader("Referer");
-
-        if (origin == null || origin.isEmpty()) {
-            origin = request.getHeader("Origin");
-        }
-
+        // 1. Check cookie set by /api/auth/oauth-init (most reliable for cross-domain flows)
         String dynamicFrontendUrl = null;
-
-        // Prioritise X-Forwarded-Host
-        if (forwardedHost != null && !forwardedHost.isEmpty()) {
-            String protocol = request.getHeader("X-Forwarded-Proto");
-            if (protocol == null || protocol.isEmpty()) {
-                protocol = "https";
-            }
-
-            String cleanHost = forwardedHost.split(":")[0];
-            String fullForwardedUrl = protocol + "://" + cleanHost;
-
-            for (String allowed : allowedOrigins) {
-                if (fullForwardedUrl.equalsIgnoreCase(allowed)) {
-                    dynamicFrontendUrl = allowed;
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("oauth_redirect_origin".equals(cookie.getName())) {
+                    String cookieOrigin = cookie.getValue();
+                    for (String allowed : allowedOrigins) {
+                        if (allowed.equals(cookieOrigin)) {
+                            dynamicFrontendUrl = allowed;
+                            break;
+                        }
+                    }
+                    ResponseCookie clear = ResponseCookie.from("oauth_redirect_origin", "")
+                            .path("/")
+                            .httpOnly(true)
+                            .maxAge(0)
+                            .secure(true)
+                            .sameSite("Lax")
+                            .build();
+                    response.addHeader(HttpHeaders.SET_COOKIE, clear.toString());
                     break;
                 }
             }
         }
-        // Fallback on Referer/Origin if X-Forwarded-Host did not yield a match
-        if (dynamicFrontendUrl == null && origin != null) {
-            for (String allowed : allowedOrigins) {
-                if (origin.startsWith(allowed)) {
-                    dynamicFrontendUrl = allowed;
-                    break;
+
+        // 2. Fallback: X-Forwarded-Host (Nginx sets this value)
+        if (dynamicFrontendUrl == null) {
+            String forwardedHost = request.getHeader("X-Forwarded-Host");
+            if (forwardedHost != null && !forwardedHost.isEmpty()) {
+                String protocol = request.getHeader("X-Forwarded-Proto");
+                if (protocol == null || protocol.isEmpty()) {
+                    protocol = "https";
+                }
+                String fullForwardedUrl = protocol + "://" + forwardedHost.split(":")[0];
+                for (String allowed : allowedOrigins) {
+                    if (fullForwardedUrl.equalsIgnoreCase(allowed)) {
+                        dynamicFrontendUrl = allowed;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback: Referer / Origin header
+        if (dynamicFrontendUrl == null) {
+            String origin = request.getHeader("Referer");
+            if (origin == null || origin.isEmpty()) {
+                origin = request.getHeader("Origin");
+            }
+            if (origin != null) {
+                for (String allowed : allowedOrigins) {
+                    if (origin.startsWith(allowed)) {
+                        dynamicFrontendUrl = allowed;
+                        break;
+                    }
                 }
             }
         }
