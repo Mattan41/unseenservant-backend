@@ -1,8 +1,11 @@
 package org.kruskopf.backend.component;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.auth.JwtService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.kruskopf.backend.config.Email;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
@@ -105,21 +108,75 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         // Generate JWT token
         String jwtToken = jwtService.generateToken(user);
 
+        /* TODO: Refactor redirect URL logic and cleanup
+         Create a private helper method 'findMatchingOrigin(String candidate)' to eliminate redundant loops.
+         Consolidate headers (X-Forwarded-Host, Referer, Origin) into a single resolution flow.
+         Remove 'frontendUrl' dependency once dynamic resolution is verified stable across all environments.
+         Improve GitHub attribute mapping (prefer 'name' over 'login' for display purposes).
+         */
 
-        String origin = request.getHeader("Referer"); // Referer often hold the whole URL
-        if (origin == null || origin.isEmpty()) {
-            origin = request.getHeader("Origin");
-        }
-
-        String dynamicFrontendUrl = frontendUrl; // Default-value is the old frontendUrl
-
-        if (origin != null) {
-            for (String allowed : allowedOrigins) {
-                if (origin.startsWith(allowed)) {
-                    dynamicFrontendUrl = allowed;
+        // 1. Check cookie set by /api/auth/oauth-init (most reliable for cross-domain flows)
+        String dynamicFrontendUrl = null;
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("oauth_redirect_origin".equals(cookie.getName())) {
+                    String cookieOrigin = cookie.getValue();
+                    for (String allowed : allowedOrigins) {
+                        if (allowed.equals(cookieOrigin)) {
+                            dynamicFrontendUrl = allowed;
+                            break;
+                        }
+                    }
+                    ResponseCookie clear = ResponseCookie.from("oauth_redirect_origin", "")
+                            .path("/")
+                            .httpOnly(true)
+                            .maxAge(0)
+                            .secure(true)
+                            .sameSite("Lax")
+                            .build();
+                    response.addHeader(HttpHeaders.SET_COOKIE, clear.toString());
                     break;
                 }
             }
+        }
+
+        // 2. Fallback: X-Forwarded-Host (Nginx sets this value)
+        if (dynamicFrontendUrl == null) {
+            String forwardedHost = request.getHeader("X-Forwarded-Host");
+            if (forwardedHost != null && !forwardedHost.isEmpty()) {
+                String protocol = request.getHeader("X-Forwarded-Proto");
+                if (protocol == null || protocol.isEmpty()) {
+                    protocol = "https";
+                }
+                String fullForwardedUrl = protocol + "://" + forwardedHost.split(":")[0];
+                for (String allowed : allowedOrigins) {
+                    if (fullForwardedUrl.equalsIgnoreCase(allowed)) {
+                        dynamicFrontendUrl = allowed;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback: Referer / Origin header
+        if (dynamicFrontendUrl == null) {
+            String origin = request.getHeader("Referer");
+            if (origin == null || origin.isEmpty()) {
+                origin = request.getHeader("Origin");
+            }
+            if (origin != null) {
+                for (String allowed : allowedOrigins) {
+                    if (origin.startsWith(allowed)) {
+                        dynamicFrontendUrl = allowed;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (dynamicFrontendUrl == null) {
+            dynamicFrontendUrl = frontendUrl;
         }
 
         // Redirect to frontend with token as query parameter

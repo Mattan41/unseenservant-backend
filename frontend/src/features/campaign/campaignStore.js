@@ -331,9 +331,10 @@ export const useCampaignStore = defineStore('campaign', {
       const imageUrl = campaign?.imageUrl
       if (!imageUrl) return '/default-campaign.svg'
 
-      // Prefix with API URL in dev-mode for relative paths
-      if (import.meta.env.DEV && imageUrl.startsWith('/images/')) {
-        return `${import.meta.env.VITE_API_BASE_URL}${imageUrl}`
+      // Prefix with API URL for relative paths when API is on different domain
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+      if (apiBaseUrl && imageUrl.startsWith('/images/')) {
+        return `${apiBaseUrl}${imageUrl}`
       }
 
       return imageUrl
