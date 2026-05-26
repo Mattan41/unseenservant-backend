@@ -1,13 +1,15 @@
+version: '3.8'
+
 services:
   mysql:
     image: mysql:8.0.42
     container_name: my-mysql
     restart: unless-stopped
     environment:
-      - 'MYSQL_DATABASE=mydatabase'
-      - 'MYSQL_PASSWORD=secret'
-      - 'MYSQL_ROOT_PASSWORD=verysecret'
-      - 'MYSQL_USER=myuser'
+      - MYSQL_DATABASE=mydatabase
+      - MYSQL_PASSWORD=secret
+      - MYSQL_ROOT_PASSWORD=verysecret
+      - MYSQL_USER=myuser
     ports:
       - "3306:3306"
     healthcheck:
@@ -19,13 +21,11 @@ services:
       - mysql-data:/var/lib/mysql
 
   backend:
-    build: ./backend
+    image: mattan41/unseenservant-backend:latest
     container_name: my-backend
     restart: unless-stopped
     ports:
       - "8080:8080"
-    env_file:
-      - ./backend/.env
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mydatabase
@@ -44,14 +44,13 @@ services:
       - uploads-data:/app/uploads/character-images
 
   nginx:
-    build: ./frontend
+    image: mattan41/unseenservant-frontend:latest
     container_name: my-nginx
     restart: unless-stopped
     depends_on:
       - backend
     ports:
       - "80:80"
-    #  - "443:443"
 
   cloudflared:
     image: cloudflare/cloudflared:latest

@@ -83,12 +83,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- CRaC (Let Spring Boot handle version) -->
-        <dependency>
-            <groupId>org.crac</groupId>
-            <artifactId>crac</artifactId>
-        </dependency>
-
         <!-- JWT Support -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
