@@ -45,7 +45,7 @@ GITHUB_SECRET=your-github-oauth-secret
 
 Since the project includes a `compose.yaml` file, modern IDEs like IntelliJ IDEA will automatically spin up the MySQL container for you when you run the application.
 
-*(Tip: You can just press "Run" inside IntelliJ IDEA with the `develop` profile active).*
+*(You can just press "Run" inside IntelliJ IDEA with the `develop` profile active).*
 
 If you are running from the terminal, start the database first:
 
