@@ -18,7 +18,7 @@ import java.util.Map;
 @RequestMapping("/api/users")
 public class UserController {
 
-    public UserService userService;
+    public final UserService userService;
 
     // todo: add @PreAuthorize on relevant endpoints
     public UserController(UserService userService) {
@@ -35,7 +35,7 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
-// preauthorize that only the logged in user can access their own data
+// preauthorize that only the logged-in user can access their own data
     @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getLoggedInUser(@AuthenticationPrincipal CustomUserDetails customUserDetails) {

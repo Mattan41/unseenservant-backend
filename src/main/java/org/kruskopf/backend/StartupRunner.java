@@ -36,13 +36,13 @@ public class StartupRunner implements CommandLineRunner {
 
     @Override
     @Transactional
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         // Create users
-        createUserIfNotExists("Mattan", "password", "Mats Kruskopf", "krishopf@gmail.com", "123456");
-        createUserIfNotExists("Mats", "password", "Mats Kruskopf Eriksson", "mats.fpoksurk@gmail.com", "654321");
-        createUserIfNotExists("User1", "password", "User One", "user1@example.com", "111111");
-        createUserIfNotExists("User2", "password", "User Two", "user2@example.com", "222222");
-        createUserIfNotExists("User3", "password", "User Three", "user3@example.com", "333333");
+        createUserIfNotExists("Mattan", "Mats Kruskopf", "krishopf@gmail.com", "123456");
+        createUserIfNotExists("Mats", "Mats Kruskopf Eriksson", "mats.fpoksurk@gmail.com", "654321");
+        createUserIfNotExists("User1", "User One", "user1@example.com", "111111");
+        createUserIfNotExists("User2", "User Two", "user2@example.com", "222222");
+        createUserIfNotExists("User3", "User Three", "user3@example.com", "333333");
 
 
         // Create admin user
@@ -185,11 +185,11 @@ public class StartupRunner implements CommandLineRunner {
         return campaign1;
     }
 
-    private void createUserIfNotExists(String userName, String password, String fullName, String email, String providerId) {
+    private void createUserIfNotExists(String userName, String fullName, String email, String providerId) {
         if (userService.findByUserName(userName) == null) {
             User user = new User();
             user.setUserName(userName);
-            user.setPassword(password);
+            user.setPassword("password");
             user.setFullName(fullName);
             user.setEmail(email);
             user.setRole(UserRole.USER);

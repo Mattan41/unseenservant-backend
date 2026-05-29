@@ -24,7 +24,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 public abstract class AbstractIntegrationTest {
 
     // Subclasses inherit:
-    // - Testcontainer MySQL setup
+    // - Test container MySQL setup
     // - Test profile configuration
     // - Full Spring Security context
     // - Transaction management

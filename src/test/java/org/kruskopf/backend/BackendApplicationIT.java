@@ -31,7 +31,7 @@ class BackendApplicationIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("MySQL Testcontainer should be running")
+    @DisplayName("MySQL Test container should be running")
     void mysqlContainerIsRunning() {
         MySQLContainer<?> container = applicationContext.getBean(MySQLContainer.class);
         assertThat(container).isNotNull();

@@ -77,7 +77,7 @@ public class User {
         setPassword(password);
     }
     // getters and setters
-    // todo: remove setters that are unnesesary and could be a security risk
+    // todo: remove setters that are unesesary and could be a security risk
 
     public void setId(Long id) {
         this.id = id;

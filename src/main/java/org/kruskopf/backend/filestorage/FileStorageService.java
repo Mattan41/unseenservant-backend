@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -26,7 +27,7 @@ public class FileStorageService {
      * @param filePrefix Prefix for the file name
      * @return The generated file name
      * @throws IOException If an error occurs while saving the file
-     * @throws IllegalArgumentException If the file is invalid or exceeds size limit
+     * @throws IllegalArgumentException If the file is invalid or exceeds the size limit
      */
     public String storeFile(MultipartFile file, String filePrefix) throws IOException {
 
@@ -35,7 +36,7 @@ public class FileStorageService {
         // Create a unique file name to avoid overwriting existing files
         String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
         String fileExtension = getFileExtension(originalFileName);
-        String fileName = filePrefix + "_" + UUID.randomUUID().toString() + fileExtension;
+        String fileName = filePrefix + "_" + UUID.randomUUID() + fileExtension;
 
         // Create the upload directory if it doesn't exist
         Path uploadPath = Paths.get(uploadDir);
@@ -56,7 +57,7 @@ public class FileStorageService {
      * Validate that the uploaded file is a valid image file and meets the size requirements.
      *
      * @param file The file that is being uploaded
-     * @throws IllegalArgumentException if the file is empty, exceeds size limit, or is not a valid image type
+     * @throws IllegalArgumentException if the file is empty, exceeds the size limit, or is not a valid image type
      */
     private void validateImageFile(MultipartFile file) {
 
