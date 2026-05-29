@@ -1,5 +1,6 @@
 package org.kruskopf.backend.filestorage;
 
+import org.kruskopf.backend.exception.InvalidFileFormatException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -12,91 +13,123 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Service responsible for handling file uploads, validation, and storage on the server.
+ */
 @Service
 public class FileStorageService {
+
     @Value("${file.upload-dir}")
     private String uploadDir;
 
+    // Define allowed MIME types centrally
+    private static final List<String> ALLOWED_IMAGE_TYPES = Arrays.asList(
+            "image/jpeg", "image/png", "image/gif", "image/webp"
+    );
+
+    private static final List<String> ALLOWED_DOC_TYPES = Arrays.asList(
+            "application/pdf", "text/plain", "application/json"
+    );
+
     /**
-     * Saves a file to the server after validating it.
+     * Saves a file to the server after validating it against a specific category.
      *
-     * @param file File that is being uploaded
-     * @param filePrefix Prefix for the file name
-     * @return The generated file name
-     * @throws IOException If an error occurs while saving the file
-     * @throws IllegalArgumentException If the file is invalid or exceeds the size limit
+     * @param file             The multipart file being uploaded
+     * @param filePrefix       Prefix for the generated unique filename (e.g., "character", "campaign")
+     * @param expectedCategory The expected file category ("IMAGE" or "DOCUMENT")
+     * @return The unique generated filename
+     * @throws IOException                If an error occurs while writing the file to disk
+     * @throws InvalidFileFormatException If the file is empty, too large, or has an invalid format
+     * @throws IllegalArgumentException  If an unrecognized category is provided
      */
-    public String storeFile(MultipartFile file, String filePrefix) throws IOException {
+    public String storeFile(MultipartFile file, String filePrefix, String expectedCategory) throws IOException {
 
-        validateImageFile(file);
+        // 1. Generic validation (size and presence)
+        validateGenericFile(file);
 
-        // Create a unique file name to avoid overwriting existing files
+        // 2. Category-specific MIME type validation
+        if ("IMAGE".equalsIgnoreCase(expectedCategory)) {
+            validateImageMimeType(file);
+        } else if ("DOCUMENT".equalsIgnoreCase(expectedCategory)) {
+            validateDocumentMimeType(file);
+        } else {
+            throw new IllegalArgumentException("Unknown file category: " + expectedCategory);
+        }
+
+        // 3. Generate a unique filename to prevent overwriting existing assets
         String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
         String fileExtension = getFileExtension(originalFileName);
         String fileName = filePrefix + "_" + UUID.randomUUID() + fileExtension;
 
-        // Create the upload directory if it doesn't exist
+        // Ensure target directory exists
         Path uploadPath = Paths.get(uploadDir);
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }
 
-        // Copy the file to the target location
+        // Copy file to target destination
         Path targetLocation = uploadPath.resolve(fileName);
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
-        System.out.println("File stored at: " + targetLocation);
-        System.out.println("File name: " + fileName);
         return fileName;
     }
 
     /**
-     * Validate that the uploaded file is a valid image file and meets the size requirements.
+     * Performs generic validations applicable to all uploaded files.
      *
-     * @param file The file that is being uploaded
-     * @throws IllegalArgumentException if the file is empty, exceeds the size limit, or is not a valid image type
+     * @param file The multipart file to validate
+     * @throws InvalidFileFormatException If the file is empty or exceeds the 5MB size limit
      */
-    private void validateImageFile(MultipartFile file) {
-
+    private void validateGenericFile(MultipartFile file) {
         if (file.isEmpty()) {
-            throw new IllegalArgumentException("Cannot upload empty file");
+            throw new InvalidFileFormatException("Cannot upload empty file");
         }
 
-        // File size validation maximum 5MB
+        // Enforce a maximum file size limit of 5MB
         if (file.getSize() > 5 * 1024 * 1024) {
-            throw new IllegalArgumentException("File size exceeds maximum limit of 5MB");
-        }
-
-        // Validate MIME type
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new IllegalArgumentException("Only image files are allowed");
-        }
-
-        // Only allow specific image types
-        List<String> allowedTypes = Arrays.asList(
-                "image/jpeg", "image/png", "image/gif", "image/webp"
-        );
-
-        if (!allowedTypes.contains(contentType)) {
-            throw new IllegalArgumentException("Only JPEG, PNG, GIF and WEBP images are allowed");
+            throw new InvalidFileFormatException("File size exceeds maximum limit of 5MB");
         }
     }
 
     /**
-     * Extracts the file extension from the given filename.
+     * Validates that the file has a permitted image MIME type.
      *
-     * @param fileName File name
-     * @return File extension including the dot (e.g., ".jpg", ".png")
+     * @param file The multipart file to validate
+     * @throws InvalidFileFormatException If the MIME type is missing or not allowed for images
+     */
+    private void validateImageMimeType(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
+            throw new InvalidFileFormatException("Only JPEG, PNG, GIF and WEBP images are allowed");
+        }
+    }
+
+    /**
+     * Validates that the file has a permitted document MIME type.
+     *
+     * @param file The multipart file to validate
+     * @throws InvalidFileFormatException If the MIME type is missing or not allowed for documents
+     */
+    private void validateDocumentMimeType(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_DOC_TYPES.contains(contentType)) {
+            throw new InvalidFileFormatException("Only PDF, TXT and JSON documents are allowed");
+        }
+    }
+
+    /**
+     * Extracts the file extension including the leading dot from a filename.
+     *
+     * @param fileName The clean path filename
+     * @return The file extension (e.g., ".png", ".pdf") or an empty string if none is found
      */
     private String getFileExtension(String fileName) {
         int lastIndexOfDot = fileName.lastIndexOf(".");
         if (lastIndexOfDot > 0) {
             return fileName.substring(lastIndexOfDot);
         }
-        return ""; // No extension found
+        return "";
     }
 }

@@ -149,7 +149,7 @@ public class CampaignService {
         }
 
         try {
-            String fileName = fileStorageService.storeFile(file, "campaign_" + id);
+            String fileName = fileStorageService.storeFile(file, "campaign_" + id, "IMAGE");
             campaign.setImageUrl("/images/" + fileName);
             Campaign savedCampaign = campaignRepository.save(campaign);
             return mapToResponseDTO(savedCampaign);
