@@ -4,16 +4,18 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.auth.JwtService;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.kruskopf.backend.config.Email;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
-import org.kruskopf.backend.user.repository.UserRepository;
+import org.kruskopf.backend.user.service.UserService;
 import org.kruskopf.backend.whitelist.EmailWhitelistService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -26,6 +28,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +41,9 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 @Component
 public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
-    private final UserRepository userRepository;
+    private static final Logger log = LoggerFactory.getLogger(CustomOAuth2SuccessHandler.class);
+
+    private final UserService userService;
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final EmailWhitelistService emailWhitelistService;
     private final JwtService jwtService;
@@ -47,13 +54,13 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     private String frontendUrl;
     private final String[] allowedOrigins;
 
-    public CustomOAuth2SuccessHandler(UserRepository userRepository,
-                                      OAuth2AuthorizedClientService authorizedClientService,
+    public CustomOAuth2SuccessHandler(@Lazy UserService userService,
+                                      ObjectProvider<OAuth2AuthorizedClientService> authorizedClientServiceProvider,
                                       EmailWhitelistService emailWhitelistService,
                                       JwtService jwtService,
                                       @Value("${ALLOWED_ORIGINS}") String[] allowedOrigins) {
-        this.userRepository = userRepository;
-        this.authorizedClientService = authorizedClientService;
+        this.userService = userService;
+        this.authorizedClientService = authorizedClientServiceProvider.getIfAvailable();
         this.emailWhitelistService = emailWhitelistService;
         this.jwtService = jwtService;
         this.allowedOrigins = allowedOrigins;
@@ -94,16 +101,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         UserRole role = emailWhitelistService.getEmailRole(email)
                 .orElse(UserRole.USER);
 
-        User user = userRepository.findByProviderId(providerId)
-                .orElseGet(() -> userRepository.save(new User(
-                        providerId,
-                        providerType,
-                        email,
-                        name,
-                        email,
-                        role,
-                        "password"
-                )));
+        User user = userService.findOrCreateOAuthUser(providerId, providerType, email, name, role);
 
         // Generate JWT token
         String jwtToken = jwtService.generateToken(user);
@@ -234,7 +232,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
     @Retryable
     public List<Email> getEmails(OAuth2AccessToken accessToken) {
-        System.out.println("Getting emails from GitHub...");
+        log.debug("Fetching email addresses from GitHub API");
         return restClient.get()
                 .uri("https://api.github.com/user/emails")
                 .headers(headers -> headers.setBearerAuth(accessToken.getTokenValue()))

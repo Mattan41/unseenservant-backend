@@ -54,24 +54,6 @@ public class PlayerCharacterService {
 
         return playerCharacterMapper.toOutputDTO(savedCharacter);
     }
-    // Only for test/dummy data with startuprunner
-    public PlayerCharacterOutputDTO createCharacterFromDto(PlayerCharacterInputDTO inputDTO) {
-        User owner = userRepository.findById(inputDTO.ownerId())
-                .orElseThrow(() ->  new ResourceNotFoundException("User not found with id: " + inputDTO.ownerId()));
-
-        Campaign campaign = null;
-        if (inputDTO.campaignId() != null) {
-            campaign = campaignRepository.findById(inputDTO.campaignId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + inputDTO.campaignId()));
-        }
-
-        PlayerCharacter character = playerCharacterMapper.toEntity(inputDTO, owner, campaign);
-        PlayerCharacter savedCharacter = playerCharacterRepository.save(character);
-
-        return playerCharacterMapper.toOutputDTO(savedCharacter);
-    }
-
-
 
     public List<PlayerCharacterOutputDTO> getAllCharacters() {
         return playerCharacterRepository.findAll()
@@ -224,6 +206,8 @@ public class PlayerCharacterService {
      *
      * @param userId     The ID of the user whose characters should be disassociated from the campaign
      * @param campaignId The ID of the campaign from which to remove the character associations
+     * {@code @todo} Refactor to an event-driven model (e.g., listening for a record CharacterRemovedFromCampaignEvent)
+     * in the next architectural cleanup to fully decouple the services and remove this public method.
      */
     @Transactional
     public void removeAllCharactersFromCampaign(long userId, long campaignId) {

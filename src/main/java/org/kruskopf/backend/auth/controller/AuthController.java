@@ -1,18 +1,20 @@
 package org.kruskopf.backend.auth.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.kruskopf.backend.auth.JwtService;
 import org.kruskopf.backend.auth.dto.AuthDTO;
+import org.kruskopf.backend.auth.dto.LoginRequest;
 import org.kruskopf.backend.user.CustomUserDetails;
+import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -22,8 +24,42 @@ import java.util.Set;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private final UserRepository userRepository; // Justera paketnamn om det behövs
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
     @Value("${ALLOWED_ORIGINS}")
     private String[] allowedOrigins;
+
+    public AuthController(UserRepository userRepository,
+                          PasswordEncoder passwordEncoder,
+                          JwtService jwtService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+    }
+
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
+        var user = userRepository.findByUserName(loginRequest.username())
+                .orElseThrow(() -> new org.springframework.security.authentication.BadCredentialsException("Invalid username or password"));
+
+        if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
+            throw new org.springframework.security.authentication.BadCredentialsException("Invalid username or password");
+        }
+
+        String token = jwtService.generateToken(user);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .body(new org.kruskopf.backend.auth.dto.AuthDTO(
+                        user.getId(),
+                        user.getUserName(),
+                        user.getEmail(),
+                        user.getRole().name()
+                ));
+    }
 
     @GetMapping("/oauth-init")
     public void initiateOAuth(

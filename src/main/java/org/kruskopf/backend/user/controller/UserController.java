@@ -4,6 +4,7 @@ import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.User;
+import org.kruskopf.backend.user.entity.UserRole;
 import org.kruskopf.backend.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,6 @@ public class UserController {
 
     public final UserService userService;
 
-    // todo: add @PreAuthorize on relevant endpoints
     public UserController(UserService userService) {
         this.userService = userService;
     }
@@ -35,19 +35,16 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
-// preauthorize that only the logged-in user can access their own data
     @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getLoggedInUser(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
-
-        String email = customUserDetails.getUsername(); // uses the email which is unique
-        User user = userService.findByUserName(email);
+        Long userId = customUserDetails.user().getId();
+        User user = userService.findById(userId).orElse(null);
 
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
-        // Convert User to UserDTO before returning
         UserDTO userDTO = userService.toDTO(user);
         return ResponseEntity.ok(userDTO);
     }
@@ -55,7 +52,6 @@ public class UserController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<UserDTO> getUser(@PathVariable Long id) {
-
         User user = userService.findById(id).orElse(null);
 
         if (user == null) {
@@ -67,23 +63,19 @@ public class UserController {
 
     @PreAuthorize("hasRole('ROLE_USER')")
     @PatchMapping("/{id}")
-    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+    public ResponseEntity<UserDTO> updateUser(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updates,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        boolean isAdmin = currentUser.user().getRole() == UserRole.ADMIN;
+        if (!currentUser.user().getId().equals(id) && !isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         User updatedUser = userService.partialUpdate(id, updates)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         UserDTO userDTO = userService.toDTO(updatedUser);
-
         return ResponseEntity.ok(userDTO);
     }
-
-
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_USER')")
-    public ResponseEntity<User> updateProfile(@PathVariable Long id, @RequestBody User user) {
-        return userService.update(id, user)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-
-
 }
