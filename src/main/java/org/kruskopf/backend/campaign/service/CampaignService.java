@@ -112,7 +112,7 @@ public class CampaignService {
 
         Campaign campaign = findCampaignOrThrow(campaignId);
 
-        // check if user is participant by searching thh campaign_user table
+        // check if user is participant by searching the campaign_user table
         boolean isParticipant = campaignUserRepository.existsByCampaignIdAndUserId(campaignId, userId);
 
         if (isParticipant)
@@ -149,7 +149,7 @@ public class CampaignService {
         }
 
         try {
-            String fileName = fileStorageService.storeFile(file, "campaign_" + id);
+            String fileName = fileStorageService.storeFile(file, "campaign_" + id, "IMAGE");
             campaign.setImageUrl("/images/" + fileName);
             Campaign savedCampaign = campaignRepository.save(campaign);
             return mapToResponseDTO(savedCampaign);
@@ -158,7 +158,7 @@ public class CampaignService {
         }
     }
 
-    // participants management
+    // participant management
     @Transactional
     public CampaignResponseDTO updateParticipants(long campaignId, UpdateParticipantsDTO updateDTO, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(campaignId);
@@ -336,7 +336,7 @@ public class CampaignService {
         CampaignRole effectiveRole;
         try {
             effectiveRole = (participantDTO.role() == null || participantDTO.role().isBlank())
-                    ? CampaignRole.PLAYER // Standardroll
+                    ? CampaignRole.PLAYER // Standard role
                     : CampaignRole.valueOf(participantDTO.role());
         } catch (IllegalArgumentException e) {
             logger.warn("Invalid role specified: {}. Using PLAYER as default.", participantDTO.role());

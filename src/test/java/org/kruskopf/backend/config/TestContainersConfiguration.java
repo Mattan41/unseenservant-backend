@@ -8,7 +8,7 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- * Test configuration that provides a MySQL Testcontainer for integration tests.
+ * Test configuration that provides a MySQL Test container for integration tests.
  * <p>
  * Spring Boot 3.1+ automatically configures DataSource from @ServiceConnection.
  * The container is reused between tests for better performance.

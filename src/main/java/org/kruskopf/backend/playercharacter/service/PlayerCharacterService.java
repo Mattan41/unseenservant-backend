@@ -144,7 +144,7 @@ public class PlayerCharacterService {
         }
 
         try {
-            String fileName = fileStorageService.storeFile(file, "character_" + characterId);
+            String fileName = fileStorageService.storeFile(file, "character_" + characterId, "IMAGE");
             character.setImageUrl("/images/" + fileName);
             PlayerCharacter savedCharacter = playerCharacterRepository.save(character);
             return playerCharacterMapper.toOutputDTO(savedCharacter);

@@ -28,7 +28,7 @@ public class WhitelistLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // Lägg till initial whitelist-data om tabellen är tom
+        // Add initial whitelist data if the table is empty
         if (whitelistRepository.count() == 0) {
             // Admins
             adminWhitelist.forEach(email ->

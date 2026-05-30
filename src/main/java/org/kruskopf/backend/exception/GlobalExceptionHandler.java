@@ -21,6 +21,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidFileFormatException.class)
+    public ResponseEntity<String> handleInvalidFileFormatException(InvalidFileFormatException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
     @ExceptionHandler(UniqueConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleUniqueConstraintViolation(UniqueConstraintViolationException ex) {
         Map<String, Object> response = new HashMap<>();

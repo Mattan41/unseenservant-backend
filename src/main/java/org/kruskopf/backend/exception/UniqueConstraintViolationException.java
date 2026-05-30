@@ -3,7 +3,7 @@ package org.kruskopf.backend.exception;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@ResponseStatus(HttpStatus.CONFLICT)  // 409 Conflict är lämplig för dubblettvärden
+@ResponseStatus(HttpStatus.CONFLICT)  // 409 Conflict is adequate for duplicate values
 public class UniqueConstraintViolationException extends RuntimeException {
 
     private final String field;
