@@ -2,7 +2,6 @@ package org.kruskopf.backend.user.service;
 
 import org.kruskopf.backend.exception.UniqueConstraintViolationException;
 import org.kruskopf.backend.user.dto.UserDTO;
-import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -10,8 +9,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import static org.kruskopf.backend.user.entity.UserRole.ADMIN;
 
 @Service
 public class UserService {
@@ -34,17 +31,6 @@ public class UserService {
 
     public User save(User user) {
         return userRepository.save(user);
-    }
-
-    public User createAdminUser(String userName, String email, String password, String providerId, ProviderType providerType) {
-        User admin = new User();
-        admin.setProviderId(providerId);
-        admin.setProviderType(providerType);
-        admin.setUserName(userName);
-        admin.setEmail(email);
-        admin.setPassword(password);
-        admin.setRole(ADMIN);
-        return userRepository.save(admin);
     }
 
     public Optional<User> findById(long id) {

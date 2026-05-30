@@ -346,9 +346,11 @@ public class CampaignService {
     }
 
     private static String getEffectiveNickname(ParticipantResponseDTO participantDTO, User user) {
-        return (participantDTO.nickname() == null || participantDTO.nickname().isBlank())
-                ? UserDTO.fromUser(user).displayName()
-                : participantDTO.nickname();
+        if (participantDTO.nickname() != null && !participantDTO.nickname().isBlank()) {
+            return participantDTO.nickname();
+        }
+        String displayName = UserDTO.fromUser(user).displayName();
+        return displayName != null && !displayName.isBlank() ? displayName : user.getUserName();
     }
 
     private Campaign findCampaignOrThrow(long id) {

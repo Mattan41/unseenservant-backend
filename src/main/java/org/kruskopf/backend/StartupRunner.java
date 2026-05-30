@@ -38,25 +38,20 @@ public class StartupRunner implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         // Create users
-        createUserIfNotExists("Mattan", "Mats Kruskopf", "krishopf@gmail.com", "123456");
-        createUserIfNotExists("Mats", "Mats Kruskopf Eriksson", "mats.fpoksurk@gmail.com", "654321");
-        createUserIfNotExists("User1", "User One", "user1@example.com", "111111");
-        createUserIfNotExists("User2", "User Two", "user2@example.com", "222222");
-        createUserIfNotExists("User3", "User Three", "user3@example.com", "333333");
-
-
-        // Create admin user
-        if (userService.findByUserName("admin") == null) {
-            userService.createAdminUser("admin", "admin@admin.se", "admin", "000000", ProviderType.GITHUB);
-        }
+        createUserIfNotExists("User4", "User Four", "user4@example.com", "123456", UserRole.USER, ProviderType.GOOGLE);
+        createUserIfNotExists("User5", "User Five", "user5@example.com", "654321", UserRole.USER, ProviderType.GOOGLE);
+        createUserIfNotExists("User1", "User One", "user1@example.com", "111111", UserRole.USER, ProviderType.GOOGLE);
+        createUserIfNotExists("User2", "User Two", "user2@example.com", "222222", UserRole.USER, ProviderType.GOOGLE);
+        createUserIfNotExists("User3", "User Three", "user3@example.com", "333333", UserRole.USER, ProviderType.GOOGLE);
+        createUserIfNotExists("admin", "Admin", "admin@admin.se", "000000", UserRole.ADMIN, ProviderType.GITHUB);
 
 
         // Create and save campaigns
         if (campaignService.getAllCampaignsRaw().isEmpty()) {
 
             // Retrieve users
-            User user1 = userService.findByUserName("Mattan");
-            User user2 = userService.findByUserName("Mats");
+            User user1 = userService.findByUserName("User4");
+            User user2 = userService.findByUserName("User5");
             User user3 = userService.findByUserName("User1");
             User user4 = userService.findByUserName("User2");
 
@@ -123,19 +118,19 @@ public class StartupRunner implements CommandLineRunner {
         Campaign campaign3 = new Campaign("Campaign 3",
                 """
                         In the age of steam and gears, the Iron Colossus cuts through rugged mountain passes and
-                        sprawling industrial cities—an unstoppable marvel of clockwork engineering. Tonight, its
+                        sprawling industrial cities?an unstoppable marvel of clockwork engineering. Tonight, its
                         armored compartments carry not just passengers and freight, but a mysterious cargo rumored
-                        to change the fate of the Empire. As the city’s skyline vanishes in a cloud of smoke,
+                        to change the fate of the Empire. As the city?s skyline vanishes in a cloud of smoke,
                         your crew boards the train with one goal: seize the prize before rivals, lawmen,
                         or deadly automata claim it for themselves.
                         
                         Whistles scream, pistons thunder, and the race is on across perilous trestle bridges and volatile territories.
-                        Every car holds secrets— cunning adversaries, exotic machinery, and deadly traps.
+                        Every car holds secrets? cunning adversaries, exotic machinery, and deadly traps.
                         Will you outsmart the authorities, outfight mercenaries, and outpace the opposition,
                         or will the Iron Colossus become your tomb beneath the relentless steam and steel?
                         """);
-        campaign3.setCreatedBy("Mats");
-        campaign3.setLastModifiedBy("Mats");
+        campaign3.setCreatedBy("User5");
+        campaign3.setLastModifiedBy("User5");
         campaign3.setOwner(user2);
         campaign3.setImageUrl("https://slyflourish.com/images/eberron_warforged.jpg");
         return campaign3;
@@ -149,10 +144,10 @@ public class StartupRunner implements CommandLineRunner {
                  Urban Adventure: Explore a vibrant city teeming with intrigue, hidden societies, eccentric professors, and shifting alliances.
                  Roleplay & Social Encounters: Forge alliances, interrogate suspects, and navigate the political landscape of scholars, nobles, and underground factions.
                  Skill-Based Challenges: Success will depend not just on combat prowess, but also on investigation, stealth, persuasion, and strategy.
-                 Dynamic Consequences: Choices matter—a trusting word or a misstep could change the course of your investigation, and the fate of Lundenwic itself.
+                 Dynamic Consequences: Choices matter?a trusting word or a misstep could change the course of your investigation, and the fate of Lundenwic itself.
                 """);
-        campaign2.setCreatedBy("Mats");
-        campaign2.setLastModifiedBy("Mats");
+        campaign2.setCreatedBy("User5");
+        campaign2.setLastModifiedBy("User5");
         campaign2.setOwner(user2);
         campaign2.setImageUrl("https://c4.wallpaperflare.com/wallpaper/925/634/481/league-of-legends-bilgewater-fantasy-art-pirates-wallpaper-preview.jpg");
         return campaign2;
@@ -160,7 +155,7 @@ public class StartupRunner implements CommandLineRunner {
 
     private static Campaign getCampaign1(User user1) {
         Campaign campaign1 = new Campaign("Curse of Strahd", """
-                 Under the light of the full moon, the small town of Barovia is plagued by the evil forces of Count Strahd von Zarovich. Shadows twist through cobblestone streets and forgotten forests, as villagers lock their doors and whisper prayers against the night. Ancient secrets stir beneath the mist, hungry for the return of past glories. The cries of the oppressed echo through the valleys, while Strahd’s undead minions roam freely, enforcing the will of their lord. Hope is a rare commodity in Barovia, and the line between friend and foe is often blurred. Only the bravest souls dare to stand against the darkness and confront the mysteries it conceals.
+                 Under the light of the full moon, the small town of Barovia is plagued by the evil forces of Count Strahd von Zarovich. Shadows twist through cobblestone streets and forgotten forests, as villagers lock their doors and whisper prayers against the night. Ancient secrets stir beneath the mist, hungry for the return of past glories. The cries of the oppressed echo through the valleys, while Strahd?s undead minions roam freely, enforcing the will of their lord. Hope is a rare commodity in Barovia, and the line between friend and foe is often blurred. Only the bravest souls dare to stand against the darkness and confront the mysteries it conceals.
                 
                  What Players Can Expect:
                 
@@ -171,29 +166,29 @@ public class StartupRunner implements CommandLineRunner {
                  Roleplay Opportunities: Interact with a variety of unique NPCs, each with their own agendas and secrets. Your decisions will shape the fate of Barovia.
                  Table Guidelines:
                 
-                 Respect & Inclusivity: This campaign is a safe space for everyone. Discrimination, harassment, and exclusion will not be tolerated. Respect each other’s boundaries and perspectives.
+                 Respect & Inclusivity: This campaign is a safe space for everyone. Discrimination, harassment, and exclusion will not be tolerated. Respect each other?s boundaries and perspectives.
                  Session Pacing: We aim for a balance between action, exploration, and roleplay. Voice any preferences to ensure everyone has fun.
-                 Communication: If you’re ever uncomfortable with a scene, mechanic, or topic, please let the DM know—either in-game or privately. We use the X-card system for safety.
-                 Punctuality: Please arrive on time and notify the group if you’ll be late or absent.
-                 Game Etiquette: Pay attention when it’s not your turn, avoid distracting side conversations, and minimize phone use during sessions.
+                 Communication: If you?re ever uncomfortable with a scene, mechanic, or topic, please let the DM know?either in-game or privately. We use the X-card system for safety.
+                 Punctuality: Please arrive on time and notify the group if you?ll be late or absent.
+                 Game Etiquette: Pay attention when it?s not your turn, avoid distracting side conversations, and minimize phone use during sessions.
                  Have Fun: Remember, the goal is collective storytelling and enjoyment. Support your fellow players and embrace the horror-adventure together!
                 """);
-        campaign1.setCreatedBy("Mattan");
-        campaign1.setLastModifiedBy("Mattan");
+        campaign1.setCreatedBy("User4");
+        campaign1.setLastModifiedBy("User4");
         campaign1.setOwner(user1);
         campaign1.setImageUrl("https://www.dndbeyond.com/attachments/8/220/cos-cover-4k.jpg");
         return campaign1;
     }
 
-    private void createUserIfNotExists(String userName, String fullName, String email, String providerId) {
+    private void createUserIfNotExists(String userName, String fullName, String email, String providerId, UserRole role, ProviderType providerType) {
         if (userService.findByUserName(userName) == null) {
             User user = new User();
             user.setUserName(userName);
             user.setPassword("password");
             user.setFullName(fullName);
             user.setEmail(email);
-            user.setRole(UserRole.USER);
-            user.setProviderType(ProviderType.GOOGLE);
+            user.setRole(role);
+            user.setProviderType(providerType);
             user.setProviderId(providerId);
             userService.save(user);
         }
