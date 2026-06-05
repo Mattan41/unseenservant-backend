@@ -43,6 +43,10 @@ public class CampaignService {
         this.fileStorageService = fileStorageService;
     }
 
+// TODO: Move all participant methods to a dedicated CampaignParticipantService.
+//       Publish a ParticipantRemovedEvent and CampaignDeletedEvent via ApplicationEventPublisher
+//       to fully decouple PlayerCharacterService from the campaign domain.
+
     @Transactional
     public CampaignResponseDTO createCampaign(CampaignCreationDTO dto) {
         Campaign campaign = new Campaign(dto.name(), dto.description());
@@ -158,7 +162,17 @@ public class CampaignService {
         }
     }
 
-    // participant management
+    /**
+     * Updates the participants of a campaign by adding new users and removing existing ones.
+     * Also triggers cleanup of character-campaign associations for removed users.
+     * TODO: This method is growing complex. Should be broken down into separate
+     * extractable methods (e.g., addParticipants and removeParticipants).
+     *
+     * @param campaignId    the ID of the campaign to update
+     * @param updateDTO     DTO containing lists of participant IDs to add or remove
+     * @param currentUserId the ID of the user performing the action (must be the owner)
+     * @return the updated CampaignResponseDTO
+     */
     @Transactional
     public CampaignResponseDTO updateParticipants(long campaignId, UpdateParticipantsDTO updateDTO, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(campaignId);
@@ -346,9 +360,11 @@ public class CampaignService {
     }
 
     private static String getEffectiveNickname(ParticipantResponseDTO participantDTO, User user) {
-        return (participantDTO.nickname() == null || participantDTO.nickname().isBlank())
-                ? UserDTO.fromUser(user).displayName()
-                : participantDTO.nickname();
+        if (participantDTO.nickname() != null && !participantDTO.nickname().isBlank()) {
+            return participantDTO.nickname();
+        }
+        String displayName = UserDTO.fromUser(user).displayName();
+        return displayName != null && !displayName.isBlank() ? displayName : user.getUserName();
     }
 
     private Campaign findCampaignOrThrow(long id) {
@@ -377,31 +393,5 @@ public class CampaignService {
                 ? user.getDisplayName()
                 : user.getFullName();
     }
-
-    /**
-     * For data initialization and testing only
-     */
-    @Transactional(readOnly = true)
-    public List<Campaign> getAllCampaignsRaw() {
-        return campaignRepository.findAll();
-    }
-
-    /**
-     * For data initialization and testing only
-     */
-    @Transactional
-    public void createCampaignRaw(Campaign campaign) {
-        // check if campaign has an owner
-        if (campaign.getOwner() == null) {
-            if (campaign.getParticipants().isEmpty()) {
-                throw new IllegalArgumentException("Campaign must have at least one participant to determine owner");
-            }
-            // choose first participant as owner
-            User firstParticipant = campaign.getParticipants().getFirst().getUser();
-            campaign.setOwner(firstParticipant);
-        }
-        campaignRepository.save(campaign);
-    }
-
 
 }

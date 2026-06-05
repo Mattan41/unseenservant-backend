@@ -1,25 +1,30 @@
 package org.kruskopf.backend.user.service;
 
+import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UniqueConstraintViolationException;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
+import org.kruskopf.backend.user.entity.UserRole;
 import org.kruskopf.backend.user.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.kruskopf.backend.user.entity.UserRole.ADMIN;
-
 @Service
 public class UserService {
 
-    private final UserRepository userRepository;
+    // TODO: use DTOs for more narrow updates, use Preauthorizate
 
-    public UserService(UserRepository userRepository) {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<UserDTO> searchUsers(String query, long currentUserId) {
@@ -32,19 +37,23 @@ public class UserService {
                 .toList();
     }
 
-    public User save(User user) {
-        return userRepository.save(user);
-    }
-
-    public User createAdminUser(String userName, String email, String password, String providerId, ProviderType providerType) {
-        User admin = new User();
-        admin.setProviderId(providerId);
-        admin.setProviderType(providerType);
-        admin.setUserName(userName);
-        admin.setEmail(email);
-        admin.setPassword(password);
-        admin.setRole(ADMIN);
-        return userRepository.save(admin);
+    public User findOrCreateOAuthUser(String providerId, ProviderType providerType,
+                                      String email, String fullName, UserRole role) {
+        return userRepository.findByProviderId(providerId)
+                .orElseGet(() -> {
+                    // Generate a random and secure pwd-string for OAuth2-users
+                    String securePlaceholder = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
+                    User newUser = new User(
+                            providerId,
+                            providerType,
+                            email,
+                            fullName,
+                            email, // username = email as default for OAuth
+                            role,
+                            securePlaceholder
+                    );
+                    return userRepository.save(newUser);
+                });
     }
 
     public Optional<User> findById(long id) {
@@ -53,15 +62,15 @@ public class UserService {
 
     public User find(String id) {
         Optional<User> user = userRepository.findByProviderId(id);
-        return user.orElseThrow(() -> new RuntimeException("No such ID " + id));
+        return user.orElseThrow(() -> new ResourceNotFoundException("No such ID " + id));
     }
 
-    public User findByUserName(String userName) {
-        return userRepository.findByUserName(userName).orElse(null);
+    public Optional<User> findByUserName(String userName) {
+        return userRepository.findByUserName(userName);
     }
 
     public User loadByUserName(String userName) {
-        return userRepository.findByUserName(userName).orElseThrow(() -> new RuntimeException("User not found: " + userName));
+        return userRepository.findByUserName(userName).orElseThrow(() -> new ResourceNotFoundException("User not found: " + userName));
     }
 
     // (Partial Update - PATCH) - update specific fields of a user
@@ -73,7 +82,7 @@ public class UserService {
 
         User user = existingUserOpt.get();
 
-        // update the fields based on input // todo review the fields here - which should user be able to update? and how to solve Admin has more rights? preauthorize? use different methods?
+        // update the fields based on input
         updates.forEach((key, value) -> {
             switch (key) {
                 case "userName" -> user.setUserName((String) value);
@@ -92,18 +101,6 @@ public class UserService {
 
         User updatedUser = userRepository.save(user);
         return Optional.of(updatedUser);
-    }
-
-    // Method to update a user fully by ID
-    public Optional<User> update(long id, User updatedUser) {
-        if (!userRepository.existsById(id)) {
-            return Optional.empty();
-        }
-
-        updatedUser.setId(id);
-
-        User savedUser = userRepository.save(updatedUser);
-        return Optional.of(savedUser);
     }
 
     // Method to delete a user by ID - we could also use soft delete with a boolean field, perhaps remove this method

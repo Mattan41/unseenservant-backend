@@ -63,6 +63,28 @@ Then build and run the application with the `develop` profile active:
 
 Backend runs on default at `http://localhost:8080`
 
+### Demo Profile
+
+For quick local testing without OAuth2 credentials or external database, use the demo profile with an in-memory H2 database:
+> **Note:** For this to work seamlessly, you must also start the frontend application using `npm run demo`!
+
+```sh
+./mvnw spring-boot:run -Dspring.profiles.active=demo
+```
+
+The demo profile automatically preloads test users and sample data. Login credentials:
+
+| Username | Email | Password | Role |
+| :--- | :--- | :--- | :--- |
+| User1 | user1@example.com | password | User |
+| User2 | user2@example.com | password | User |
+| User3 | user3@example.com | password | User |
+| User4 | user4@example.com | password | User |
+| User5 | user5@example.com | password | User |
+| admin | admin@admin.se | password | Admin |
+
+H2 console is available at `http://localhost:8080/h2-console` for database inspection.
+
 ## Environment Variables
 
 | Variable | Required | Description |

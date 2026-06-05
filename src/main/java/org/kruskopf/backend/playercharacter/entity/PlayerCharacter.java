@@ -49,7 +49,7 @@ public class PlayerCharacter {
     @Column
     private String imageUrl;
 
-    @Column(columnDefinition = "JSON")
+    @Column(columnDefinition = "TEXT")
     @Convert(converter = PlayerCharacterStatsConverter.class)
     private PlayerCharacterStats characterData;
 
