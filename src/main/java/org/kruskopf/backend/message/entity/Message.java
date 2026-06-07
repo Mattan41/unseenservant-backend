@@ -31,8 +31,7 @@ public class Message {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "message_body")
-    @Lob
+    @Column(name = "message_body", columnDefinition = "LONGTEXT")
     private String messageBody;
 
     @CreatedDate
