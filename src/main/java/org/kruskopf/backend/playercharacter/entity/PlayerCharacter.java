@@ -6,7 +6,11 @@ import jakarta.validation.constraints.Min;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.playercharacter.PlayerCharacterStats;
 import org.kruskopf.backend.playercharacter.PlayerCharacterStatsConverter;
+import org.kruskopf.backend.spell.entity.Spell;
 import org.kruskopf.backend.user.entity.User;
+
+import java.util.HashSet;
+import java.util.Set;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -52,6 +56,14 @@ public class PlayerCharacter {
     @Column(columnDefinition = "TEXT")
     @Convert(converter = PlayerCharacterStatsConverter.class)
     private PlayerCharacterStats characterData;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "character_spell",
+            joinColumns = @JoinColumn(name = "character_id"),
+            inverseJoinColumns = @JoinColumn(name = "spell_slug")
+    )
+    private Set<Spell> spells = new HashSet<>();
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -174,6 +186,14 @@ public class PlayerCharacter {
 
     public void setLastModifiedBy(String lastModifiedBy) {
         this.lastModifiedBy = lastModifiedBy;
+    }
+
+    public Set<Spell> getSpells() {
+        return spells;
+    }
+
+    public void setSpells(Set<Spell> spells) {
+        this.spells = spells;
     }
 }
 
