@@ -607,6 +607,86 @@ Sets `campaignId = null` without deleting the character.
 
 ---
 
+## 6. Spells
+
+`/api/characters/{characterId}/spells` — requires authentication.  
+[USES: PlayerCharacter, Open5e API]
+
+Spells are lazy-loaded from the [Open5e API](https://api.open5e.com/v2/spells/) on first use and cached in the local `spell` table. Subsequent requests for the same slug hit the local DB only. The join table `character_spell` links characters to spells (many-to-many).
+
+---
+
+### POST /api/characters/{characterId}/spells — Add spell to character
+
+**Auth:** Yes (ROLE_USER, must be owner)  
+**Status:** 201, 400, 401, 403, 404, 500
+
+**Path params:** `characterId` — the character to add the spell to.
+
+**Request:**
+```json
+{
+  "slug": "fireball",
+  "name": "Fireball"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slug` | string | Open5e spell identifier (e.g. `"fireball"`) |
+| `name` | string | Display name (used if spell is not yet cached) |
+
+> If the spell slug is not in the local DB, the backend fetches it from Open5e (2 attempts, 500 ms backoff). Returns 500 if Open5e is unreachable.
+
+**Response (201):**
+```json
+{
+  "characterId": 14,
+  "slug": "fireball",
+  "name": "Fireball",
+  "spellData": {
+    "slug": "fireball",
+    "name": "Fireball",
+    "level": 3,
+    "school": "evocation",
+    "desc": "A bright streak flashes from your pointing finger...",
+    "...": "..."
+  }
+}
+```
+
+`spellData` is the raw JSON object returned by Open5e — field set mirrors the Open5e v2 spell schema.
+
+---
+
+### GET /api/characters/{characterId}/spells — Get spells for character
+
+**Auth:** Yes (ROLE_USER, must be owner)  
+**Status:** 200, 401, 403, 404
+
+**Response (200):** List of `CharacterSpellResponseDTO`:
+```json
+[
+  {
+    "characterId": 14,
+    "slug": "fireball",
+    "name": "Fireball",
+    "spellData": { "...": "..." }
+  }
+]
+```
+
+---
+
+### DELETE /api/characters/{characterId}/spells/{slug} — Remove spell from character
+
+**Auth:** Yes (ROLE_USER, must be owner)  
+**Status:** 204, 401, 403, 404
+
+Removes the spell from the character's spell list. The `Spell` record itself is not deleted from the DB (it may be shared with other characters).
+
+---
+
 ## Appendix — Common Data Structures
 
 ### AuthDTO
@@ -663,3 +743,21 @@ Sets `campaignId = null` without deleting the character.
   "updatedAt": "2026-05-29T10:00:00"
 }
 ```
+
+### CharacterSpellResponseDTO
+```json
+{
+  "characterId": 14,
+  "slug": "fireball",
+  "name": "Fireball",
+  "spellData": {
+    "slug": "fireball",
+    "name": "Fireball",
+    "level": 3,
+    "school": "evocation",
+    "desc": "A bright streak flashes from your pointing finger..."
+  }
+}
+```
+
+> `spellData` mirrors the full Open5e v2 spell object. Shape may vary by spell.
