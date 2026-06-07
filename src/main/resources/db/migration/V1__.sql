@@ -2,11 +2,13 @@ CREATE TABLE campaign
 (
     id               BIGINT AUTO_INCREMENT NOT NULL,
     name             VARCHAR(255) NULL,
-    `description`    VARCHAR(255) NULL,
+    `description`    LONGTEXT NULL,
+    image_url        VARCHAR(1024) NULL,
     created_at       datetime NULL,
     updated_at       datetime NULL,
     created_by       VARCHAR(255) NULL,
     last_modified_by VARCHAR(255) NULL,
+    owner_id         BIGINT NOT NULL,
     CONSTRAINT pk_campaign PRIMARY KEY (id)
 );
 
@@ -19,16 +21,33 @@ CREATE TABLE campaign_user
     CONSTRAINT pk_campaign_user PRIMARY KEY (campaign_id, user_id)
 );
 
+CREATE TABLE character_spell
+(
+    character_id BIGINT       NOT NULL,
+    spell_slug   VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_character_spell PRIMARY KEY (character_id, spell_slug)
+);
+
+CREATE TABLE email_whitelist
+(
+    id     BIGINT AUTO_INCREMENT NOT NULL,
+    email  VARCHAR(255) NOT NULL,
+    `role` VARCHAR(255) NOT NULL,
+    active BIT(1)       NOT NULL,
+    CONSTRAINT pk_email_whitelist PRIMARY KEY (id)
+);
+
 CREATE TABLE game_character
 (
     id               BIGINT AUTO_INCREMENT NOT NULL,
-    owner_id        BIGINT       NOT NULL,
+    owner_id         BIGINT       NOT NULL,
     campaign_id      BIGINT NULL,
-    name            VARCHAR(255) NOT NULL,
-    level           INT          NOT NULL,
-    character_class VARCHAR(255) NOT NULL,
-    race            VARCHAR(255) NOT NULL,
-    character_data   JSON NULL,
+    name             VARCHAR(255) NOT NULL,
+    level            INT          NOT NULL,
+    character_class  VARCHAR(255) NOT NULL,
+    race             VARCHAR(255) NOT NULL,
+    image_url        VARCHAR(255) NULL,
+    character_data   TEXT NULL,
     created_at       datetime NULL,
     updated_at       datetime NULL,
     created_by       VARCHAR(255) NULL,
@@ -48,6 +67,16 @@ CREATE TABLE messages
     CONSTRAINT pk_messages PRIMARY KEY (id)
 );
 
+CREATE TABLE spell
+(
+    slug          VARCHAR(255) NOT NULL,
+    name          VARCHAR(255) NOT NULL,
+    raw_json_data TEXT         NOT NULL,
+    created_at    datetime NULL,
+    updated_at    datetime NULL,
+    CONSTRAINT pk_spell PRIMARY KEY (slug)
+);
+
 CREATE TABLE users
 (
     id            BIGINT AUTO_INCREMENT NOT NULL,
@@ -63,6 +92,12 @@ CREATE TABLE users
     updated_at    datetime NULL,
     CONSTRAINT pk_users PRIMARY KEY (id)
 );
+
+ALTER TABLE email_whitelist
+    ADD CONSTRAINT uc_email_whitelist_email UNIQUE (email);
+
+ALTER TABLE users
+    ADD CONSTRAINT uc_users_display_name UNIQUE (display_name);
 
 ALTER TABLE users
     ADD CONSTRAINT uc_users_email UNIQUE (email);
@@ -80,6 +115,9 @@ CREATE INDEX idx_user_email ON users (email);
 CREATE INDEX idx_user_provider_id ON users (provider_id);
 
 CREATE INDEX idx_user_username ON users (user_name);
+
+ALTER TABLE campaign
+    ADD CONSTRAINT FK_CAMPAIGN_ON_OWNER FOREIGN KEY (owner_id) REFERENCES users (id);
 
 ALTER TABLE campaign_user
     ADD CONSTRAINT FK_CAMPAIGN_USER_ON_CAMPAIGN FOREIGN KEY (campaign_id) REFERENCES campaign (id);
@@ -104,3 +142,9 @@ ALTER TABLE messages
     ADD CONSTRAINT FK_MESSAGES_ON_USER FOREIGN KEY (user_id) REFERENCES users (id);
 
 CREATE INDEX idx_message_user_id ON messages (user_id);
+
+ALTER TABLE character_spell
+    ADD CONSTRAINT fk_chaspe_on_player_character FOREIGN KEY (character_id) REFERENCES game_character (id);
+
+ALTER TABLE character_spell
+    ADD CONSTRAINT fk_chaspe_on_spell FOREIGN KEY (spell_slug) REFERENCES spell (slug);

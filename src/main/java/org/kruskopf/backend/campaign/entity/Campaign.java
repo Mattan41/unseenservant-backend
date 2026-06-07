@@ -23,7 +23,7 @@ public class Campaign {
 
     private String name;
 
-    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String description;
 
     @Column(length = 1024)
