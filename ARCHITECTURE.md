@@ -54,9 +54,9 @@ org.kruskopf.backend/
 ├── spell/
 │   ├── controller/SpellController.java
 │   ├── dto/SpellSaveInputDTO.java
-│   ├── dto/CharacterSpellResponsetDTO.
+│   ├── dto/CharacterSpellResponseDTO.java
 │   ├── entity/Spell.java
-│   ├── repository/SpelleRepository.java
+│   ├── repository/SpellRepository.java
 │   └── service/SpellService.java
 ├── message/
 │   ├── controller/MessageController.java
@@ -131,10 +131,11 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | Entity | Key fields | Relations |
 |--------|-----------|-----------|
 | `User` | id, email, role, providerType | has many PlayerCharacters, CampaignUsers |
-| `PlayerCharacter` | id, name, stats (JSON) | belongs to User, optionally linked to Campaign |
+| `PlayerCharacter` | id, name, stats (JSON) | belongs to User, optionally linked to Campaign; many-to-many with Spell via `character_spell` |
 | `Campaign` | id, name, imageUrl | has many CampaignUsers |
 | `CampaignUser` | campaignId + userId (composite PK), role | join table Campaign ↔ User |
 | `Message` | id, content, timestamp | belongs to Campaign |
+| `Spell` | slug (PK), name, rawJsonData (TEXT) | many-to-many with PlayerCharacter; lazy-loaded from Open5e and cached in DB |
 | `EmailWhitelist` | email | standalone |
 
 ## Tests

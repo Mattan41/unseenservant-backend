@@ -300,6 +300,24 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 }
 ```
 
+### CharacterSpellResponseDTO
+```json
+{
+  "characterId": 14,
+  "slug": "fireball",
+  "name": "Fireball",
+  "spellData": {
+    "slug": "fireball",
+    "name": "Fireball",
+    "level": 3,
+    "school": "evocation",
+    "desc": "A bright streak flashes from your pointing finger..."
+  }
+}
+```
+
+> `spellData` is the raw Open5e v2 response. Its shape is Open5e's — not controlled by this backend.
+
 ---
 
 ## Notes for Teams
@@ -312,19 +330,31 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 ---
 
-## New Features (Planned)
+## Spells
 
-### Spells (Open5e Integration)
+> Implemented. Open5e integration: spells are lazy-loaded from `https://api.open5e.com/v2/spells/{slug}/` on first use and cached in the local DB. Shared spell cache — removing a spell from a character does not delete the spell record.
 
 **POST /api/characters/{characterId}/spells**
-- Request: `{ slug, name, level }` (from Open5e)
-- Response: `{ id, characterId, spell: { slug, name, level, school, components, description, ... } }`
+- Requires: ROLE_USER, must own character
+- Request: `{ slug, name, isHomebrew?, spellDetails? }`
+  - `slug` is the Open5e identifier (required)
+  - `name` is the spell name (required)
+  - `isHomebrew` is a boolean flag for future homebrew support (optional, default false)
+  - `spellDetails` is the full normalized spell object for guest mode and future homebrew features (optional)
+- Response: `CharacterSpellResponseDTO { characterId, slug, name, spellData }`
+  - `spellData` is the full Open5e spell object (raw JSON)
 - Backend behavior:
-    - Check if user owns character (403 if not)
-    - Check if spell (slug) exists in DB; if not, lazy-load from Open5e API
-    - Save spell to DB and link to character
+    - 403 if user does not own character
+    - Checks `spell` table by slug; if absent, fetches from Open5e (2 retries, 500 ms backoff) and caches it
+    - Links spell to character via `character_spell` join table
 - Status: 201, 400, 401, 403, 404, 500 (if Open5e unavailable)
 
 **GET /api/characters/{characterId}/spells**
-- Response: `[ spell objects with full Open5e data ]`
-- Status: 200, 401, 404
+- Requires: ROLE_USER, must own character
+- Response: `[ CharacterSpellResponseDTO ]`
+- Status: 200, 401, 403, 404
+
+**DELETE /api/characters/{characterId}/spells/{slug}**
+- Requires: ROLE_USER, must own character
+- Removes spell from character's list; does **not** delete the shared spell record
+- Status: 204, 401, 403, 404
