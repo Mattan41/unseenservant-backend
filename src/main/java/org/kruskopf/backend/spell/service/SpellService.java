@@ -2,6 +2,7 @@ package org.kruskopf.backend.spell.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
@@ -26,15 +27,18 @@ public class SpellService {
 
     private final SpellRepository spellRepository;
     private final PlayerCharacterRepository playerCharacterRepository;
+    private final CampaignPermissionService campaignPermissionService;
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
     public SpellService(SpellRepository spellRepository,
                         PlayerCharacterRepository playerCharacterRepository,
+                        CampaignPermissionService campaignPermissionService,
                         RestClient restClient,
                         ObjectMapper objectMapper) {
         this.spellRepository = spellRepository;
         this.playerCharacterRepository = playerCharacterRepository;
+        this.campaignPermissionService = campaignPermissionService;
         this.restClient = restClient;
         this.objectMapper = objectMapper;
     }
@@ -65,8 +69,8 @@ public class SpellService {
         PlayerCharacter character = playerCharacterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
-        if (!character.getOwner().getId().equals(userId)) {
-            throw new UnauthorizedAccessException("User does not own this character");
+        if (!campaignPermissionService.canViewCharacter(character, userId)) {
+            throw new UnauthorizedAccessException("User is not the owner of the character, nor GM of the campaign");
         }
 
         return character.getSpells().stream()
