@@ -38,7 +38,9 @@ org.kruskopf.backend/
 │   ├── repository/
 │   │   ├── CampaignRepository.java
 │   │   └── CampaignUserRepository.java
-│   └── service/CampaignService.java
+│   └── service/
+│       ├── CampaignPermissionService.java 
+│       └── CampaignService.java
 ├── playercharacter/
 │   ├── controller/PlayerCharacterController.java
 │   ├── dto/
