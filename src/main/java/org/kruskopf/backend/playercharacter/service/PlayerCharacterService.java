@@ -1,10 +1,8 @@
 package org.kruskopf.backend.playercharacter.service;
 
 import org.kruskopf.backend.campaign.entity.Campaign;
-import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
-import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
-import org.kruskopf.backend.campaign.service.CampaignService;
+import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.filestorage.FileStorageService;
@@ -29,19 +27,21 @@ public class PlayerCharacterService {
     private final UserRepository userRepository;
     private final CampaignRepository campaignRepository;
     private final PlayerCharacterMapper playerCharacterMapper;
-    private final CampaignUserRepository campaignUserRepository;
+    private final CampaignPermissionService campaignPermissionService;
     private final FileStorageService fileStorageService;
 
     public PlayerCharacterService(
             PlayerCharacterRepository playerCharacterRepository,
             UserRepository userRepository,
             CampaignRepository campaignRepository,
-            PlayerCharacterMapper playerCharacterMapper, CampaignUserRepository campaignUserRepository, FileStorageService fileStorageService) {
+            PlayerCharacterMapper playerCharacterMapper,
+            CampaignPermissionService campaignPermissionService,
+            FileStorageService fileStorageService) {
         this.playerCharacterRepository = playerCharacterRepository;
         this.userRepository = userRepository;
         this.campaignRepository = campaignRepository;
         this.playerCharacterMapper = playerCharacterMapper;
-        this.campaignUserRepository = campaignUserRepository;
+        this.campaignPermissionService = campaignPermissionService;
         this.fileStorageService = fileStorageService;
     }
 
@@ -93,7 +93,7 @@ public class PlayerCharacterService {
                 throw new UnauthorizedAccessException("User is not the owner of the character");
             }
         } else {
-            if (isNotOwner(character, userId) && !isUserGameMaster(character.campaignId(), userId)) {
+            if (isNotOwner(character, userId) && !campaignPermissionService.isGameMaster(character.campaignId(), userId)) {
                 throw new UnauthorizedAccessException("User is not the owner of the character, nor GM of the campaign");
             }
         }
@@ -148,10 +148,7 @@ public class PlayerCharacterService {
         Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + campaignId));
 
-        // verify that the user has access to the campaign
-        boolean isParticipant = campaignUserRepository.existsByCampaignIdAndUserId(campaignId, userId);
-
-        if (!isParticipant) {
+        if (!campaignPermissionService.isParticipant(campaignId, userId)) {
             throw new UnauthorizedAccessException("User is not a participant in this campaign");
         }
 
@@ -220,8 +217,7 @@ public class PlayerCharacterService {
             throw new ResourceNotFoundException("Campaign not found with id: " + campaignId);
         }
 
-        boolean isParticipant = campaignUserRepository.existsByCampaignIdAndUserId(campaignId, userId);
-        if (!isParticipant) {
+        if (!campaignPermissionService.isParticipant(campaignId, userId)) {
             throw new UnauthorizedAccessException("User is not a participant in this campaign");
         }
         return playerCharacterRepository.findByCampaignId(campaignId)
@@ -231,16 +227,6 @@ public class PlayerCharacterService {
     }
 
     // helper methods
-
-    private boolean isUserGameMaster(long campaignId, long userId) {
-        campaignRepository.findById(campaignId)
-                .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + campaignId));
-
-        return campaignUserRepository.existsByCampaignIdAndUserIdAndRole(
-                campaignId, userId, CampaignRole.GM
-        );
-    }
-
 
     private boolean isNotOwner(PlayerCharacterOutputDTO character, long userId) {
         return !character.ownerId().equals(userId);

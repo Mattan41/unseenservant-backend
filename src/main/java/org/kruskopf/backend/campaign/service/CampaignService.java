@@ -5,7 +5,6 @@ import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
-import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.filestorage.FileStorageService;
@@ -31,14 +30,14 @@ public class CampaignService {
 
     private final CampaignRepository campaignRepository;
     private final UserService userService;
-    private final CampaignUserRepository campaignUserRepository;
+    private final CampaignPermissionService campaignPermissionService;
     private final PlayerCharacterService playerCharacterService;
     private final FileStorageService fileStorageService;
 
-    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignUserRepository campaignUserRepository, PlayerCharacterService playerCharacterService, FileStorageService fileStorageService) {
+    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, PlayerCharacterService playerCharacterService, FileStorageService fileStorageService) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
-        this.campaignUserRepository = campaignUserRepository;
+        this.campaignPermissionService = campaignPermissionService;
         this.playerCharacterService = playerCharacterService;
         this.fileStorageService = fileStorageService;
     }
@@ -116,8 +115,7 @@ public class CampaignService {
 
         Campaign campaign = findCampaignOrThrow(campaignId);
 
-        // check if user is participant by searching the campaign_user table
-        boolean isParticipant = campaignUserRepository.existsByCampaignIdAndUserId(campaignId, userId);
+        boolean isParticipant = campaignPermissionService.isParticipant(campaignId, userId);
 
         if (isParticipant)
             return mapToResponseDTO(campaign);
