@@ -194,7 +194,7 @@ public class PlayerCharacterService {
     /**
      * Removes all character-campaign associations for a specific user from a given campaign.
      *
-     * <p>IMPORTANT: This method is intended to be called only from {@link CampaignService} where
+     * <p>IMPORTANT: This method is intended to be called only from {@link org.kruskopf.backend.campaign.service.CampaignService} where
      * proper authorization checks are already performed. It does not perform any permission
      * validation on its own and should not be exposed directly via controllers.</p>
      *

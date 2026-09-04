@@ -54,7 +54,9 @@ org.kruskopf.backend/
 │   ├── PlayerCharacterStats.java        # Stats value object
 │   └── PlayerCharacterStatsConverter.java  # JPA AttributeConverter
 ├── spell/
-│   ├── controller/SpellController.java
+│   ├── controller/
+│   │   ├── CharacterSpellController.java
+│   │   └── SpellSearchController.java
 │   ├── dto/SpellSaveInputDTO.java
 │   ├── dto/CharacterSpellResponseDTO.java
 │   ├── entity/Spell.java

@@ -43,6 +43,26 @@ public class SpellService {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Searches spells in local database, returning results in Open5e-compatible format
+     * @param query Optional search term to filter spells by name
+     * @return Map containing count and results list with full spell data
+     */
+    public Map<String, Object> searchSpells(String query) {
+        List<Spell> spells = query == null || query.isBlank() 
+            ? spellRepository.findAll() 
+            : spellRepository.findByNameContainingIgnoreCase(query);
+
+        List<Map<String, Object>> spellResults = spells.stream()
+                .map(this::parseSpellData)
+                .toList();
+
+        return Map.of(
+                "count", spellResults.size(),
+                "results", spellResults
+        );
+    }
+
     @Transactional
     public CharacterSpellResponseDTO addSpellToCharacter(Long characterId, SpellSaveInputDTO input, Long userId) {
         PlayerCharacter character = playerCharacterRepository.findById(characterId)
@@ -108,12 +128,26 @@ public class SpellService {
         }
     }
 
+
+    private Map<String, Object> deserializeSpellJson(Spell spell) throws Exception {
+        return objectMapper.readValue(spell.getRawJsonData(), new TypeReference<>() {});
+    }
+
+    private Map<String, Object> parseSpellData(Spell spell) {
+        try {
+            return deserializeSpellJson(spell);
+        } catch (Exception e) {
+            return Map.of(
+                    "slug", spell.getSlug(),
+                    "name", spell.getName(),
+                    "error", "Failed to parse spell data"
+            );
+        }
+    }
+
     private CharacterSpellResponseDTO toResponseDTO(Long characterId, Spell spell) {
         try {
-            Map<String, Object> spellData = objectMapper.readValue(
-                    spell.getRawJsonData(),
-                    new TypeReference<>() {}
-            );
+            Map<String, Object> spellData = deserializeSpellJson(spell);
             return new CharacterSpellResponseDTO(characterId, spell.getSlug(), spell.getName(), spellData);
         } catch (Exception e) {
             throw new RuntimeException("Failed to deserialize spell data for slug '" + spell.getSlug() + "'", e);

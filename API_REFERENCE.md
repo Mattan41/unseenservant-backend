@@ -609,10 +609,44 @@ Sets `campaignId = null` without deleting the character.
 
 ## 6. Spells
 
-`/api/characters/{characterId}/spells` — requires authentication.  
+`/api/spells/**` and `/api/characters/{characterId}/spells` — requires authentication.  
 [USES: PlayerCharacter, Open5e API]
 
 Spells are lazy-loaded from the [Open5e API](https://api.open5e.com/v2/spells/) on first use and cached in the local `spell` table. Subsequent requests for the same slug hit the local DB only. The join table `character_spell` links characters to spells (many-to-many).
+
+---
+
+### GET /api/spells — Search spells
+
+**Auth:** Yes (ROLE_USER)  
+**Status:** 200, 401
+
+**Query params:**
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `query` | No | Optional search term to filter spells by name (case-insensitive) |
+
+Searches the local spell database. Returns all spells if query is empty or not provided.
+
+**Response (200):**
+```json
+{
+  "count": 42,
+  "results": [
+    {
+      "slug": "fireball",
+      "name": "Fireball",
+      "level": 3,
+      "school": "evocation",
+      "desc": "A bright streak flashes from your pointing finger...",
+      "...": "..."
+    }
+  ]
+}
+```
+
+Each result item is the full Open5e v2 spell object. If a spell's JSON data cannot be parsed, a fallback object with `slug`, `name`, and `error` fields is returned instead.
 
 ---
 
