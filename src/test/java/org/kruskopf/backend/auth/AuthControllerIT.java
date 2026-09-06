@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.kruskopf.backend.AbstractIntegrationTest;
+import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
@@ -65,15 +66,10 @@ class AuthControllerIT extends AbstractIntegrationTest {
         @DisplayName("Should return 200 OK with user data when authenticated with JWT")
         void shouldReturn200WithUserDataWhenAuthenticatedWithJwt() throws Exception {
             // Arrange: Create a test user in database
-            User testUser = new User(
-                    "google-123456",
-                    ProviderType.GOOGLE,
-                    "user1@test.com",
-                    "Test User",
-                    "user1@test.com",
-                    UserRole.USER,
-                    "password"
-            );
+            User testUser = TestDataFactory.aUser("user1");
+            testUser.setEmail("user1@test.com");
+            testUser.setDisplayName("user1@test.com");
+            testUser.setUserName("user1@test.com");
             testUser = userRepository.save(testUser);
 
             // Generate JWT token
@@ -95,15 +91,8 @@ class AuthControllerIT extends AbstractIntegrationTest {
         @DisplayName("Should return correct role for ADMIN user with JWT")
         void shouldReturnCorrectRoleForAdminWithJwt() throws Exception {
             // Arrange: Create an admin user
-            User adminUser = new User(
-                    "google-admin-123",
-                    ProviderType.GOOGLE,
-                    "admin@test.com",
-                    "Admin User",
-                    "admin@test.com",
-                    UserRole.ADMIN,
-                    "password"
-            );
+            User adminUser = TestDataFactory.aUser("admin");
+            adminUser.setRole(UserRole.ADMIN);
             adminUser = userRepository.save(adminUser);
 
             // Generate JWT token
@@ -122,15 +111,11 @@ class AuthControllerIT extends AbstractIntegrationTest {
         @DisplayName("Should handle GitHub user correctly with JWT")
         void shouldHandleGitHubUserWithJwt() throws Exception {
             // Arrange: Create a GitHub user
-            User githubUser = new User(
-                    "github-12345",
-                    ProviderType.GITHUB,
-                    "user2@test.com",
-                    "GitHub User",
-                    "user2@test.com",
-                    UserRole.USER,
-                    "password"
-            );
+            User githubUser = TestDataFactory.aUser("user2");
+            githubUser.setProviderType(ProviderType.GITHUB);
+            githubUser.setEmail("user2@test.com");
+            githubUser.setDisplayName("user2@test.com");
+            githubUser.setUserName("user2@test.com");
             githubUser = userRepository.save(githubUser);
 
             // Generate JWT token

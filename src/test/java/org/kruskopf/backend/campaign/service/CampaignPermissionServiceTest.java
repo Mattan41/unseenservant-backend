@@ -9,6 +9,7 @@ import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
 import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
+import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
@@ -199,8 +200,7 @@ class CampaignPermissionServiceTest {
         void returnsTrue_forOwner() {
             // Arrange
             User owner = userWithId(1L);
-            PlayerCharacter character = new PlayerCharacter();
-            character.setOwner(owner);
+            PlayerCharacter character = TestDataFactory.aCharacter(owner);
 
             // Act & Assert
             assertThat(permissionService.canViewCharacter(character, 1L)).isTrue();
@@ -214,9 +214,7 @@ class CampaignPermissionServiceTest {
             User owner = userWithId(1L);
             Campaign campaign = campaignOwnedBy(owner, 10L);
 
-            PlayerCharacter character = new PlayerCharacter();
-            character.setOwner(owner);
-            character.setCampaign(campaign);
+            PlayerCharacter character = TestDataFactory.aCharacter(owner, campaign);
 
             when(campaignUserRepository.existsByCampaignIdAndUserIdAndRole(10L, 2L, CampaignRole.GM)).thenReturn(true);
 
@@ -231,9 +229,7 @@ class CampaignPermissionServiceTest {
             User owner = userWithId(1L);
             Campaign campaign = campaignOwnedBy(owner, 10L);
 
-            PlayerCharacter character = new PlayerCharacter();
-            character.setOwner(owner);
-            character.setCampaign(campaign);
+            PlayerCharacter character = TestDataFactory.aCharacter(owner, campaign);
 
             when(campaignUserRepository.existsByCampaignIdAndUserIdAndRole(10L, 2L, CampaignRole.GM)).thenReturn(false);
 
@@ -246,8 +242,7 @@ class CampaignPermissionServiceTest {
         void returnsFalse_whenCharacterHasNoCampaign() {
             // Arrange
             User owner = userWithId(1L);
-            PlayerCharacter character = new PlayerCharacter();
-            character.setOwner(owner);
+            PlayerCharacter character = TestDataFactory.aCharacter(owner);
             character.setCampaign(null);
 
             // Act & Assert
@@ -265,8 +260,7 @@ class CampaignPermissionServiceTest {
         void returnsTrue_forOwner() {
             // Arrange
             User owner = userWithId(1L);
-            PlayerCharacter character = new PlayerCharacter();
-            character.setOwner(owner);
+            PlayerCharacter character = TestDataFactory.aCharacter(owner);
 
             // Act & Assert
             assertThat(permissionService.canEditCharacter(character, 1L)).isTrue();
@@ -277,8 +271,7 @@ class CampaignPermissionServiceTest {
         void returnsFalse_forNonOwner() {
             // Arrange
             User owner = userWithId(1L);
-            PlayerCharacter character = new PlayerCharacter();
-            character.setOwner(owner);
+            PlayerCharacter character = TestDataFactory.aCharacter(owner);
 
             // Act & Assert
             assertThat(permissionService.canEditCharacter(character, 2L)).isFalse();

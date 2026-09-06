@@ -2,7 +2,6 @@ package org.kruskopf.backend.spell.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -17,7 +16,7 @@ import org.kruskopf.backend.spell.dto.CharacterSpellResponseDTO;
 import org.kruskopf.backend.spell.dto.SpellSaveInputDTO;
 import org.kruskopf.backend.spell.entity.Spell;
 import org.kruskopf.backend.spell.repository.SpellRepository;
-import org.kruskopf.backend.user.entity.ProviderType;
+import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,55 +49,26 @@ class SpellServiceIT extends AbstractIntegrationTest {
         userRepository.deleteAll();
     }
 
-    private User createUser(String username) {
-        User user = new User();
-        user.setUserName(username);
-        user.setEmail(username + "@example.com");
-        user.setPassword("password");
-        user.setFullName("Test User");
-        user.setDisplayName(username);
-        user.setProviderId("provider-" + username);
-        user.setProviderType(ProviderType.GOOGLE);
-        return userRepository.save(user);
-    }
-
-    private PlayerCharacter createCharacter(User owner) {
-        PlayerCharacter character = new PlayerCharacter();
-        character.setOwner(owner);
-        character.setName("Test Hero");
-        character.setCharacterClass("Fighter");
-        character.setRace("Human");
-        character.setSpells(new HashSet<>());
-        return playerCharacterRepository.save(character);
-    }
-
-    private Spell createSpell(String slug, String name, String rawJsonData) {
-        Spell spell = new Spell(slug, name, rawJsonData);
-        return spellRepository.save(spell);
-    }
-
     @Nested
     @DisplayName("findByNameContainingIgnoreCase")
     class FindByNameContainingIgnoreCaseTests {
 
         @Test
         void returnsMatchingSpellCaseInsensitive() {
-            createSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}");
-            createSpell("lightning-bolt", "Lightning Bolt", "{\"name\":\"Lightning Bolt\"}");
-
+            spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
+            spellRepository.save(TestDataFactory.aSpell("lightning‑bolt", "Lightning Bolt", "{\"name\":\"Lightning Bolt\"}"));
             Map<String, Object> result = spellService.searchSpells("fire");
 
             assertThat(result.get("count")).isEqualTo(1);
             List<Map<String, Object>> results = (List<Map<String, Object>>) result.get("results");
             assertThat(results).hasSize(1);
-            assertThat(results.get(0)).containsEntry("name", "Fireball");
+            assertThat(results.getFirst()).containsEntry("name", "Fireball");
         }
 
         @Test
         void blankQueryReturnsAllSpells() {
-            createSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}");
-            createSpell("lightning-bolt", "Lightning Bolt", "{\"name\":\"Lightning Bolt\"}");
-
+            spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
+            spellRepository.save(TestDataFactory.aSpell("lightning‑bolt", "Lightning Bolt", "{\"name\":\"Lightning Bolt\"}"));
             Map<String, Object> result = spellService.searchSpells("");
 
             assertThat(result.get("count")).isEqualTo(2);
@@ -113,9 +83,9 @@ class SpellServiceIT extends AbstractIntegrationTest {
 
         @Test
         void addSpellToCharacterPersistsRelationship() {
-            User user = createUser("user1");
-            PlayerCharacter character = createCharacter(user);
-            Spell spell = createSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}");
+            User user = TestDataFactory.aUser(userRepository, "user1");
+            PlayerCharacter character = playerCharacterRepository.save(TestDataFactory.aCharacter(user));
+            Spell spell = spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
 
             CharacterSpellResponseDTO response = spellService.addSpellToCharacter(
                     character.getId(),
@@ -132,10 +102,10 @@ class SpellServiceIT extends AbstractIntegrationTest {
         }
 
         @Test
-        void removeSpellFromCharacterPersistsRemoval() {
-            User user = createUser("user1");
-            PlayerCharacter character = createCharacter(user);
-            Spell spell = createSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}");
+        void removeSpellFromCharacterPersitsRemoval() {
+            User user = TestDataFactory.aUser(userRepository, "user1");
+            PlayerCharacter character = playerCharacterRepository.save(TestDataFactory.aCharacter(user));
+            Spell spell = spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
 
             character.getSpells().add(spell);
             playerCharacterRepository.save(character);
@@ -148,10 +118,10 @@ class SpellServiceIT extends AbstractIntegrationTest {
 
         @Test
         void sameSpellCanBeAttachedToTwoDifferentCharacters() {
-            User user = createUser("user1");
-            PlayerCharacter character1 = createCharacter(user);
-            PlayerCharacter character2 = createCharacter(user);
-            Spell spell = createSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}");
+            User user = TestDataFactory.aUser(userRepository, "user1");
+            PlayerCharacter character1 = playerCharacterRepository.save(TestDataFactory.aCharacter(user));
+            PlayerCharacter character2 = playerCharacterRepository.save(TestDataFactory.aCharacter(user));
+            Spell spell = spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
 
             spellService.addSpellToCharacter(
                     character1.getId(),
@@ -177,22 +147,22 @@ class SpellServiceIT extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("JSON deserialization")
-    class JsonDeserializationTests {
+    @DisplayName("JSON deserialisation")
+    class JsonDeserialisationTests {
 
         @Test
         void searchSpellsParsesRealJsonFields() {
-            createSpell(
+            spellRepository.save(TestDataFactory.aSpell(
                     "fireball",
                     "Fireball",
                     "{\"name\":\"Fireball\",\"level\":3,\"school\":\"Evocation\"}"
-            );
+            ));
 
             Map<String, Object> result = spellService.searchSpells("fire");
 
             List<Map<String, Object>> results = (List<Map<String, Object>>) result.get("results");
             assertThat(results).hasSize(1);
-            assertThat(results.get(0))
+            assertThat(results.getFirst())
                     .containsEntry("name", "Fireball")
                     .containsEntry("level", 3)
                     .containsEntry("school", "Evocation");
@@ -200,13 +170,13 @@ class SpellServiceIT extends AbstractIntegrationTest {
 
         @Test
         void malformedJsonReturnsFallbackShape() {
-            createSpell("broken", "Broken Spell", "{not valid json");
+            spellRepository.save(TestDataFactory.aSpell("broken", "Broken Spell", "{not valid json"));
 
             Map<String, Object> result = spellService.searchSpells("");
 
             List<Map<String, Object>> results = (List<Map<String, Object>>) result.get("results");
             assertThat(results).hasSize(1);
-            assertThat(results.get(0))
+            assertThat(results.getFirst())
                     .containsEntry("slug", "broken")
                     .containsEntry("name", "Broken Spell")
                     .containsEntry("error", "Failed to parse spell data");
