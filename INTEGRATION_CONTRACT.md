@@ -334,6 +334,14 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 > Implemented. Open5e integration: spells are lazy-loaded from `https://api.open5e.com/v2/spells/{slug}/` on first use and cached in the local DB. Shared spell cache — removing a spell from a character does not delete the spell record.
 
+**GET /api/spells**
+- Requires: ROLE_USER
+- Query params: `query` (optional, case-insensitive name search)
+- Response: `{ count: number, results: [ spell objects ] }`
+  - Each result is the full Open5e v2 spell object
+  - If JSON parsing fails for a spell, returns `{ slug, name, error }` fallback
+- Status: 200, 401
+
 **POST /api/characters/{characterId}/spells**
 - Requires: ROLE_USER, must own character
 - Request: `{ slug, name, isHomebrew?, spellDetails? }`

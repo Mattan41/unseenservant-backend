@@ -66,7 +66,7 @@ public class SecurityConfig {
                     auth.requestMatchers("/api/admin").hasRole(UserRole.ADMIN.name());
                     auth.requestMatchers("/api/auth/**").permitAll();
                     auth.requestMatchers("/api/auth/me").authenticated();
-                    auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**").authenticated();
+                    auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**","/api/spells/**").authenticated();
                     auth.anyRequest().denyAll();
                 })
                 .exceptionHandling(exceptionHandling ->
@@ -101,7 +101,7 @@ public class SecurityConfig {
                     auth.requestMatchers("/api/admin").hasRole(UserRole.ADMIN.name());
                     auth.requestMatchers("/api/auth/**").permitAll();
                     auth.requestMatchers("/api/auth/me").authenticated();
-                    auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**").authenticated();
+                    auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**","/api/spells/**").authenticated();
                     auth.anyRequest().denyAll();
                 })
                 .exceptionHandling(exceptionHandling ->

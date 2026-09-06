@@ -14,11 +14,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/characters")
-public class SpellController {
+public class CharacterSpellController {
 
     private final SpellService spellService;
 
-    public SpellController(SpellService spellService) {
+    public CharacterSpellController(SpellService spellService) {
         this.spellService = spellService;
     }
 
