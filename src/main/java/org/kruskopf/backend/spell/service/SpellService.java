@@ -11,13 +11,8 @@ import org.kruskopf.backend.spell.dto.CharacterSpellResponseDTO;
 import org.kruskopf.backend.spell.dto.SpellSaveInputDTO;
 import org.kruskopf.backend.spell.entity.Spell;
 import org.kruskopf.backend.spell.repository.SpellRepository;
-import org.springframework.http.MediaType;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 
 import java.util.List;
 import java.util.Map;
@@ -28,23 +23,20 @@ public class SpellService {
     private final SpellRepository spellRepository;
     private final PlayerCharacterRepository playerCharacterRepository;
     private final CampaignPermissionService campaignPermissionService;
-    private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
     public SpellService(SpellRepository spellRepository,
                         PlayerCharacterRepository playerCharacterRepository,
                         CampaignPermissionService campaignPermissionService,
-                        RestClient restClient,
                         ObjectMapper objectMapper) {
         this.spellRepository = spellRepository;
         this.playerCharacterRepository = playerCharacterRepository;
         this.campaignPermissionService = campaignPermissionService;
-        this.restClient = restClient;
         this.objectMapper = objectMapper;
     }
 
     /**
-     * Searches spells in local database, returning results in Open5e-compatible format
+     * Searches spells in local database
      * @param query Optional search term to filter spells by name
      * @return Map containing count and results list with full spell data
      */
@@ -73,10 +65,7 @@ public class SpellService {
         }
 
         Spell spell = spellRepository.findById(input.slug())
-                .orElseGet(() -> {
-                    String raw = fetchSpellFromOpen5e(input.slug());
-                    return spellRepository.saveAndFlush(new Spell(input.slug(), input.name(), raw));
-                });
+                .orElseThrow(() -> new ResourceNotFoundException("Spell not found with slug: " + input.slug()));
 
         character.getSpells().add(spell);
         playerCharacterRepository.save(character);
@@ -114,20 +103,6 @@ public class SpellService {
 
         playerCharacterRepository.save(character);
     }
-
-    @Retryable(maxAttempts = 2, backoff = @Backoff(delay = 500))
-    private String fetchSpellFromOpen5e(String slug) {
-        try {
-            return restClient.get()
-                    .uri("https://api.open5e.com/v2/spells/{slug}/", slug)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .body(String.class);
-        } catch (RestClientException e) {
-            throw new RuntimeException("Open5e API unavailable for slug '" + slug + "': " + e.getMessage(), e);
-        }
-    }
-
 
     private Map<String, Object> deserializeSpellJson(Spell spell) throws Exception {
         return objectMapper.readValue(spell.getRawJsonData(), new TypeReference<>() {});

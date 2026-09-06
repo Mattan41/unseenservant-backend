@@ -332,7 +332,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 ## Spells
 
-> Implemented. Open5e integration: spells are lazy-loaded from `https://api.open5e.com/v2/spells/{slug}/` on first use and cached in the local DB. Shared spell cache — removing a spell from a character does not delete the spell record.
+>Spells are stored in the local DB from bulk Open5e import. Shared spell cache — removing a spell from a character does not delete the spell record.
 
 **GET /api/spells**
 - Requires: ROLE_USER
@@ -344,18 +344,16 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 **POST /api/characters/{characterId}/spells**
 - Requires: ROLE_USER, must own character
-- Request: `{ slug, name, isHomebrew?, spellDetails? }`
-  - `slug` is the Open5e identifier (required)
+- Request: `{ slug, name }`
+  - `slug` is the spell identifier (required)
   - `name` is the spell name (required)
-  - `isHomebrew` is a boolean flag for future homebrew support (optional, default false)
-  - `spellDetails` is the full normalized spell object for guest mode and future homebrew features (optional)
 - Response: `CharacterSpellResponseDTO { characterId, slug, name, spellData }`
-  - `spellData` is the full Open5e spell object (raw JSON)
+  - `spellData` is the full spell object (raw JSON)
 - Backend behavior:
     - 403 if user does not own character
-    - Checks `spell` table by slug; if absent, fetches from Open5e (2 retries, 500 ms backoff) and caches it
+    - 404 if spell slug not found in local DB
     - Links spell to character via `character_spell` join table
-- Status: 201, 400, 401, 403, 404, 500 (if Open5e unavailable)
+- Status: 201, 400, 401, 403, 404
 
 **GET /api/characters/{characterId}/spells**
 - Requires: ROLE_USER, must own character

@@ -610,9 +610,9 @@ Sets `campaignId = null` without deleting the character.
 ## 6. Spells
 
 `/api/spells/**` and `/api/characters/{characterId}/spells` — requires authentication.  
-[USES: PlayerCharacter, Open5e API]
+[USES: PlayerCharacter]
 
-Spells are lazy-loaded from the [Open5e API](https://api.open5e.com/v2/spells/) on first use and cached in the local `spell` table. Subsequent requests for the same slug hit the local DB only. The join table `character_spell` links characters to spells (many-to-many).
+Spells are stored in the local `spell` table from bulk Open5e import. The join table `character_spell` links characters to spells (many-to-many).
 
 ---
 
@@ -653,7 +653,7 @@ Each result item is the full Open5e v2 spell object. If a spell's JSON data cann
 ### POST /api/characters/{characterId}/spells — Add spell to character
 
 **Auth:** Yes (ROLE_USER, must be owner)  
-**Status:** 201, 400, 401, 403, 404, 500
+**Status:** 201, 400, 401, 403, 404
 
 **Path params:** `characterId` — the character to add the spell to.
 
@@ -667,10 +667,10 @@ Each result item is the full Open5e v2 spell object. If a spell's JSON data cann
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `slug` | string | Open5e spell identifier (e.g. `"fireball"`) |
-| `name` | string | Display name (used if spell is not yet cached) |
+| `slug` | string | Spell identifier (e.g. `"fireball"`) |
+| `name` | string | Display name |
 
-> If the spell slug is not in the local DB, the backend fetches it from Open5e (2 attempts, 500 ms backoff). Returns 500 if Open5e is unreachable.
+> The spell must exist in the local DB. Returns 404 if the spell slug is not found.
 
 **Response (201):**
 ```json
