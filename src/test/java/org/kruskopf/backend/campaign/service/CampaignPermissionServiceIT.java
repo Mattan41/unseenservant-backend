@@ -72,9 +72,8 @@ class CampaignPermissionServiceIT extends AbstractIntegrationTest {
         player = userRepository.save(TestDataFactory.aUser("player"));
         outsider = userRepository.save(TestDataFactory.aUser("outsider"));
 
-        // Create campaign with owner
-        campaign = new Campaign("IT Campaign", "Integration test campaign");
-        campaign.setOwner(owner);
+        // Create campaign with owner using factory
+        campaign = TestDataFactory.aCampaign(owner);
         campaign = campaignRepository.save(campaign);
 
         // Add participants (owner, gm, player — outsider is deliberately excluded)

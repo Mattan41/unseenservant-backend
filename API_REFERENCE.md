@@ -538,34 +538,14 @@ Sets `campaignId = null` without deleting the character.
 `/api/messages/**` — requires authentication (via SecurityConfig).  
 [USES: Campaign, User]
 
-> **Planning status:** Backend implementation exists. No frontend integration yet. Intended for per-campaign message boards. Authorization logic (ownership, campaign membership) is not yet implemented at the endpoint level.
-
----
-
-### GET /api/messages — Get all messages
-
-**Auth:** Yes  
-**Status:** 200, 401
-
-**Response (200):**
-```json
-[
-  {
-    "campaignId": 1,
-    "userId": 3,
-    "messageBody": "Hello everyone!",
-    "createdAt": "2026-05-29T10:00:00",
-    "updatedAt": "2026-05-29T10:00:00"
-  }
-]
-```
+Intended for per-campaign message boards. Messages are visible only to campaign participants.
 
 ---
 
 ### GET /api/messages/campaign/{campaignId} — Get messages by campaign
 
-**Auth:** Yes  
-**Status:** 200, 401, 404
+**Auth:** Yes (must be campaign participant)  
+**Status:** 200, 401, 403, 404
 
 **Response (200):** List of `MessageDTO` for the given campaign.
 
@@ -573,8 +553,8 @@ Sets `campaignId = null` without deleting the character.
 
 ### GET /api/messages/{id} — Get message by ID
 
-**Auth:** Yes  
-**Status:** 200, 401, 404
+**Auth:** Yes (must be campaign participant)  
+**Status:** 200, 401, 403, 404
 
 **Response (200):** `MessageDTO`
 
@@ -582,28 +562,34 @@ Sets `campaignId = null` without deleting the character.
 
 ### POST /api/messages — Create message
 
-**Auth:** Yes  
-**Status:** 200, 400, 401
+**Auth:** Yes (must be campaign participant)  
+**Status:** 200, 400, 401, 403, 404
 
 **Request:**
 ```json
 {
   "campaignId": 1,
-  "userId": 3,
   "messageBody": "Hello from the game table!"
 }
 ```
 
-> `createdAt` and `updatedAt` are automatically set to the current time if omitted.
+| Field | Type | Rules |
+|-------|------|-------|
+| `campaignId` | Long | Required |
+| `messageBody` | string | Not blank, max 10000 chars |
 
-**Response:** `MessageDTO`
+> The sender's user ID is automatically set from the authenticated principal (JWT). Do not include `userId` in the request.
+
+**Response (200):** `MessageDTO`
 
 ---
 
 ### DELETE /api/messages/{id} — Delete message
 
-**Auth:** Yes  
-**Status:** 204, 401, 404
+**Auth:** Yes (must be message sender)  
+**Status:** 204, 401, 403, 404
+
+> Only the user who created the message can delete it. Campaign GMs cannot delete other users' messages.
 
 ---
 
@@ -770,6 +756,7 @@ Removes the spell from the character's spell list. The `Spell` record itself is 
 ### MessageDTO
 ```json
 {
+  "id": 1,
   "campaignId": 1,
   "userId": 3,
   "messageBody": "Hello!",

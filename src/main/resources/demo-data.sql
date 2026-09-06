@@ -140,3 +140,33 @@ VALUES
 (12, 4, 3, 'Cogsworth', 1, 'Fighter', 'Human',
  '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":10, "charisma":10}', CURRENT_TIMESTAMP,
  CURRENT_TIMESTAMP);
+
+-- =====================================================================================
+-- SPELLS (SRD Format for DEMO)
+-- =====================================================================================
+INSERT INTO spell (slug, name, raw_json_data, created_at, updated_at)
+VALUES
+-- Unseen Servant
+('srd_unseen-servant', 'Unseen Servant',
+ '{"slug":"srd_unseen-servant","key":"srd_unseen-servant","name":"Unseen Servant","desc":"This spell creates an invisible, mindless, shapeless force that performs simple tasks at your command until the spell ends. The servant springs into existence in an unoccupied space on the ground within range. It has AC 10, 1 hit point, and a Strength of 2, and it can''t attack. If it drops to 0 hit points, the spell ends. Once on each of your turns as a bonus action, you can mentally command the servant to move up to 15 feet and interact with an object. The servant can perform simple tasks that a human servant could do, such as fetching things, cleaning, mending, folding clothes, lighting fires, serving food, and pouring wine. Once you give the command, the servant performs the task to the best of its ability until it completes the task, then waits for your next command. If you command the servant to perform a task that would move it more than 60 feet away from you, the spell ends.","level":1,"school":{"name":"Conjuration","key":"conjuration"},"classes":[{"name":"Bard","key":"srd_bard"},{"name":"Warlock","key":"srd_warlock"},{"name":"Wizard","key":"srd_wizard"}],"casting_time":"1 action","range_text":"60 feet","range":60,"duration":"1 hour","ritual":true,"concentration":false,"verbal":true,"somatic":true,"material":true,"material_specified":"A piece of string and a bit of wood."}',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+-- Fireball
+('srd_fireball', 'Fireball',
+ '{"slug":"srd_fireball","key":"srd_fireball","name":"Fireball","desc":"A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw. A creature takes 8d6 fire damage on a failed save, or half as much damage on a successful one. The fire spreads around corners. It ignites flammable objects in the area that aren''t being worn or carried.","higher_level":"When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.","level":3,"school":{"name":"Evocation","key":"evocation"},"classes":[{"name":"Sorcerer","key":"srd_sorcerer"},{"name":"Wizard","key":"srd_wizard"}],"casting_time":"1 action","range_text":"150 feet","range":150,"duration":"Instantaneous","ritual":false,"concentration":false,"verbal":true,"somatic":true,"material":true,"material_specified":"A tiny ball of bat guano and sulfur.","damage_types":["fire"]}',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+-- Magic Missile
+('srd_magic-missile', 'Magic Missile',
+ '{"slug":"srd_magic-missile","key":"srd_magic-missile","name":"Magic Missile","desc":"You create three glowing darts of magical force. Each dart hits a creature of your choice that you can see within range. A dart deals 1d4 + 1 force damage to its target. The darts all strike simultaneously, and you can direct them to hit one creature or several.","higher_level":"When you cast this spell using a spell slot of 2nd level or higher, the spell creates one more dart for each slot level above 1st.","level":1,"school":{"name":"Evocation","key":"evocation"},"classes":[{"name":"Sorcerer","key":"srd_sorcerer"},{"name":"Wizard","key":"srd_wizard"}],"casting_time":"1 action","range_text":"120 feet","range":120,"duration":"Instantaneous","ritual":false,"concentration":false,"verbal":true,"somatic":true,"material":false,"damage_types":["force"]}',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+-- Cure Wounds
+('srd_cure-wounds', 'Cure Wounds',
+ '{"slug":"srd_cure-wounds","key":"srd_cure-wounds","name":"Cure Wounds","desc":"A creature you touch regains a number of hit points equal to 1d8 + your spellcasting ability modifier. This spell has no effect on undead or constructs.","higher_level":"When you cast this spell using a spell slot of 2nd level or higher, the healing increases by 1d8 for each slot level above 1st.","level":1,"school":{"name":"Evocation","key":"evocation"},"classes":[{"name":"Bard","key":"srd_bard"},{"name":"Cleric","key":"srd_cleric"},{"name":"Druid","key":"srd_druid"},{"name":"Paladin","key":"srd_paladin"},{"name":"Ranger","key":"srd_ranger"}],"casting_time":"1 action","range_text":"Touch","range":0,"duration":"Instantaneous","ritual":false,"concentration":false,"verbal":true,"somatic":true,"material":false}',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+-- Shield
+('srd_shield', 'Shield',
+ '{"slug":"srd_shield","key":"srd_shield","name":"Shield","desc":"An invisible barrier of magical force appears and protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from magic missile.","level":1,"school":{"name":"Abjuration","key":"abjuration"},"classes":[{"name":"Sorcerer","key":"srd_sorcerer"},{"name":"Wizard","key":"srd_wizard"}],"casting_time":"1 reaction","reaction_condition":"which you take when you are hit by an attack or targeted by the magic missile spell","range_text":"Self","range":0,"duration":"1 round","ritual":false,"concentration":false,"verbal":true,"somatic":true,"material":false}',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

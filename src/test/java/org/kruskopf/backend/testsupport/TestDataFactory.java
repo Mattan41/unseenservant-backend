@@ -1,6 +1,7 @@
 package org.kruskopf.backend.testsupport;
 
 import org.kruskopf.backend.campaign.entity.Campaign;
+import org.kruskopf.backend.message.entity.Message;
 import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
 import org.kruskopf.backend.spell.entity.Spell;
 import org.kruskopf.backend.user.entity.ProviderType;
@@ -53,6 +54,30 @@ public final class TestDataFactory {
      */
     public static User aUser(UserRepository repo, String username) {
         return repo.save(aUser(username));
+    }
+
+    /**
+     * Builds a valid {@link Campaign} with all mandatory fields set.
+     *
+     * @param owner the owning {@link User}
+     * @return a transient {@link Campaign}
+     */
+    public static Campaign aCampaign(User owner) {
+        Campaign campaign = new Campaign("Test Campaign", "Test Description");
+        campaign.setOwner(owner);
+        return campaign;
+    }
+
+    /**
+     * Builds a valid {@link Message} with all mandatory fields set.
+     *
+     * @param campaign   the {@link Campaign} the message belongs to
+     * @param user       the {@link User} who sent the message
+     * @param messageBody the message content
+     * @return a transient {@link Message}
+     */
+    public static Message aMessage(Campaign campaign, User user, String messageBody) {
+        return new Message(campaign, user, messageBody);
     }
 
     /**

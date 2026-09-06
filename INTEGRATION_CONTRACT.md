@@ -177,29 +177,31 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 ## Messages
 
-> Backend implemented. No frontend integration yet. Intended as per-campaign message boards.
-> **Known gap:** No ownership or campaign-membership authorization on endpoints yet.
-> **Known gap:** `MessageDTO` has no `id` field — message identity cannot be derived from the response.
-
-**GET /api/messages**
-- Response: `[ MessageDTO ]`
-- Status: 200, 401
+Intended as per-campaign message boards. Messages are visible only to campaign participants.
 
 **GET /api/messages/campaign/{campaignId}**
+- Requires: campaign participant
 - Response: `[ MessageDTO ]`
-- Status: 200, 401, 404
+- Status: 200, 401, 403, 404
 
 **GET /api/messages/{id}**
-- Response: `MessageDTO { campaignId, userId, messageBody, createdAt, updatedAt }`
-- Status: 200, 401, 404
+- Requires: campaign participant
+- Response: `MessageDTO { id, campaignId, userId, messageBody, createdAt, updatedAt }`
+- Status: 200, 401, 403, 404
 
 **POST /api/messages**
-- Request: `{ campaignId, userId, messageBody }`
+- Requires: campaign participant
+- Request: `{ campaignId, messageBody }`
+  - `campaignId`: Long (required)
+  - `messageBody`: string (not blank, max 10000 chars)
 - Response: `MessageDTO`
-- Status: 200, 400, 401
+- Status: 200, 400, 401, 403, 404
+- Note: The sender's user ID is automatically set from the authenticated principal (JWT). Do not include `userId` in the request.
 
 **DELETE /api/messages/{id}**
-- Status: 204, 401, 404
+- Requires: message sender (only the user who created the message can delete it)
+- Status: 204, 401, 403, 404
+- Note: Campaign GMs cannot delete other users' messages.
 
 ---
 
@@ -292,6 +294,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 ### MessageDTO
 ```json
 {
+  "id": 1,
   "campaignId": 1,
   "userId": 3,
   "messageBody": "Hello!",
