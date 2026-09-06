@@ -139,7 +139,7 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | `Campaign` | id, name, imageUrl | has many CampaignUsers |
 | `CampaignUser` | campaignId + userId (composite PK), role | join table Campaign ↔ User |
 | `Message` | id, content, timestamp | belongs to Campaign |
-| `Spell` | slug (PK), name, rawJsonData (TEXT) | many-to-many with PlayerCharacter; lazy-loaded from Open5e and cached in DB |
+| `Spell` | slug (PK), name, rawJsonData (TEXT) | many-to-many with PlayerCharacter; stored in local DB from bulk Open5e import |
 | `EmailWhitelist` | email | standalone |
 
 ## Tests
