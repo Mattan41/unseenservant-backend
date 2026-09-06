@@ -52,7 +52,6 @@ public class Message {
         this.campaign = campaign;
         this.user = user;
         this.messageBody = messageBody;
-        this.createdAt = LocalDateTime.now();
     }
 
     // Getters and Setters

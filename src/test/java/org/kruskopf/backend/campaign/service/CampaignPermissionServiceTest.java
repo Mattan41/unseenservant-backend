@@ -10,9 +10,7 @@ import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
 import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
 import org.kruskopf.backend.testsupport.TestDataFactory;
-import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
-import org.kruskopf.backend.user.entity.UserRole;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -37,18 +35,13 @@ class CampaignPermissionServiceTest {
     private CampaignPermissionService permissionService;
 
     private User userWithId(long id) {
-        User user = new User(
-                "provider-" + id, ProviderType.GOOGLE,
-                "user" + id + "@test.com", "User " + id,
-                "user" + id, UserRole.USER, "password"
-        );
-        user.setId(id);
+        User user = TestDataFactory.aUser("user" + id);
+        ReflectionTestUtils.setField(user, "id", id);
         return user;
     }
 
     private Campaign campaignOwnedBy(User owner, long campaignId) {
-        Campaign campaign = new Campaign("Test Campaign", "Description");
-        campaign.setOwner(owner);
+        Campaign campaign = TestDataFactory.aCampaign(owner);
         ReflectionTestUtils.setField(campaign, "id", campaignId);
         return campaign;
     }

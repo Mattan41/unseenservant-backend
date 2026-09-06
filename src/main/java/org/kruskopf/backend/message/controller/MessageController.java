@@ -1,8 +1,12 @@
 package org.kruskopf.backend.message.controller;
 
+import jakarta.validation.Valid;
+import org.kruskopf.backend.message.dto.MessageCreationDTO;
 import org.kruskopf.backend.message.dto.MessageDTO;
 import org.kruskopf.backend.message.service.MessageService;
+import org.kruskopf.backend.user.CustomUserDetails;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,30 +21,33 @@ public class MessageController {
         this.messageService = messageService;
     }
 
-    @GetMapping
-    public List<MessageDTO> getAllMessages() {
-        return messageService.getAllMessages();
-    }
-
     @GetMapping("/campaign/{campaignId}")
-    public List<MessageDTO> getMessagesByCampaignId(@PathVariable Long campaignId) {
-        return messageService.getMessagesByCampaignId(campaignId);
+    public List<MessageDTO> getMessagesByCampaignId(@PathVariable Long campaignId,
+                                                    @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
+        return messageService.getMessagesByCampaignId(campaignId, userId);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MessageDTO> getMessageById(@PathVariable Long id) {
-        MessageDTO messageDTO = messageService.getMessageById(id);
-        return messageDTO != null ? ResponseEntity.ok(messageDTO) : ResponseEntity.notFound().build();
+    public ResponseEntity<MessageDTO> getMessageById(@PathVariable Long id,
+                                                    @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
+        return ResponseEntity.ok(messageService.getMessageById(id, userId));
     }
 
     @PostMapping
-    public MessageDTO createMessage(@RequestBody MessageDTO messageDTO) {
-        return messageService.createMessage(messageDTO);
+    public ResponseEntity<MessageDTO> createMessage(@Valid @RequestBody MessageCreationDTO dto,
+                                                     @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
+        MessageDTO createdMessage = messageService.createMessage(dto, userId);
+        return ResponseEntity.ok(createdMessage);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMessage(@PathVariable Long id) {
-        messageService.deleteMessage(id);
+    public ResponseEntity<Void> deleteMessage(@PathVariable Long id,
+                                              @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
+        messageService.deleteMessage(id, userId);
         return ResponseEntity.noContent().build();
     }
 }
