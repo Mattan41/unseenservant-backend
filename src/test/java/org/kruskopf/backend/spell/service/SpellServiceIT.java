@@ -57,23 +57,59 @@ class SpellServiceIT extends AbstractIntegrationTest {
         void returnsMatchingSpellCaseInsensitive() {
             spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
             spellRepository.save(TestDataFactory.aSpell("lightning‑bolt", "Lightning Bolt", "{\"name\":\"Lightning Bolt\"}"));
-            Map<String, Object> result = spellService.searchSpells("fire");
+            Map<String, Object> result = spellService.searchSpells("fire", 0, 20);
 
-            assertThat(result.get("count")).isEqualTo(1);
+            assertThat(result.get("count")).isEqualTo(1L);
             List<Map<String, Object>> results = (List<Map<String, Object>>) result.get("results");
             assertThat(results).hasSize(1);
             assertThat(results.getFirst()).containsEntry("name", "Fireball");
         }
 
         @Test
-        void blankQueryReturnsAllSpells() {
+        void blankQueryReturnsNoResults() {
             spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
             spellRepository.save(TestDataFactory.aSpell("lightning‑bolt", "Lightning Bolt", "{\"name\":\"Lightning Bolt\"}"));
-            Map<String, Object> result = spellService.searchSpells("");
+            Map<String, Object> result = spellService.searchSpells("", 0, 20);
 
-            assertThat(result.get("count")).isEqualTo(2);
+            assertThat(result.get("count")).isEqualTo(0);
             List<Map<String, Object>> results = (List<Map<String, Object>>) result.get("results");
-            assertThat(results).hasSize(2);
+            assertThat(results).isEmpty();
+        }
+
+        @Test
+        void paginationReturnsCorrectPage() {
+            // // Add spells
+            spellRepository.save(TestDataFactory.aSpell("acid-arrow", "Acid Arrow", "{\"name\":\"Acid Arrow\"}"));
+            spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
+            spellRepository.save(TestDataFactory.aSpell("ray-of-frost", "Ray of Frost", "{\"name\":\"Ray of Frost\"}"));
+            spellRepository.save(TestDataFactory.aSpell("lightning-bolt", "Lightning Bolt", "{\"name\":\"Lightning Bolt\"}"));
+
+            // First page, size 2
+            Map<String, Object> page1 = spellService.searchSpells("a", 0, 2);
+            assertThat(page1.get("count")).isEqualTo(3L);
+            List<Map<String, Object>> results1 = (List<Map<String, Object>>) page1.get("results");
+            assertThat(results1).hasSize(2);
+            assertThat(results1.get(0)).containsEntry("name", "Acid Arrow");
+            assertThat(results1.get(1)).containsEntry("name", "Fireball");
+
+            // Second page, size 2
+            Map<String, Object> page2 = spellService.searchSpells("a", 1, 2);
+            List<Map<String, Object>> results2 = (List<Map<String, Object>>) page2.get("results");
+            assertThat(results2).hasSize(1);
+            assertThat(results2.get(0)).containsEntry("name", "Ray of Frost");
+        }
+
+        @Test
+        void sizeGreaterThanDatasetReturnsAllResults() {
+            // Add 150 spells
+            for (int i = 0; i < 150; i++) {
+                spellRepository.save(TestDataFactory.aSpell("spell-" + i, "Spell " + i, "{\"name\":\"Spell " + i + "\"}"));
+            }
+
+            Map<String, Object> result = spellService.searchSpells("spell", 0, 200);
+            assertThat(result.get("count")).isEqualTo(150L);
+            List<Map<String, Object>> results = (List<Map<String, Object>>) result.get("results");
+            assertThat(results).hasSize(150);
         }
     }
 
@@ -158,7 +194,7 @@ class SpellServiceIT extends AbstractIntegrationTest {
                     "{\"name\":\"Fireball\",\"level\":3,\"school\":\"Evocation\"}"
             ));
 
-            Map<String, Object> result = spellService.searchSpells("fire");
+            Map<String, Object> result = spellService.searchSpells("fire", 0, 20);
 
             List<Map<String, Object>> results = (List<Map<String, Object>>) result.get("results");
             assertThat(results).hasSize(1);
@@ -172,7 +208,7 @@ class SpellServiceIT extends AbstractIntegrationTest {
         void malformedJsonReturnsFallbackShape() {
             spellRepository.save(TestDataFactory.aSpell("broken", "Broken Spell", "{not valid json"));
 
-            Map<String, Object> result = spellService.searchSpells("");
+            Map<String, Object> result = spellService.searchSpells("broken", 0, 20);
 
             List<Map<String, Object>> results = (List<Map<String, Object>>) result.get("results");
             assertThat(results).hasSize(1);

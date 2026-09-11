@@ -25,6 +25,9 @@ import org.kruskopf.backend.spell.dto.SpellSaveInputDTO;
 import org.kruskopf.backend.spell.entity.Spell;
 import org.kruskopf.backend.spell.repository.SpellRepository;
 import org.kruskopf.backend.user.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class SpellServiceTest {
@@ -50,37 +53,55 @@ class SpellServiceTest {
     private final String name = "Fireball";
 
     @Test
-    void searchSpells_blankQuery_returnsAllSpells() throws Exception {
-        Spell spell1 = mock(Spell.class);
-        Spell spell2 = mock(Spell.class);
-        when(spell1.getRawJsonData()).thenReturn("json1");
-        when(spell2.getRawJsonData()).thenReturn("json2");
-        when(spellRepository.findAll()).thenReturn(List.of(spell1, spell2));
-        when(objectMapper.readValue(anyString(), any(TypeReference.class)))
-                .thenReturn(Map.of("name", "Fireball"));
+    void searchSpells_blankQuery_returnsNoResults() throws Exception {
+        Map<String, Object> result = spellService.searchSpells("", 0, 20);
 
-        Map<String, Object> result = spellService.searchSpells("");
-
-        assertEquals(2, result.get("count"));
-        assertEquals(2, ((List<?>) result.get("results")).size());
-        verify(spellRepository).findAll();
-        verify(spellRepository, never()).findByNameContainingIgnoreCase(anyString());
+        assertEquals(0, result.get("count"));
+        assertEquals(0, ((List<?>) result.get("results")).size());
+        verify(spellRepository, never()).findAll();
+        verify(spellRepository, never()).findByNameContainingIgnoreCase(anyString(), any());
     }
 
     @Test
-    void searchSpells_withQuery_usesFindByNameContainingIgnoreCase() throws Exception {
+    void searchSpells_withQuery_usesPaginatedSearch() throws Exception {
         Spell spell = mock(Spell.class);
         when(spell.getRawJsonData()).thenReturn("json");
-        when(spellRepository.findByNameContainingIgnoreCase("fire")).thenReturn(List.of(spell));
+        Page<Spell> page = mock(Page.class);
+        when(page.getContent()).thenReturn(List.of(spell));
+        when(page.getTotalElements()).thenReturn(1L);
+        when(spellRepository.findByNameContainingIgnoreCase(eq("fire"), any(Pageable.class)))
+                .thenReturn(page);
         when(objectMapper.readValue(anyString(), any(TypeReference.class)))
                 .thenReturn(Map.of("name", "Fireball"));
 
-        Map<String, Object> result = spellService.searchSpells("fire");
+        Map<String, Object> result = spellService.searchSpells("fire", 0, 20);
 
-        assertEquals(1, result.get("count"));
+        assertEquals(1L, result.get("count"));
         assertEquals(1, ((List<?>) result.get("results")).size());
-        verify(spellRepository).findByNameContainingIgnoreCase("fire");
+        verify(spellRepository).findByNameContainingIgnoreCase(eq("fire"), any(Pageable.class));
         verify(spellRepository, never()).findAll();
+    }
+
+    @Test
+    void searchSpells_usesRequestedPageSize() throws Exception {
+        Spell spell = mock(Spell.class);
+        when(spell.getRawJsonData()).thenReturn("json");
+
+        Page<Spell> pageMock = mock(Page.class);
+        when(pageMock.getContent()).thenReturn(List.of(spell));
+        when(pageMock.getTotalElements()).thenReturn(150L);
+
+        when(spellRepository.findByNameContainingIgnoreCase(eq("spell"), any(Pageable.class)))
+                .thenReturn(pageMock);
+        when(objectMapper.readValue(anyString(), any(TypeReference.class)))
+                .thenReturn(Map.of("name", "Spell"));
+
+        Map<String, Object> result = spellService.searchSpells("spell", 0, 200);
+
+        assertEquals(150L, result.get("count"));
+        assertEquals(1, ((List<?>) result.get("results")).size());
+        verify(spellRepository).findByNameContainingIgnoreCase(eq("spell"),
+                argThat(pageable -> pageable.getPageSize() == 200));
     }
 
     @Test
@@ -94,15 +115,20 @@ class SpellServiceTest {
 
         when(goodSpell.getRawJsonData()).thenReturn("good-json");
 
-        when(spellRepository.findAll()).thenReturn(List.of(badSpell, goodSpell));
+        Page<Spell> pageMock = mock(Page.class);
+        when(pageMock.getContent()).thenReturn(List.of(badSpell, goodSpell));
+        when(pageMock.getTotalElements()).thenReturn(2L);
+        when(spellRepository.findByNameContainingIgnoreCase(eq("bad"), any(Pageable.class)))
+                .thenReturn(pageMock);
+
         when(objectMapper.readValue(eq("bad-json"), any(TypeReference.class)))
                 .thenThrow(new RuntimeException("Parse failure"));
         when(objectMapper.readValue(eq("good-json"), any(TypeReference.class)))
                 .thenReturn(Map.of("name", "Good Spell"));
 
-        Map<String, Object> result = spellService.searchSpells("");
+        Map<String, Object> result = spellService.searchSpells("bad", 0, 20);
 
-        assertEquals(2, result.get("count"));
+        assertEquals(2L, result.get("count"));
         List<Map<String, Object>> results = (List<Map<String, Object>>) result.get("results");
         assertEquals(2, results.size());
 
