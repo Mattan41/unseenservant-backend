@@ -612,8 +612,10 @@ Spells are stored in the local `spell` table from bulk Open5e import. The join t
 | Param | Required | Description |
 |-------|----------|-------------|
 | `query` | No | Optional search term to filter spells by name (case-insensitive) |
+| `page` | No | Page number (0-indexed), default `0` |
+| `size` | No | Page size, default `20`, capped server-side at `100` |
 
-Searches the local spell database. Returns all spells if query is empty or not provided.
+Searches the local spell database. Blank/empty query returns `{ count: 0, results: [] }` (does not return all spells).
 
 **Response (200):**
 ```json
@@ -633,6 +635,35 @@ Searches the local spell database. Returns all spells if query is empty or not p
 ```
 
 Each result item is the full Open5e v2 spell object. If a spell's JSON data cannot be parsed, a fallback object with `slug`, `name`, and `error` fields is returned instead.
+
+---
+
+### GET /api/spells/{slug} — Get spell by slug
+
+**Auth:** Yes (ROLE_USER)  
+**Status:** 200, 401, 404
+
+**Path params:**
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `slug` | Yes | Spell identifier |
+
+Looks up a spell by slug in the local database. Returns the full Open5e-shaped spell object, or 404 if not found.
+
+**Response (200):**
+```json
+{
+  "slug": "fireball",
+  "name": "Fireball",
+  "level": 3,
+  "school": "evocation",
+  "desc": "A bright streak flashes from your pointing finger...",
+  "...": "..."
+}
+```
+
+If the spell's JSON data cannot be parsed, a fallback object with `slug`, `name`, and `error` fields is returned instead.
 
 ---
 

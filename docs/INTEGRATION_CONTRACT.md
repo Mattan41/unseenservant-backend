@@ -87,7 +87,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 **PATCH /api/characters/{id}**
 - Requires: ROLE_USER, must be owner
-- Request: full `PlayerCharacterInputDTO` (validated)
+- Request: `PlayerCharacterInputDTO` — partial, null-safe patch. Omitted/null fields are left unchanged.
 - Response: `PlayerCharacterOutputDTO`
 - Status: 200, 400, 401, 403, 404
 
@@ -149,7 +149,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 - Status: 200, 400, 401, 403
 
 **PATCH /api/campaigns/{id}/participants**
-- Request: `UpdateParticipantsDTO { participantsToAdd: [ ParticipantResponseDTO ], participantIdsToRemove: [ Long ] }`
+- Request: `UpdateParticipantsDTO { participantsToAdd: [ ParticipantResponseDTO ], participantIdsToRemove: [ Long ] }` (`nickname` optional, defaults server-side)
 - Response: `CampaignResponseDTO`
 - Status: 200, 400, 401, 403, 404
 
@@ -202,6 +202,55 @@ Intended as per-campaign message boards. Messages are visible only to campaign p
 - Requires: message sender (only the user who created the message can delete it)
 - Status: 204, 401, 403, 404
 - Note: Campaign GMs cannot delete other users' messages.
+
+---
+
+## Spells
+
+> Spells are stored in the local DB from bulk Open5e import. Shared spell cache — removing a spell from a character does not delete the spell record.
+> See **Client Routing Policy** above: only authenticated sessions use these endpoints. Guest mode and anonymous visitors never call them.
+
+**GET /api/spells**
+- Requires: ROLE_USER
+- Query params:
+  - `query` (string, default `""`) — case-insensitive name search. Blank/empty query returns `count: 0, results: []` (does **not** return all spells).
+  - `page` (integer, default `0`, 0-indexed)
+  - `size` (integer, default `20`, capped server-side at `100`)
+- Response: `{ count: number, results: [ spell objects ] }`
+  - This is a **flat object**, not a Spring Data `Page` (no `content`, `totalPages`, etc.)
+  - Each result is the full Open5e v2 spell object
+  - If JSON parsing fails for a spell, returns `{ slug, name, error }` fallback
+- Status: 200, 401
+
+**GET /api/spells/{slug}**
+- Requires: ROLE_USER
+- Path param: `slug`
+- Response: full Open5e-shaped spell object, or `404` if not found in local DB
+  - If JSON parsing fails for a spell, returns `{ slug, name, error }` fallback
+- Status: 200, 401, 404
+
+**POST /api/characters/{characterId}/spells**
+- Requires: ROLE_USER, must own character
+- Request: `{ slug, name }`
+  - `slug` is the spell identifier (required)
+  - `name` is the spell name (required)
+- Response: `CharacterSpellResponseDTO { characterId, slug, name, spellData }`
+  - `spellData` is the full spell object (raw JSON)
+- Backend behavior:
+  - 403 if user does not own character
+  - 404 if spell slug not found in local DB
+  - Links spell to character via `character_spell` join table
+- Status: 201, 400, 401, 403, 404
+
+**GET /api/characters/{characterId}/spells**
+- Requires: ROLE_USER, must own character
+- Response: `[ CharacterSpellResponseDTO ]`
+- Status: 200, 401, 403, 404
+
+**DELETE /api/characters/{characterId}/spells/{slug}**
+- Requires: ROLE_USER, must own character
+- Removes spell from character's list; does **not** delete the shared spell record
+- Status: 204, 401, 403, 404
 
 ---
 
@@ -329,41 +378,4 @@ Intended as per-campaign message boards. Messages are visible only to campaign p
 
 **Backend:** This contract is binding. Changes require frontend approval and must be backward compatible or coordinated with a versioned API change.
 
-**Both:** Use this document during code review to ensure compliance.
-
----
-
-## Spells
-
->Spells are stored in the local DB from bulk Open5e import. Shared spell cache — removing a spell from a character does not delete the spell record.
-
-**GET /api/spells**
-- Requires: ROLE_USER
-- Query params: `query` (optional, case-insensitive name search)
-- Response: `{ count: number, results: [ spell objects ] }`
-  - Each result is the full Open5e v2 spell object
-  - If JSON parsing fails for a spell, returns `{ slug, name, error }` fallback
-- Status: 200, 401
-
-**POST /api/characters/{characterId}/spells**
-- Requires: ROLE_USER, must own character
-- Request: `{ slug, name }`
-  - `slug` is the spell identifier (required)
-  - `name` is the spell name (required)
-- Response: `CharacterSpellResponseDTO { characterId, slug, name, spellData }`
-  - `spellData` is the full spell object (raw JSON)
-- Backend behavior:
-    - 403 if user does not own character
-    - 404 if spell slug not found in local DB
-    - Links spell to character via `character_spell` join table
-- Status: 201, 400, 401, 403, 404
-
-**GET /api/characters/{characterId}/spells**
-- Requires: ROLE_USER, must own character
-- Response: `[ CharacterSpellResponseDTO ]`
-- Status: 200, 401, 403, 404
-
-**DELETE /api/characters/{characterId}/spells/{slug}**
-- Requires: ROLE_USER, must own character
-- Removes spell from character's list; does **not** delete the shared spell record
-- Status: 204, 401, 403, 404
+**Both:** Use this document during code review to ensure compliance. Consider mirroring this contract as a runnable Bruno collection so drift between this document and the real endpoints is caught automatically instead of found during manual review.

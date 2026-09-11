@@ -37,3 +37,6 @@ build/
 ### VS Code ###
 .vscode/
 .aider*
+
+### Local files ###
+docs/local/
