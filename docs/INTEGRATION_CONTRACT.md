@@ -222,10 +222,11 @@ Intended as per-campaign message boards. Messages are visible only to campaign p
   - If JSON parsing fails for a spell, returns `{ slug, name, error }` fallback
 - Status: 200, 401
 
-**GET /api/spells/{slug}** — ⚠️ *planned, not yet implemented*
+**GET /api/spells/{slug}**
 - Requires: ROLE_USER
 - Path param: `slug`
 - Response: full Open5e-shaped spell object, or `404` if not found in local DB
+  - If JSON parsing fails for a spell, returns `{ slug, name, error }` fallback
 - Status: 200, 401, 404
 
 **POST /api/characters/{characterId}/spells**

@@ -27,4 +27,10 @@ public class SpellSearchController {
         
         return ResponseEntity.ok(spellService.searchSpells(query, page, size));
     }
+
+    @GetMapping("/{slug}")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<?> getSpellBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(spellService.getSpellBySlug(slug));
+    }
 }

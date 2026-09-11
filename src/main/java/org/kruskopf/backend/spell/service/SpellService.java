@@ -99,6 +99,12 @@ public class SpellService {
                 .toList();
     }
 
+    public Map<String, Object> getSpellBySlug(String slug) {
+        Spell spell = spellRepository.findById(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Spell not found with slug: " + slug));
+        return parseSpellData(spell);
+    }
+
     @Transactional
     public void removeSpellFromCharacter(Long characterId, String slug, Long userId) {
         PlayerCharacter character = playerCharacterRepository.findById(characterId)

@@ -371,4 +371,51 @@ class SpellServiceTest {
 
         verify(playerCharacterRepository, never()).save(any());
     }
+
+    @Test
+    void getSpellBySlug_found_returnsSpellData() throws Exception {
+        Spell spell = mock(Spell.class);
+        when(spell.getSlug()).thenReturn(slug);
+        when(spell.getName()).thenReturn(name);
+        when(spell.getRawJsonData()).thenReturn("{\"name\":\"Fireball\"}");
+
+        when(spellRepository.findById(slug)).thenReturn(Optional.of(spell));
+        when(objectMapper.readValue(anyString(), any(TypeReference.class)))
+                .thenReturn(Map.of("name", "Fireball", "level", 3));
+
+        Map<String, Object> result = spellService.getSpellBySlug(slug);
+
+        assertEquals("Fireball", result.get("name"));
+        assertEquals(3, result.get("level"));
+        verify(spellRepository).findById(slug);
+    }
+
+    @Test
+    void getSpellBySlug_notFound_throwsResourceNotFoundException() {
+        when(spellRepository.findById(slug)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> spellService.getSpellBySlug(slug));
+
+        verify(spellRepository).findById(slug);
+    }
+
+    @Test
+    void getSpellBySlug_parseError_returnsFallbackSpellData() throws Exception {
+        Spell spell = mock(Spell.class);
+        when(spell.getSlug()).thenReturn(slug);
+        when(spell.getName()).thenReturn(name);
+        when(spell.getRawJsonData()).thenReturn("bad-json");
+
+        when(spellRepository.findById(slug)).thenReturn(Optional.of(spell));
+        when(objectMapper.readValue(anyString(), any(TypeReference.class)))
+                .thenThrow(new RuntimeException("Parse failure"));
+
+        Map<String, Object> result = spellService.getSpellBySlug(slug);
+
+        assertEquals(slug, result.get("slug"));
+        assertEquals(name, result.get("name"));
+        assertEquals("Failed to parse spell data", result.get("error"));
+        verify(spellRepository).findById(slug);
+    }
 }
