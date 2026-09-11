@@ -17,7 +17,14 @@ public class SpellSearchController {
 
     @GetMapping
     @PreAuthorize("hasRole('ROLE_USER')")
-    public ResponseEntity<?> searchSpells(@RequestParam(defaultValue = "") String query) {
-        return ResponseEntity.ok(spellService.searchSpells(query));
+    public ResponseEntity<?> searchSpells(
+            @RequestParam(defaultValue = "") String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        
+        // Cap size to prevent abuse
+        size = Math.min(size, 100);
+        
+        return ResponseEntity.ok(spellService.searchSpells(query, page, size));
     }
 }

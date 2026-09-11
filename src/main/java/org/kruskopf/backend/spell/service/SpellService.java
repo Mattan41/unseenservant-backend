@@ -11,6 +11,9 @@ import org.kruskopf.backend.spell.dto.CharacterSpellResponseDTO;
 import org.kruskopf.backend.spell.dto.SpellSaveInputDTO;
 import org.kruskopf.backend.spell.entity.Spell;
 import org.kruskopf.backend.spell.repository.SpellRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,17 +43,26 @@ public class SpellService {
      * @param query Optional search term to filter spells by name
      * @return Map containing count and results list with full spell data
      */
-    public Map<String, Object> searchSpells(String query) {
-        List<Spell> spells = query == null || query.isBlank() 
-            ? spellRepository.findAll() 
-            : spellRepository.findByNameContainingIgnoreCase(query);
+    public Map<String, Object> searchSpells(String query, int page, int size) {
+        // Treat blank query as matching nothing
+        if (query == null || query.isBlank()) {
+            return Map.of(
+                "count", 0,
+                "results", List.of()
+            );
+        }
 
-        List<Map<String, Object>> spellResults = spells.stream()
+        Page<Spell> spellPage = spellRepository.findByNameContainingIgnoreCase(
+            query, 
+            PageRequest.of(page, size, Sort.by("name").ascending())
+        );
+
+        List<Map<String, Object>> spellResults = spellPage.getContent().stream()
                 .map(this::parseSpellData)
                 .toList();
 
         return Map.of(
-                "count", spellResults.size(),
+                "count", spellPage.getTotalElements(),
                 "results", spellResults
         );
     }
