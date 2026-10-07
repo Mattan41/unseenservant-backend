@@ -41,18 +41,26 @@ org.kruskopf.backend/
 │   └── service/
 │       ├── CampaignPermissionService.java 
 │       └── CampaignService.java
-├── playercharacter/
-│   ├── controller/PlayerCharacterController.java
+├── playercharacter/                     # System-agnostic character feature
+│   ├── controller/GameCharacterController.java
 │   ├── dto/
-│   │   ├── PlayerCharacterCampaignUpdateDTO.java
-│   │   ├── PlayerCharacterInputDTO.java
-│   │   └── PlayerCharacterOutputDTO.java
-│   ├── entity/PlayerCharacter.java
-│   ├── repository/PlayerCharacterRepository.java
-│   ├── service/PlayerCharacterService.java
-│   ├── PlayerCharacterMapper.java
-│   ├── PlayerCharacterStats.java        # Stats value object
-│   └── PlayerCharacterStatsConverter.java  # JPA AttributeConverter
+│   │   ├── CharacterCampaignUpdateDTO.java
+│   │   ├── CharacterInputDTO.java
+│   │   └── CharacterOutputDTO.java
+│   ├── entity/
+│   │   ├── GameCharacter.java           # Generic core character
+│   │   └── GameSystem.java              # System enum (DND5E, OFFWORLDERS)
+│   ├── repository/GameCharacterRepository.java
+│   ├── service/GameCharacterService.java
+│   └── GameCharacterMapper.java
+├── dnd5e/                               # D&D 5e-specific character data
+│   ├── entity/Dnd5eCharacterData.java           # 1:1 with GameCharacter (shared PK)
+│   ├── repository/Dnd5eCharacterDataRepository.java
+│   ├── dto/
+│   │   ├── Dnd5eCharacterDataInputDTO.java
+│   │   └── Dnd5eCharacterDataOutputDTO.java
+│   ├── Dnd5eCharacterStats.java         # Stats value object
+│   └── Dnd5eCharacterStatsConverter.java  # JPA AttributeConverter
 ├── spell/
 │   ├── controller/
 │   │   ├── CharacterSpellController.java
@@ -134,12 +142,13 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 
 | Entity | Key fields | Relations |
 |--------|-----------|-----------|
-| `User` | id, email, role, providerType | has many PlayerCharacters, CampaignUsers |
-| `PlayerCharacter` | id, name, stats (JSON) | belongs to User, optionally linked to Campaign; many-to-many with Spell via `character_spell` |
+| `User` | id, email, role, providerType | has many GameCharacters, CampaignUsers |
+| `GameCharacter` | id, name, systemType, notes, avatarUrl | generic core character; belongs to User, optionally linked to Campaign; 1:1 with Dnd5eCharacterData when `systemType = DND5E` |
+| `Dnd5eCharacterData` | characterId (shared PK), level, characterClass, race, hitPoints, armorClass, stats (JSON) | D&D 5e data; 1:1 with GameCharacter; many-to-many with Spell via `character_spell` |
 | `Campaign` | id, name, imageUrl | has many CampaignUsers |
 | `CampaignUser` | campaignId + userId (composite PK), role | join table Campaign ↔ User |
 | `Message` | id, content, timestamp | belongs to Campaign |
-| `Spell` | slug (PK), name, rawJsonData (TEXT) | many-to-many with PlayerCharacter; stored in local DB from bulk Open5e import |
+| `Spell` | slug (PK), name, rawJsonData (TEXT) | many-to-many with Dnd5eCharacterData; stored in local DB from bulk Open5e import |
 | `EmailWhitelist` | email | standalone |
 
 ## Tests

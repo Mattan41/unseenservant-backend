@@ -8,7 +8,7 @@ import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.filestorage.FileStorageService;
-import org.kruskopf.backend.playercharacter.service.PlayerCharacterService;
+import org.kruskopf.backend.playercharacter.service.GameCharacterService;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
@@ -31,14 +31,14 @@ public class CampaignService {
     private final CampaignRepository campaignRepository;
     private final UserService userService;
     private final CampaignPermissionService campaignPermissionService;
-    private final PlayerCharacterService playerCharacterService;
+    private final GameCharacterService gameCharacterService;
     private final FileStorageService fileStorageService;
 
-    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, PlayerCharacterService playerCharacterService, FileStorageService fileStorageService) {
+    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, GameCharacterService gameCharacterService, FileStorageService fileStorageService) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
         this.campaignPermissionService = campaignPermissionService;
-        this.playerCharacterService = playerCharacterService;
+        this.gameCharacterService = gameCharacterService;
         this.fileStorageService = fileStorageService;
     }
 
@@ -232,7 +232,7 @@ public class CampaignService {
 
             // Remove campaign reference from all player characters of the participants to be removed
             for (long userId : updateDTO.participantIdsToRemove()) {
-                playerCharacterService.removeAllCharactersFromCampaign(userId, campaignId);
+                gameCharacterService.removeAllCharactersFromCampaign(userId, campaignId);
             }
 
             // remove the participants
@@ -335,7 +335,7 @@ public class CampaignService {
 
         campaign.getParticipants().stream()
                 .map(participant -> participant.getUser().getId())
-                .forEach(userId -> playerCharacterService.removeAllCharactersFromCampaign(userId, id));
+                .forEach(userId -> gameCharacterService.removeAllCharactersFromCampaign(userId, id));
 
 
         campaignRepository.delete(campaign);

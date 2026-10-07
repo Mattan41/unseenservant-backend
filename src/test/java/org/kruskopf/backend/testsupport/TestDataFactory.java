@@ -2,7 +2,9 @@ package org.kruskopf.backend.testsupport;
 
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.message.entity.Message;
-import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
+import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
+import org.kruskopf.backend.playercharacter.entity.GameCharacter;
+import org.kruskopf.backend.playercharacter.entity.GameSystem;
 import org.kruskopf.backend.spell.entity.Spell;
 import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
@@ -81,20 +83,23 @@ public final class TestDataFactory {
     }
 
     /**
-     * Builds a valid {@link PlayerCharacter} with all mandatory fields set.
-     * The {@code spells} collection is initialised to an empty set and
-     * {@code campaign} is left null.
+     * Builds a valid D&D 5e {@link GameCharacter} with all mandatory fields set.
+     * An empty {@link Dnd5eCharacterData} block (with an empty {@code spells}
+     * set) is attached and {@code campaign} is left null.
      *
      * @param owner the owning {@link User}
-     * @return a transient {@link PlayerCharacter}
+     * @return a transient {@link GameCharacter}
      */
-    public static PlayerCharacter aCharacter(User owner) {
-        PlayerCharacter character = new PlayerCharacter();
+    public static GameCharacter aCharacter(User owner) {
+        GameCharacter character = new GameCharacter();
         character.setOwner(owner);
         character.setName("Test Hero");
-        character.setCharacterClass("Fighter");
-        character.setRace("Human");
-        character.setSpells(new HashSet<>());
+        character.setSystemType(GameSystem.DND5E);
+        Dnd5eCharacterData data = new Dnd5eCharacterData();
+        data.setCharacterClass("Fighter");
+        data.setRace("Human");
+        data.setSpells(new HashSet<>());
+        character.attachDnd5eData(data);
         return character;
     }
 
@@ -103,10 +108,10 @@ public final class TestDataFactory {
      *
      * @param owner    the owning {@link User}
      * @param campaign the {@link Campaign} to which the character belongs
-     * @return a transient {@link PlayerCharacter} with the given campaign set
+     * @return a transient {@link GameCharacter} with the given campaign set
      */
-    public static PlayerCharacter aCharacter(User owner, Campaign campaign) {
-        PlayerCharacter character = aCharacter(owner);
+    public static GameCharacter aCharacter(User owner, Campaign campaign) {
+        GameCharacter character = aCharacter(owner);
         character.setCampaign(campaign);
         return character;
     }

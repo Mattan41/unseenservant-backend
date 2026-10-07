@@ -1,6 +1,10 @@
-package org.kruskopf.backend.playercharacter;
+package org.kruskopf.backend.dnd5e;
 
-public class PlayerCharacterStats {
+/**
+ * D&D 5e ability scores. Stored as a JSON column via
+ * {@link Dnd5eCharacterStatsConverter}.
+ */
+public class Dnd5eCharacterStats {
     private int strength;
     private int dexterity;
     private int constitution;
@@ -8,10 +12,10 @@ public class PlayerCharacterStats {
     private int wisdom;
     private int charisma;
 
-    public PlayerCharacterStats() {
+    public Dnd5eCharacterStats() {
     }
 
-    public PlayerCharacterStats(int strength, int dexterity, int constitution, int intelligence, int wisdom, int charisma) {
+    public Dnd5eCharacterStats(int strength, int dexterity, int constitution, int intelligence, int wisdom, int charisma) {
         this.strength = strength;
         this.dexterity = dexterity;
         this.constitution = constitution;
@@ -70,7 +74,7 @@ public class PlayerCharacterStats {
 
     @Override
     public String toString() {
-        return "CharacterStats{" +
+        return "Dnd5eCharacterStats{" +
                 "strength=" + strength +
                 ", dexterity=" + dexterity +
                 ", constitution=" + constitution +

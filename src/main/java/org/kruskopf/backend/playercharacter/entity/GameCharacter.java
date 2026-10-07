@@ -1,16 +1,9 @@
 package org.kruskopf.backend.playercharacter.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import org.kruskopf.backend.campaign.entity.Campaign;
-import org.kruskopf.backend.playercharacter.PlayerCharacterStats;
-import org.kruskopf.backend.playercharacter.PlayerCharacterStatsConverter;
-import org.kruskopf.backend.spell.entity.Spell;
+import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
 import org.kruskopf.backend.user.entity.User;
-
-import java.util.HashSet;
-import java.util.Set;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -19,10 +12,17 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
+/**
+ * System-agnostic core character entity.
+ * <p>
+ * Holds only fields that are meaningful for any tabletop RPG system. All
+ * system-specific data is stored in a dedicated 1:1 entity selected by
+ * {@link #systemType} (e.g. {@link Dnd5eCharacterData} for {@link GameSystem#DND5E}).
+ */
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "game_character", indexes = {@Index(name = "idx_character_owner_id", columnList = "owner_id")})
-public class PlayerCharacter {
+public class GameCharacter {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,31 +39,18 @@ public class PlayerCharacter {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    @Min(value = 1, message = "Level must be at least 1")
-    @Max(value = 20, message = "Level must be at most 20")
-    private int level = 1;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "system_type", nullable = false)
+    private GameSystem systemType = GameSystem.DND5E;
 
-    @Column(nullable = false)
-    private String characterClass;
-
-    @Column(nullable = false)
-    private String race;
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 
     @Column
     private String imageUrl;
 
-    @Column(columnDefinition = "TEXT")
-    @Convert(converter = PlayerCharacterStatsConverter.class)
-    private PlayerCharacterStats characterData;
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "character_spell",
-            joinColumns = @JoinColumn(name = "character_id"),
-            inverseJoinColumns = @JoinColumn(name = "spell_slug")
-    )
-    private Set<Spell> spells = new HashSet<>();
+    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Dnd5eCharacterData dnd5eData;
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -78,18 +65,25 @@ public class PlayerCharacter {
     private String lastModifiedBy;
 
     // Constructors
-    public PlayerCharacter() {
+    public GameCharacter() {
     }
 
-    public PlayerCharacter(User owner, Campaign campaign, String name, int level, String characterClass, String race, PlayerCharacterStats characterData) {
+    public GameCharacter(User owner, Campaign campaign, String name, GameSystem systemType) {
         this.owner = owner;
         this.campaign = campaign;
         this.name = name;
-        this.level = level;
-        this.characterClass = characterClass;
-        this.race = race;
-        this.characterData = characterData;
+        this.systemType = systemType != null ? systemType : GameSystem.DND5E;
         this.createdAt = LocalDateTime.now();
+    }
+
+    /**
+     * Attaches the 1:1 D&D 5e data and keeps both sides of the relationship in sync.
+     */
+    public void attachDnd5eData(Dnd5eCharacterData data) {
+        this.dnd5eData = data;
+        if (data != null) {
+            data.setCharacter(this);
+        }
     }
 
     // Getters and Setters
@@ -121,43 +115,36 @@ public class PlayerCharacter {
         this.name = name;
     }
 
-    public int getLevel() {
-        return level;
+    public GameSystem getSystemType() {
+        return systemType;
     }
 
-    public void setLevel(int level) {
-        this.level = level;
+    public void setSystemType(GameSystem systemType) {
+        this.systemType = systemType;
     }
 
-    public String getCharacterClass() {
-        return characterClass;
+    public String getNotes() {
+        return notes;
     }
 
-    public void setCharacterClass(String characterClass) {
-        this.characterClass = characterClass;
-    }
-
-    public String getRace() {
-        return race;
-    }
-
-    public void setRace(String race) {
-        this.race = race;
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public String getImageUrl() {
         return imageUrl;
     }
+
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
     }
 
-    public PlayerCharacterStats getCharacterData() {
-        return characterData;
+    public Dnd5eCharacterData getDnd5eData() {
+        return dnd5eData;
     }
 
-    public void setCharacterData(PlayerCharacterStats characterData) {
-        this.characterData = characterData;
+    public void setDnd5eData(Dnd5eCharacterData dnd5eData) {
+        this.dnd5eData = dnd5eData;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -187,13 +174,4 @@ public class PlayerCharacter {
     public void setLastModifiedBy(String lastModifiedBy) {
         this.lastModifiedBy = lastModifiedBy;
     }
-
-    public Set<Spell> getSpells() {
-        return spells;
-    }
-
-    public void setSpells(Set<Spell> spells) {
-        this.spells = spells;
-    }
 }
-

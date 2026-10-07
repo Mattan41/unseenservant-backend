@@ -380,18 +380,20 @@ Valid `role` values: `GM` | `PLAYER`
 ```json
 {
   "name": "Aragorn",
-  "level": 5,
-  "characterClass": "Fighter",
-  "race": "Human",
-  "imageUrl": null,
+  "systemType": "DND5E",
+  "notes": null,
   "campaignId": null,
-  "playerCharacterData": {
-    "strength": 16,
-    "dexterity": 14,
-    "constitution": 15,
-    "intelligence": 12,
-    "wisdom": 14,
-    "charisma": 13
+  "avatarUrl": null,
+  "dnd5e": {
+    "level": 5,
+    "characterClass": "Fighter",
+    "race": "Human",
+    "hitPoints": 44,
+    "armorClass": 17,
+    "stats": {
+      "strength": 16, "dexterity": 14, "constitution": 15,
+      "intelligence": 12, "wisdom": 14, "charisma": 13
+    }
   }
 }
 ```
@@ -399,13 +401,12 @@ Valid `role` values: `GM` | `PLAYER`
 | Field | Type | Rules |
 |-------|------|-------|
 | `name` | string | — |
-| `level` | int | 0–20 |
-| `characterClass` | string | — |
-| `race` | string | — |
-| `imageUrl` | string | Optional |
+| `systemType` | enum | `DND5E` \| `OFFWORLDERS`; defaults to `DND5E` |
+| `notes` | string | Optional |
+| `avatarUrl` | string | Optional |
 | `campaignId` | Long | Optional |
 | `ownerId` | Long | Optional; defaults to logged-in user if null |
-| `playerCharacterData` | object | See stats structure below |
+| `dnd5e` | object | Optional; applied only when `systemType === 'DND5E'`. Shape: `{ level (1–20), characterClass, race, hitPoints?, armorClass?, stats }` |
 
 > If `ownerId` is `null`, the logged-in user is automatically set as owner.
 
@@ -416,17 +417,19 @@ Valid `role` values: `GM` | `PLAYER`
   "ownerId": 7,
   "campaignId": null,
   "name": "Aragorn",
-  "level": 5,
-  "characterClass": "Fighter",
-  "race": "Human",
-  "imageUrl": null,
-  "playerCharacterData": {
-    "strength": 16,
-    "dexterity": 14,
-    "constitution": 15,
-    "intelligence": 12,
-    "wisdom": 14,
-    "charisma": 13
+  "systemType": "DND5E",
+  "notes": null,
+  "avatarUrl": null,
+  "dnd5e": {
+    "level": 5,
+    "characterClass": "Fighter",
+    "race": "Human",
+    "hitPoints": 44,
+    "armorClass": 17,
+    "stats": {
+      "strength": 16, "dexterity": 14, "constitution": 15,
+      "intelligence": 12, "wisdom": 14, "charisma": 13
+    }
   },
   "createdAt": "2026-05-29T09:00:00",
   "updatedAt": null
@@ -446,7 +449,7 @@ Valid `role` values: `GM` | `PLAYER`
 |-------|----------|-------------|
 | `campaignId` | No | Filter by campaign ID |
 
-**Response (200):** List of `PlayerCharacterOutputDTO`.
+**Response (200):** List of `CharacterOutputDTO`.
 
 ---
 
@@ -473,7 +476,7 @@ Valid `role` values: `GM` | `PLAYER`
 **Auth:** Yes (ROLE_USER)  
 **Status:** 200, 401, 404
 
-**Response (200):** `PlayerCharacterOutputDTO`
+**Response (200):** `CharacterOutputDTO`
 
 ---
 
@@ -482,9 +485,9 @@ Valid `role` values: `GM` | `PLAYER`
 **Auth:** Yes (ROLE_USER, must be owner)  
 **Status:** 200, 400, 401, 403, 404
 
-**Request:** Full `PlayerCharacterInputDTO` (validated, `level` must be 0–20).
+**Request:** Full `CharacterInputDTO` (validated, `level` must be 0–20).
 
-**Response (200):** `PlayerCharacterOutputDTO`
+**Response (200):** `CharacterOutputDTO`
 
 ---
 
@@ -495,7 +498,7 @@ Valid `role` values: `GM` | `PLAYER`
 
 **Request:** `multipart/form-data`, field name: `file`.
 
-**Response (200):** `PlayerCharacterOutputDTO` with updated `imageUrl`.
+**Response (200):** `CharacterOutputDTO` with updated `imageUrl`.
 
 ---
 
@@ -509,7 +512,7 @@ Valid `role` values: `GM` | `PLAYER`
 { "campaignId": 2 }
 ```
 
-**Response (200):** `PlayerCharacterOutputDTO`
+**Response (200):** `CharacterOutputDTO`
 
 [USES: Campaign]
 
@@ -522,7 +525,7 @@ Valid `role` values: `GM` | `PLAYER`
 
 Sets `campaignId = null` without deleting the character.
 
-**Response (200):** `PlayerCharacterOutputDTO`
+**Response (200):** `CharacterOutputDTO`
 
 ---
 
@@ -596,9 +599,9 @@ Intended for per-campaign message boards. Messages are visible only to campaign 
 ## 6. Spells
 
 `/api/spells/**` and `/api/characters/{characterId}/spells` — requires authentication.  
-[USES: PlayerCharacter]
+[USES: GameCharacter, Dnd5eCharacterData]
 
-Spells are stored in the local `spell` table from bulk Open5e import. The join table `character_spell` links characters to spells (many-to-many).
+Spells are stored in the local `spell` table from bulk Open5e import. The join table `character_spell` links a character's D&D 5e data (`dnd5e_character_data`) to spells (many-to-many).
 
 ---
 
@@ -764,20 +767,26 @@ Removes the spell from the character's spell list. The `Spell` record itself is 
 }
 ```
 
-### PlayerCharacterOutputDTO
+### CharacterOutputDTO
 ```json
 {
   "id": 14,
   "ownerId": 7,
   "campaignId": null,
   "name": "Aragorn",
-  "level": 5,
-  "characterClass": "Fighter",
-  "race": "Human",
-  "imageUrl": null,
-  "playerCharacterData": {
-    "strength": 16, "dexterity": 14, "constitution": 15,
-    "intelligence": 12, "wisdom": 14, "charisma": 13
+  "systemType": "DND5E",
+  "notes": null,
+  "avatarUrl": null,
+  "dnd5e": {
+    "level": 5,
+    "characterClass": "Fighter",
+    "race": "Human",
+    "hitPoints": 44,
+    "armorClass": 17,
+    "stats": {
+      "strength": 16, "dexterity": 14, "constitution": 15,
+      "intelligence": 12, "wisdom": 14, "charisma": 13
+    }
   },
   "createdAt": "2026-05-29T09:00:00",
   "updatedAt": null

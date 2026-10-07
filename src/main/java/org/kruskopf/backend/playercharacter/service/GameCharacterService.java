@@ -6,11 +6,11 @@ import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.filestorage.FileStorageService;
-import org.kruskopf.backend.playercharacter.PlayerCharacterMapper;
-import org.kruskopf.backend.playercharacter.dto.PlayerCharacterInputDTO;
-import org.kruskopf.backend.playercharacter.dto.PlayerCharacterOutputDTO;
-import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
-import org.kruskopf.backend.playercharacter.repository.PlayerCharacterRepository;
+import org.kruskopf.backend.playercharacter.GameCharacterMapper;
+import org.kruskopf.backend.playercharacter.dto.CharacterInputDTO;
+import org.kruskopf.backend.playercharacter.dto.CharacterOutputDTO;
+import org.kruskopf.backend.playercharacter.entity.GameCharacter;
+import org.kruskopf.backend.playercharacter.repository.GameCharacterRepository;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -22,70 +22,70 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class PlayerCharacterService {
-    private final PlayerCharacterRepository playerCharacterRepository;
+public class GameCharacterService {
+    private final GameCharacterRepository gameCharacterRepository;
     private final UserRepository userRepository;
     private final CampaignRepository campaignRepository;
-    private final PlayerCharacterMapper playerCharacterMapper;
+    private final GameCharacterMapper gameCharacterMapper;
     private final CampaignPermissionService campaignPermissionService;
     private final FileStorageService fileStorageService;
 
-    public PlayerCharacterService(
-            PlayerCharacterRepository playerCharacterRepository,
+    public GameCharacterService(
+            GameCharacterRepository gameCharacterRepository,
             UserRepository userRepository,
             CampaignRepository campaignRepository,
-            PlayerCharacterMapper playerCharacterMapper,
+            GameCharacterMapper gameCharacterMapper,
             CampaignPermissionService campaignPermissionService,
             FileStorageService fileStorageService) {
-        this.playerCharacterRepository = playerCharacterRepository;
+        this.gameCharacterRepository = gameCharacterRepository;
         this.userRepository = userRepository;
         this.campaignRepository = campaignRepository;
-        this.playerCharacterMapper = playerCharacterMapper;
+        this.gameCharacterMapper = gameCharacterMapper;
         this.campaignPermissionService = campaignPermissionService;
         this.fileStorageService = fileStorageService;
     }
 
-    public PlayerCharacterOutputDTO createCharacter(PlayerCharacterInputDTO inputDTO) {
+    public CharacterOutputDTO createCharacter(CharacterInputDTO inputDTO) {
         User owner = userRepository.findById(inputDTO.ownerId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + inputDTO.ownerId()));
 
-        PlayerCharacter character = playerCharacterMapper.toEntity(inputDTO, owner, null);
-        PlayerCharacter savedCharacter = playerCharacterRepository.save(character);
+        GameCharacter character = gameCharacterMapper.toEntity(inputDTO, owner, null);
+        GameCharacter savedCharacter = gameCharacterRepository.save(character);
 
-        return playerCharacterMapper.toOutputDTO(savedCharacter);
+        return gameCharacterMapper.toOutputDTO(savedCharacter);
     }
 
-    public List<PlayerCharacterOutputDTO> getAllCharacters() {
-        return playerCharacterRepository.findAll()
+    public List<CharacterOutputDTO> getAllCharacters() {
+        return gameCharacterRepository.findAll()
                 .stream()
-                .map(playerCharacterMapper::toOutputDTO)
+                .map(gameCharacterMapper::toOutputDTO)
                 .toList();
     }
 
-    public List<PlayerCharacterOutputDTO> getCharactersWithoutCampaign(long userId) {
+    public List<CharacterOutputDTO> getCharactersWithoutCampaign(long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        return playerCharacterRepository.findByOwner(user)
+        return gameCharacterRepository.findByOwner(user)
                 .stream()
                 .filter(character -> character.getCampaign() == null)
-                .map(playerCharacterMapper::toOutputDTO)
+                .map(gameCharacterMapper::toOutputDTO)
                 .collect(Collectors.toList());
     }
 
-    public List<PlayerCharacterOutputDTO> getCharactersByUserId(long userId) {
+    public List<CharacterOutputDTO> getCharactersByUserId(long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        return playerCharacterRepository.findByOwner(user)
+        return gameCharacterRepository.findByOwner(user)
                 .stream()
-                .map(playerCharacterMapper::toOutputDTO)
+                .map(gameCharacterMapper::toOutputDTO)
                 .collect(Collectors.toList());
     }
 
-    public PlayerCharacterOutputDTO getCharacterById(long id, long userId) {
-        PlayerCharacterOutputDTO character = playerCharacterRepository.findById(id)
-                .map(playerCharacterMapper::toOutputDTO)
+    public CharacterOutputDTO getCharacterById(long id, long userId) {
+        CharacterOutputDTO character = gameCharacterRepository.findById(id)
+                .map(gameCharacterMapper::toOutputDTO)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + id));
 
         if (character.campaignId() == null) {
@@ -100,10 +100,9 @@ public class PlayerCharacterService {
         return character;
     }
 
-
     @Transactional
-    public PlayerCharacterOutputDTO updateCharacter(long characterId, PlayerCharacterInputDTO inputDTO, long userId) {
-        PlayerCharacter character = playerCharacterRepository.findById(characterId)
+    public CharacterOutputDTO updateCharacter(long characterId, CharacterInputDTO inputDTO, long userId) {
+        GameCharacter character = gameCharacterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
         if (!character.getOwner().getId().equals(userId)) {
@@ -111,14 +110,14 @@ public class PlayerCharacterService {
         }
 
         // Use mapper to update fields
-        playerCharacterMapper.patchEntity(character, inputDTO);
+        gameCharacterMapper.patchEntity(character, inputDTO);
 
-        PlayerCharacter updatedCharacter = playerCharacterRepository.save(character);
-        return playerCharacterMapper.toOutputDTO(updatedCharacter);
+        GameCharacter updatedCharacter = gameCharacterRepository.save(character);
+        return gameCharacterMapper.toOutputDTO(updatedCharacter);
     }
 
-    public PlayerCharacterOutputDTO uploadCharacterImage(long characterId, MultipartFile file, long userId) {
-        PlayerCharacter character = playerCharacterRepository.findById(characterId)
+    public CharacterOutputDTO uploadCharacterImage(long characterId, MultipartFile file, long userId) {
+        GameCharacter character = gameCharacterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found"));
 
         if (!character.getOwner().getId().equals(userId)) {
@@ -128,17 +127,16 @@ public class PlayerCharacterService {
         try {
             String fileName = fileStorageService.storeFile(file, "character_" + characterId, "IMAGE");
             character.setImageUrl("/images/" + fileName);
-            PlayerCharacter savedCharacter = playerCharacterRepository.save(character);
-            return playerCharacterMapper.toOutputDTO(savedCharacter);
+            GameCharacter savedCharacter = gameCharacterRepository.save(character);
+            return gameCharacterMapper.toOutputDTO(savedCharacter);
         } catch (IOException e) {
             throw new RuntimeException("Failed to store file", e);
         }
     }
 
-
     @Transactional
-    public PlayerCharacterOutputDTO addCharacterToCampaign(long characterId, long campaignId, long userId) {
-        PlayerCharacter character = playerCharacterRepository.findById(characterId)
+    public CharacterOutputDTO addCharacterToCampaign(long characterId, long campaignId, long userId) {
+        GameCharacter character = gameCharacterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
         if (!character.getOwner().getId().equals(userId)) {
@@ -153,14 +151,14 @@ public class PlayerCharacterService {
         }
 
         character.setCampaign(campaign);
-        PlayerCharacter savedCharacter = playerCharacterRepository.save(character);
+        GameCharacter savedCharacter = gameCharacterRepository.save(character);
 
-        return playerCharacterMapper.toOutputDTO(savedCharacter);
+        return gameCharacterMapper.toOutputDTO(savedCharacter);
     }
 
     @Transactional
-    public PlayerCharacterOutputDTO removeCharacterFromCampaign(long characterId, long userId) {
-        PlayerCharacter character = playerCharacterRepository.findById(characterId)
+    public CharacterOutputDTO removeCharacterFromCampaign(long characterId, long userId) {
+        GameCharacter character = gameCharacterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
         // Verify that the user is the owner of the character
@@ -170,16 +168,16 @@ public class PlayerCharacterService {
 
         // remove the character from the campaign
         character.setCampaign(null);
-        PlayerCharacter savedCharacter = playerCharacterRepository.save(character);
+        GameCharacter savedCharacter = gameCharacterRepository.save(character);
 
-        return playerCharacterMapper.toOutputDTO(savedCharacter);
+        return gameCharacterMapper.toOutputDTO(savedCharacter);
     }
 
     //delete one character
     @Transactional
     public void deleteCharacter(long characterId, long userId) {
 
-        PlayerCharacter character = playerCharacterRepository.findById(characterId)
+        GameCharacter character = gameCharacterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
         // Verify that the user is the owner of the character
@@ -187,31 +185,20 @@ public class PlayerCharacterService {
             throw new UnauthorizedAccessException("User does not own this character");
         }
         // delete the character
-        playerCharacterRepository.delete(character);
+        gameCharacterRepository.delete(character);
 
     }
 
     /**
      * Removes all character-campaign associations for a specific user from a given campaign.
-     *
-     * <p>IMPORTANT: This method is intended to be called only from {@link org.kruskopf.backend.campaign.service.CampaignService} where
-     * proper authorization checks are already performed. It does not perform any permission
-     * validation on its own and should not be exposed directly via controllers.</p>
-     *
-     * <p>This method is part of the participant removal process and ensures that when a user
-     * is removed from a campaign, all their characters are properly disassociated from that campaign.</p>
-     *
-     * @param userId     The ID of the user whose characters should be disassociated from the campaign
-     * @param campaignId The ID of the campaign from which to remove the character associations
-     * {@code @todo} Refactor to an event-driven model (e.g., listening for a record CharacterRemovedFromCampaignEvent)
-     * in the next architectural cleanup to fully decouple the services and remove this public method.
+     * See the original JavaDoc in the history for full context.
      */
     @Transactional
     public void removeAllCharactersFromCampaign(long userId, long campaignId) {
-        playerCharacterRepository.removeCampaignReferenceForUser(userId, campaignId);
+        gameCharacterRepository.removeCampaignReferenceForUser(userId, campaignId);
     }
 
-    public List<PlayerCharacterOutputDTO> getCharactersByCampaignId(long campaignId, long userId) {
+    public List<CharacterOutputDTO> getCharactersByCampaignId(long campaignId, long userId) {
 
         if (!campaignRepository.existsById(campaignId)) {
             throw new ResourceNotFoundException("Campaign not found with id: " + campaignId);
@@ -220,17 +207,15 @@ public class PlayerCharacterService {
         if (!campaignPermissionService.isParticipant(campaignId, userId)) {
             throw new UnauthorizedAccessException("User is not a participant in this campaign");
         }
-        return playerCharacterRepository.findByCampaignId(campaignId)
+        return gameCharacterRepository.findByCampaignId(campaignId)
                 .stream()
-                .map(playerCharacterMapper::toOutputDTO)
+                .map(gameCharacterMapper::toOutputDTO)
                 .collect(Collectors.toList());
     }
 
     // helper methods
 
-    private boolean isNotOwner(PlayerCharacterOutputDTO character, long userId) {
+    private boolean isNotOwner(CharacterOutputDTO character, long userId) {
         return !character.ownerId().equals(userId);
     }
-
-
 }

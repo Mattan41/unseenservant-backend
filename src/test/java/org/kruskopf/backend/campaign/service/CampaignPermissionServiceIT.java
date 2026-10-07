@@ -10,8 +10,8 @@ import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
-import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
-import org.kruskopf.backend.playercharacter.repository.PlayerCharacterRepository;
+import org.kruskopf.backend.playercharacter.entity.GameCharacter;
+import org.kruskopf.backend.playercharacter.repository.GameCharacterRepository;
 import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.repository.UserRepository;
@@ -34,7 +34,7 @@ class CampaignPermissionServiceIT extends AbstractIntegrationTest {
     private final UserRepository userRepository;
     private final CampaignRepository campaignRepository;
     private final CampaignUserRepository campaignUserRepository;
-    private final PlayerCharacterRepository playerCharacterRepository;
+    private final GameCharacterRepository gameCharacterRepository;
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
@@ -43,12 +43,12 @@ class CampaignPermissionServiceIT extends AbstractIntegrationTest {
             UserRepository userRepository,
             CampaignRepository campaignRepository,
             CampaignUserRepository campaignUserRepository,
-            PlayerCharacterRepository playerCharacterRepository) {
+            GameCharacterRepository gameCharacterRepository) {
         this.permissionService = permissionService;
         this.userRepository = userRepository;
         this.campaignRepository = campaignRepository;
         this.campaignUserRepository = campaignUserRepository;
-        this.playerCharacterRepository = playerCharacterRepository;
+        this.gameCharacterRepository = gameCharacterRepository;
     }
 
     private User owner;
@@ -56,12 +56,12 @@ class CampaignPermissionServiceIT extends AbstractIntegrationTest {
     private User player;
     private User outsider;
     private Campaign campaign;
-    private PlayerCharacter character;
+    private GameCharacter character;
 
     @BeforeEach
     void setUp() {
         // Clean up in FK‑safe order
-        playerCharacterRepository.deleteAll();
+        gameCharacterRepository.deleteAll();
         campaignUserRepository.deleteAll();
         campaignRepository.deleteAll();
         userRepository.deleteAll();
@@ -82,7 +82,7 @@ class CampaignPermissionServiceIT extends AbstractIntegrationTest {
         campaignUserRepository.save(new CampaignUser(campaign, player, CampaignRole.PLAYER, "The  Player"));
 
         // Create a character owned by player, assigned to the campaign using factory
-        character = playerCharacterRepository.save(
+        character = gameCharacterRepository.save(
                 TestDataFactory.aCharacter(player, campaign));
     }
 

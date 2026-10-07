@@ -103,50 +103,40 @@ VALUES (1, 1, 1, 'Wow this campaign is great!', CURRENT_TIMESTAMP, CURRENT_TIMES
 -- =====================================================================================
 -- PLAYER CHARACTERS
 -- =====================================================================================
-INSERT INTO game_character (id, owner_id, campaign_id, name, level, character_class, race, character_data, created_at,
-                            updated_at)
+INSERT INTO game_character (id, owner_id, campaign_id, name, system_type, created_at, updated_at)
 VALUES
 -- Campaign 1
-(1, 1, 1, 'Gandalf', 10, 'Wizard', 'Human',
- '{"strength":11, "dexterity":11, "constitution":11, "intelligence":11, "wisdom":15, "charisma":13}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
-(2, 2, 1, 'Frodo', 8, 'Rogue', 'Halfling',
- '{"strength":10, "dexterity":18, "constitution":12, "intelligence":12, "wisdom":13, "charisma":10}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
-(3, 3, 1, 'Galadriel', 10, 'Cleric', 'Elf',
- '{"strength":10, "dexterity":10, "constitution":10, "intelligence":14, "wisdom":18, "charisma":16}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
-(4, 4, 1, 'Gimli', 8, 'Fighter', 'Dwarf',
- '{"strength":19, "dexterity":8, "constitution":16, "intelligence":9, "wisdom":11, "charisma":8}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
+(1, 1, 1, 'Gandalf', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 2, 1, 'Frodo', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(3, 3, 1, 'Galadriel', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(4, 4, 1, 'Gimli', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
 -- Campaign 2
-(5, 1, 2, 'Rincewind', 1, 'Wizard', 'Human',
- '{"strength":9, "dexterity":9, "constitution":9, "intelligence":14, "wisdom":9, "charisma":9}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
-(6, 2, 2, 'Twoflower', 1, 'Rogue', 'Halfling',
- '{"strength":9, "dexterity":14, "constitution":9, "intelligence":9, "wisdom":9, "charisma":14}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
-(7, 3, 2, 'Mightily Oats', 1, 'Cleric', 'Human',
- '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":16, "charisma":10}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
-(8, 4, 2, 'Carrot Ironfoundersson', 1, 'Fighter', 'Dwarf',
- '{"strength":16, "dexterity":10, "constitution":14, "intelligence":10, "wisdom":14, "charisma":12}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
+(5, 1, 2, 'Rincewind', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(6, 2, 2, 'Twoflower', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(7, 3, 2, 'Mightily Oats', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(8, 4, 2, 'Carrot Ironfoundersson', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
 -- Campaign 3
-(9, 1, 3, 'Ironclad', 1, 'Paladin', 'Dragonborn',
- '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":10, "charisma":10}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
-(10, 2, 3, 'Gearspark', 1, 'Rogue', 'Gnome',
- '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":10, "charisma":10}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
-(11, 3, 3, 'Steamwhistle', 1, 'Bard', 'Halfling',
- '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":10, "charisma":10}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP),
-(12, 4, 3, 'Cogsworth', 1, 'Fighter', 'Human',
- '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":10, "charisma":10}', CURRENT_TIMESTAMP,
- CURRENT_TIMESTAMP);
+(9, 1, 3, 'Ironclad', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(10, 2, 3, 'Gearspark', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(11, 3, 3, 'Steamwhistle', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(12, 4, 3, 'Cogsworth', 'DND5E', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT INTO dnd5e_character_data (character_id, level, character_class, race, hit_points, armor_class, stats)
+VALUES
+(1, 10, 'Wizard', 'Human', 0, 10, '{"strength":11, "dexterity":11, "constitution":11, "intelligence":11, "wisdom":15, "charisma":13}'),
+(2, 8, 'Rogue', 'Halfling', 0, 10, '{"strength":10, "dexterity":18, "constitution":12, "intelligence":12, "wisdom":13, "charisma":10}'),
+(3, 10, 'Cleric', 'Elf', 0, 10, '{"strength":10, "dexterity":10, "constitution":10, "intelligence":14, "wisdom":18, "charisma":16}'),
+(4, 8, 'Fighter', 'Dwarf', 0, 10, '{"strength":19, "dexterity":8, "constitution":16, "intelligence":9, "wisdom":11, "charisma":8}'),
+(5, 1, 'Wizard', 'Human', 0, 10, '{"strength":9, "dexterity":9, "constitution":9, "intelligence":14, "wisdom":9, "charisma":9}'),
+(6, 1, 'Rogue', 'Halfling', 0, 10, '{"strength":9, "dexterity":14, "constitution":9, "intelligence":9, "wisdom":9, "charisma":14}'),
+(7, 1, 'Cleric', 'Human', 0, 10, '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":16, "charisma":10}'),
+(8, 1, 'Fighter', 'Dwarf', 0, 10, '{"strength":16, "dexterity":10, "constitution":14, "intelligence":10, "wisdom":14, "charisma":12}'),
+(9, 1, 'Paladin', 'Dragonborn', 0, 10, '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":10, "charisma":10}'),
+(10, 1, 'Rogue', 'Gnome', 0, 10, '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":10, "charisma":10}'),
+(11, 1, 'Bard', 'Halfling', 0, 10, '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":10, "charisma":10}'),
+(12, 1, 'Fighter', 'Human', 0, 10, '{"strength":10, "dexterity":10, "constitution":10, "intelligence":10, "wisdom":10, "charisma":10}');
 
 -- =====================================================================================
 -- SPELLS (SRD Format for DEMO)

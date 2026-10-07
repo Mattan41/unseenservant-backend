@@ -3,7 +3,7 @@ package org.kruskopf.backend.campaign.service;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
-import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
+import org.kruskopf.backend.playercharacter.entity.GameCharacter;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -40,7 +40,7 @@ public class CampaignPermissionService {
 
     // --- Character-level ---
 
-    public boolean canViewCharacter(PlayerCharacter character, long userId) {
+    public boolean canViewCharacter(GameCharacter character, long userId) {
         boolean isOwner = character.getOwner().getId().equals(userId);
         if (isOwner) return true;
         if (character.getCampaign() != null) {
@@ -49,7 +49,7 @@ public class CampaignPermissionService {
         return false;
     }
 
-    public boolean canEditCharacter(PlayerCharacter character, long userId) {
+    public boolean canEditCharacter(GameCharacter character, long userId) {
         return character.getOwner().getId().equals(userId);
     }
 }
