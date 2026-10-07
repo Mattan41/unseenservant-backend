@@ -22,17 +22,24 @@ VALUES (1, 'User1', 'User One', 'user1@example.com', '111111', 'GOOGLE', 'USER',
 -- =====================================================================================
 INSERT INTO campaign (id, name, description, owner_id, image_url, created_by, last_modified_by, created_at, updated_at)
 VALUES (1, 'Curse of Strahd',
-        'In the age of steam and gears, the Iron Colossus cuts through rugged mountain passes and
-                        sprawling industrial cities?an unstoppable marvel of clockwork engineering. Tonight, its
-                        armored compartments carry not just passengers and freight, but a mysterious cargo rumored
-                        to change the fate of the Empire. As the city?s skyline vanishes in a cloud of smoke,
-                        your crew boards the train with one goal: seize the prize before rivals, lawmen,
-                        or deadly automata claim it for themselves.
+        'Under the light of the full moon, the small town of Barovia is plagued by the evil forces of Count Strahd von Zarovich. Shadows twist through cobblestone streets and forgotten forests, as villagers lock their doors and whisper prayers against the night. Ancient secrets stir beneath the mist, hungry for the return of past glories. The cries of the oppressed echo through the valleys, while Strahd’s undead minions roam freely, enforcing the will of their lord. Hope is a rare commodity in Barovia, and the line between friend and foe is often blurred. Only the bravest souls dare to stand against the darkness and confront the mysteries it conceals.
 
-                        Whistles scream, pistons thunder, and the race is on across perilous trestle bridges and volatile territories.
-                        Every car holds secrets? cunning adversaries, exotic machinery, and deadly traps.
-                        Will you outsmart the authorities, outfight mercenaries, and outpace the opposition,
-                        or will the Iron Colossus become your tomb beneath the relentless steam and steel?',
+What Players Can Expect:
+
+Dark Gothic Horror: Prepare for a campaign drenched in atmosphere, fear, and suspense. Expect themes of dread, moral ambiguity, and difficult choices as you navigate a cursed land.
+Rich Storytelling: The narrative will focus heavily on character-driven plots, personal backstory integration, and meaningful interactions with both allies and enemies.
+Challenging Encounters: Combat will range from desperate skirmishes against undead hordes to high-stakes battles with cunning adversaries. Prepare to use both wit and steel.
+Investigation & Problem Solving: Mysteries abound in Barovia, from cryptic prophecies to hidden motives. Players will need to question, explore, and think creatively.
+Roleplay Opportunities: Interact with a variety of unique NPCs, each with their own agendas and secrets. Your decisions will shape the fate of Barovia.
+
+Table Guidelines:
+
+Respect & Inclusivity: This campaign is a safe space for everyone. Discrimination, harassment, and exclusion will not be tolerated. Respect each other’s boundaries and perspectives.
+Session Pacing: We aim for a balance between action, exploration, and roleplay. Voice any preferences to ensure everyone has fun.
+Communication: If you’re ever uncomfortable with a scene, mechanic, or topic, please let the DM know—either in-game or privately. We use the X-card system for safety.
+Punctuality: Please arrive on time and notify the group if you’ll be late or absent.
+Game Etiquette: Pay attention when it’s not your turn, avoid distracting side conversations, and minimize phone use during sessions.
+Have Fun: Remember, the goal is collective storytelling and enjoyment. Support your fellow players and embrace the horror-adventure together!',
         1, 'https://www.dndbeyond.com/attachments/8/220/cos-cover-4k.jpg', 'User4', 'User4', CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP),
        (2, 'Neptunus', 'The University of Lundenwic has been robbed of its prized artifact, the Amulet of Taharka. The players are hired to track down the thief and retrieve the amulet.
