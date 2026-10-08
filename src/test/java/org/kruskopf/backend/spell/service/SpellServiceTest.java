@@ -16,10 +16,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.kruskopf.backend.campaign.service.CampaignPermissionService;
+import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
-import org.kruskopf.backend.playercharacter.repository.PlayerCharacterRepository;
+import org.kruskopf.backend.playercharacter.entity.GameCharacter;
+import org.kruskopf.backend.playercharacter.repository.GameCharacterRepository;
 import org.kruskopf.backend.spell.dto.CharacterSpellResponseDTO;
 import org.kruskopf.backend.spell.dto.SpellSaveInputDTO;
 import org.kruskopf.backend.spell.entity.Spell;
@@ -36,7 +37,7 @@ class SpellServiceTest {
     private SpellRepository spellRepository;
 
     @Mock
-    private PlayerCharacterRepository playerCharacterRepository;
+    private GameCharacterRepository gameCharacterRepository;
 
     @Mock
     private CampaignPermissionService campaignPermissionService;
@@ -148,15 +149,17 @@ class SpellServiceTest {
 
     @Test
     void addSpellToCharacter_success() throws Exception {
-        PlayerCharacter character = mock(PlayerCharacter.class);
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
+        GameCharacter character = mock(GameCharacter.class);
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
 
         User owner = mock(User.class);
         when(owner.getId()).thenReturn(userId);
         when(character.getOwner()).thenReturn(owner);
 
         Set<Spell> spells = new HashSet<>();
-        when(character.getSpells()).thenReturn(spells);
+        Dnd5eCharacterData dnd5eData = mock(Dnd5eCharacterData.class);
+        when(character.getDnd5eData()).thenReturn(dnd5eData);
+        when(dnd5eData.getSpells()).thenReturn(spells);
 
         Spell spell = mock(Spell.class);
         when(spellRepository.findById(slug)).thenReturn(Optional.of(spell));
@@ -172,12 +175,12 @@ class SpellServiceTest {
 
         assertNotNull(response);
         assertTrue(spells.contains(spell));
-        verify(playerCharacterRepository).save(character);
+        verify(gameCharacterRepository).save(character);
     }
 
     @Test
     void addSpellToCharacter_characterNotFound_throws() {
-        when(playerCharacterRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(gameCharacterRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> spellService.addSpellToCharacter(characterId, new SpellSaveInputDTO(slug, name), userId));
@@ -187,8 +190,8 @@ class SpellServiceTest {
 
     @Test
     void addSpellToCharacter_unauthorizedUser_throws() {
-        PlayerCharacter character = mock(PlayerCharacter.class);
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
+        GameCharacter character = mock(GameCharacter.class);
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
 
         User owner = mock(User.class);
         when(owner.getId()).thenReturn(999L);
@@ -197,13 +200,13 @@ class SpellServiceTest {
         assertThrows(UnauthorizedAccessException.class,
                 () -> spellService.addSpellToCharacter(characterId, new SpellSaveInputDTO(slug, name), userId));
 
-        verify(playerCharacterRepository, never()).save(any());
+        verify(gameCharacterRepository, never()).save(any());
     }
 
     @Test
     void addSpellToCharacter_spellNotInLocalDb_throwsNotFound() {
-        PlayerCharacter character = mock(PlayerCharacter.class);
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
+        GameCharacter character = mock(GameCharacter.class);
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
 
         User owner = mock(User.class);
         when(owner.getId()).thenReturn(userId);
@@ -215,20 +218,22 @@ class SpellServiceTest {
                 () -> spellService.addSpellToCharacter(characterId, new SpellSaveInputDTO(slug, name), userId));
 
         verify(spellRepository).findById(slug);
-        verify(playerCharacterRepository, never()).save(any());
+        verify(gameCharacterRepository, never()).save(any());
     }
 
     @Test
     void addSpellToCharacter_jsonDeserializationError_throwsRuntimeException() throws Exception {
-        PlayerCharacter character = mock(PlayerCharacter.class);
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
+        GameCharacter character = mock(GameCharacter.class);
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
 
         User owner = mock(User.class);
         when(owner.getId()).thenReturn(userId);
         when(character.getOwner()).thenReturn(owner);
 
         Set<Spell> spells = new HashSet<>();
-        when(character.getSpells()).thenReturn(spells);
+        Dnd5eCharacterData dnd5eData = mock(Dnd5eCharacterData.class);
+        when(character.getDnd5eData()).thenReturn(dnd5eData);
+        when(dnd5eData.getSpells()).thenReturn(spells);
 
         Spell spell = mock(Spell.class);
         when(spellRepository.findById(slug)).thenReturn(Optional.of(spell));
@@ -244,13 +249,13 @@ class SpellServiceTest {
                 () -> spellService.addSpellToCharacter(characterId, input, userId));
 
         assertTrue(spells.contains(spell));
-        verify(playerCharacterRepository).save(character);
+        verify(gameCharacterRepository).save(character);
     }
 
     @Test
     void getSpellsForCharacter_success() throws Exception {
-        PlayerCharacter character = mock(PlayerCharacter.class);
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
+        GameCharacter character = mock(GameCharacter.class);
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
 
         when(campaignPermissionService.canViewCharacter(character, userId)).thenReturn(true);
 
@@ -264,7 +269,9 @@ class SpellServiceTest {
         when(spell2.getRawJsonData()).thenReturn("json2");
 
         Set<Spell> spells = new HashSet<>(Arrays.asList(spell1, spell2));
-        when(character.getSpells()).thenReturn(spells);
+        Dnd5eCharacterData dnd5eData = mock(Dnd5eCharacterData.class);
+        when(character.getDnd5eData()).thenReturn(dnd5eData);
+        when(dnd5eData.getSpells()).thenReturn(spells);
 
         when(objectMapper.readValue(anyString(), any(TypeReference.class)))
                 .thenReturn(Map.of("name", "Spell"));
@@ -273,13 +280,13 @@ class SpellServiceTest {
 
         assertEquals(2, result.size());
         verify(campaignPermissionService).canViewCharacter(character, userId);
-        verify(playerCharacterRepository, never()).save(any());
+        verify(gameCharacterRepository, never()).save(any());
     }
 
     @Test
     void getSpellsForCharacter_unauthorized_throws() {
-        PlayerCharacter character = mock(PlayerCharacter.class);
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
+        GameCharacter character = mock(GameCharacter.class);
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
 
         when(campaignPermissionService.canViewCharacter(character, userId)).thenReturn(false);
 
@@ -289,7 +296,7 @@ class SpellServiceTest {
 
     @Test
     void getSpellsForCharacter_characterNotFound_throws() {
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.empty());
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> spellService.getSpellsForCharacter(characterId, userId));
@@ -297,8 +304,8 @@ class SpellServiceTest {
 
     @Test
     void getSpellsForCharacter_jsonDeserializationError_throwsRuntimeException() throws Exception {
-        PlayerCharacter character = mock(PlayerCharacter.class);
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
+        GameCharacter character = mock(GameCharacter.class);
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
 
         when(campaignPermissionService.canViewCharacter(character, userId)).thenReturn(true);
 
@@ -308,7 +315,9 @@ class SpellServiceTest {
 
         Set<Spell> spells = new HashSet<>();
         spells.add(spell);
-        when(character.getSpells()).thenReturn(spells);
+        Dnd5eCharacterData dnd5eData = mock(Dnd5eCharacterData.class);
+        when(character.getDnd5eData()).thenReturn(dnd5eData);
+        when(dnd5eData.getSpells()).thenReturn(spells);
 
         when(objectMapper.readValue(anyString(), any(TypeReference.class)))
                 .thenThrow(new RuntimeException("Serialize failure"));
@@ -316,13 +325,13 @@ class SpellServiceTest {
         assertThrows(RuntimeException.class,
                 () -> spellService.getSpellsForCharacter(characterId, userId));
 
-        verify(playerCharacterRepository, never()).save(any());
+        verify(gameCharacterRepository, never()).save(any());
     }
 
     @Test
     void removeSpellFromCharacter_success() {
-        PlayerCharacter character = mock(PlayerCharacter.class);
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
+        GameCharacter character = mock(GameCharacter.class);
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
 
         User owner = mock(User.class);
         when(owner.getId()).thenReturn(userId);
@@ -332,35 +341,39 @@ class SpellServiceTest {
         when(spell.getSlug()).thenReturn(slug);
         Set<Spell> spells = new HashSet<>();
         spells.add(spell);
-        when(character.getSpells()).thenReturn(spells);
+        Dnd5eCharacterData dnd5eData = mock(Dnd5eCharacterData.class);
+        when(character.getDnd5eData()).thenReturn(dnd5eData);
+        when(dnd5eData.getSpells()).thenReturn(spells);
 
         spellService.removeSpellFromCharacter(characterId, slug, userId);
 
         assertFalse(spells.contains(spell));
-        verify(playerCharacterRepository).save(character);
+        verify(gameCharacterRepository).save(character);
     }
 
     @Test
     void removeSpellFromCharacter_spellNotOnCharacter_throws() {
-        PlayerCharacter character = mock(PlayerCharacter.class);
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
+        GameCharacter character = mock(GameCharacter.class);
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
 
         User owner = mock(User.class);
         when(owner.getId()).thenReturn(userId);
         when(character.getOwner()).thenReturn(owner);
 
-        when(character.getSpells()).thenReturn(new HashSet<>());
+        Dnd5eCharacterData dnd5eData = mock(Dnd5eCharacterData.class);
+        when(character.getDnd5eData()).thenReturn(dnd5eData);
+        when(dnd5eData.getSpells()).thenReturn(new HashSet<>());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> spellService.removeSpellFromCharacter(characterId, slug, userId));
 
-        verify(playerCharacterRepository, never()).save(any());
+        verify(gameCharacterRepository, never()).save(any());
     }
 
     @Test
     void removeSpellFromCharacter_unauthorizedUser_throws() {
-        PlayerCharacter character = mock(PlayerCharacter.class);
-        when(playerCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
+        GameCharacter character = mock(GameCharacter.class);
+        when(gameCharacterRepository.findById(characterId)).thenReturn(Optional.of(character));
 
         User owner = mock(User.class);
         when(owner.getId()).thenReturn(999L);
@@ -369,14 +382,12 @@ class SpellServiceTest {
         assertThrows(UnauthorizedAccessException.class,
                 () -> spellService.removeSpellFromCharacter(characterId, slug, userId));
 
-        verify(playerCharacterRepository, never()).save(any());
+        verify(gameCharacterRepository, never()).save(any());
     }
 
     @Test
     void getSpellBySlug_found_returnsSpellData() throws Exception {
         Spell spell = mock(Spell.class);
-        when(spell.getSlug()).thenReturn(slug);
-        when(spell.getName()).thenReturn(name);
         when(spell.getRawJsonData()).thenReturn("{\"name\":\"Fireball\"}");
 
         when(spellRepository.findById(slug)).thenReturn(Optional.of(spell));

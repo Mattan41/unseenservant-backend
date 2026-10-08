@@ -5,8 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
-import org.kruskopf.backend.playercharacter.repository.PlayerCharacterRepository;
+import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
+import org.kruskopf.backend.playercharacter.entity.GameCharacter;
+import org.kruskopf.backend.playercharacter.repository.GameCharacterRepository;
 import org.kruskopf.backend.spell.dto.CharacterSpellResponseDTO;
 import org.kruskopf.backend.spell.dto.SpellSaveInputDTO;
 import org.kruskopf.backend.spell.entity.Spell;
@@ -24,16 +25,16 @@ import java.util.Map;
 public class SpellService {
 
     private final SpellRepository spellRepository;
-    private final PlayerCharacterRepository playerCharacterRepository;
+    private final GameCharacterRepository gameCharacterRepository;
     private final CampaignPermissionService campaignPermissionService;
     private final ObjectMapper objectMapper;
 
     public SpellService(SpellRepository spellRepository,
-                        PlayerCharacterRepository playerCharacterRepository,
+                        GameCharacterRepository gameCharacterRepository,
                         CampaignPermissionService campaignPermissionService,
                         ObjectMapper objectMapper) {
         this.spellRepository = spellRepository;
-        this.playerCharacterRepository = playerCharacterRepository;
+        this.gameCharacterRepository = gameCharacterRepository;
         this.campaignPermissionService = campaignPermissionService;
         this.objectMapper = objectMapper;
     }
@@ -69,7 +70,7 @@ public class SpellService {
 
     @Transactional
     public CharacterSpellResponseDTO addSpellToCharacter(Long characterId, SpellSaveInputDTO input, Long userId) {
-        PlayerCharacter character = playerCharacterRepository.findById(characterId)
+        GameCharacter character = gameCharacterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
         if (!character.getOwner().getId().equals(userId)) {
@@ -79,22 +80,28 @@ public class SpellService {
         Spell spell = spellRepository.findById(input.slug())
                 .orElseThrow(() -> new ResourceNotFoundException("Spell not found with slug: " + input.slug()));
 
-        character.getSpells().add(spell);
-        playerCharacterRepository.save(character);
+        Dnd5eCharacterData dnd5eData = requireDnd5eData(character);
+        dnd5eData.getSpells().add(spell);
+        gameCharacterRepository.save(character);
 
         return toResponseDTO(characterId, spell);
     }
 
     @Transactional(readOnly = true)
     public List<CharacterSpellResponseDTO> getSpellsForCharacter(Long characterId, Long userId) {
-        PlayerCharacter character = playerCharacterRepository.findById(characterId)
+        GameCharacter character = gameCharacterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
         if (!campaignPermissionService.canViewCharacter(character, userId)) {
             throw new UnauthorizedAccessException("User is not the owner of the character, nor GM of the campaign");
         }
 
-        return character.getSpells().stream()
+        Dnd5eCharacterData dnd5eData = character.getDnd5eData();
+        if (dnd5eData == null) {
+            return List.of();
+        }
+
+        return dnd5eData.getSpells().stream()
                 .map(spell -> toResponseDTO(characterId, spell))
                 .toList();
     }
@@ -107,19 +114,32 @@ public class SpellService {
 
     @Transactional
     public void removeSpellFromCharacter(Long characterId, String slug, Long userId) {
-        PlayerCharacter character = playerCharacterRepository.findById(characterId)
+        GameCharacter character = gameCharacterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
         if (!character.getOwner().getId().equals(userId)) {
             throw new UnauthorizedAccessException("User does not own this character");
         }
 
-        boolean removed = character.getSpells().removeIf(s -> s.getSlug().equals(slug));
+        Dnd5eCharacterData dnd5eData = requireDnd5eData(character);
+        boolean removed = dnd5eData.getSpells().removeIf(s -> s.getSlug().equals(slug));
         if (!removed) {
             throw new ResourceNotFoundException("Spell '" + slug + "' not found on character " + characterId);
         }
 
-        playerCharacterRepository.save(character);
+        gameCharacterRepository.save(character);
+    }
+
+    /**
+     * Resolves the D&amp;D 5e data block for a character, failing if the character
+     * has no associated D&amp;D 5e data.
+     */
+    private Dnd5eCharacterData requireDnd5eData(GameCharacter character) {
+        Dnd5eCharacterData data = character.getDnd5eData();
+        if (data == null) {
+            throw new ResourceNotFoundException("Character " + character.getId() + " has no D&D 5e data");
+        }
+        return data;
     }
 
     private Map<String, Object> deserializeSpellJson(Spell spell) throws Exception {

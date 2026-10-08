@@ -10,8 +10,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.kruskopf.backend.AbstractIntegrationTest;
-import org.kruskopf.backend.playercharacter.entity.PlayerCharacter;
-import org.kruskopf.backend.playercharacter.repository.PlayerCharacterRepository;
+import org.kruskopf.backend.playercharacter.entity.GameCharacter;
+import org.kruskopf.backend.playercharacter.repository.GameCharacterRepository;
 import org.kruskopf.backend.spell.dto.CharacterSpellResponseDTO;
 import org.kruskopf.backend.spell.dto.SpellSaveInputDTO;
 import org.kruskopf.backend.spell.entity.Spell;
@@ -27,24 +27,24 @@ import org.springframework.transaction.annotation.Transactional;
 class SpellServiceIT extends AbstractIntegrationTest {
 
     private final SpellRepository spellRepository;
-    private final PlayerCharacterRepository playerCharacterRepository;
+    private final GameCharacterRepository gameCharacterRepository;
     private final UserRepository userRepository;
     private final SpellService spellService;
 
     @Autowired
     public SpellServiceIT(SpellRepository spellRepository,
-                          PlayerCharacterRepository playerCharacterRepository,
+                          GameCharacterRepository gameCharacterRepository,
                           UserRepository userRepository,
                           SpellService spellService) {
         this.spellRepository = spellRepository;
-        this.playerCharacterRepository = playerCharacterRepository;
+        this.gameCharacterRepository = gameCharacterRepository;
         this.userRepository = userRepository;
         this.spellService = spellService;
     }
 
     @BeforeEach
     void cleanUp() {
-        playerCharacterRepository.deleteAll();
+        gameCharacterRepository.deleteAll();
         spellRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -120,7 +120,7 @@ class SpellServiceIT extends AbstractIntegrationTest {
         @Test
         void addSpellToCharacterPersistsRelationship() {
             User user = TestDataFactory.aUser(userRepository, "user1");
-            PlayerCharacter character = playerCharacterRepository.save(TestDataFactory.aCharacter(user));
+            GameCharacter character = gameCharacterRepository.save(TestDataFactory.aCharacter(user));
             Spell spell = spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
 
             CharacterSpellResponseDTO response = spellService.addSpellToCharacter(
@@ -131,8 +131,8 @@ class SpellServiceIT extends AbstractIntegrationTest {
 
             assertThat(response).isNotNull();
 
-            PlayerCharacter reloaded = playerCharacterRepository.findById(character.getId()).orElseThrow();
-            assertThat(reloaded.getSpells())
+            GameCharacter reloaded = gameCharacterRepository.findById(character.getId()).orElseThrow();
+            assertThat(reloaded.getDnd5eData().getSpells())
                     .extracting(Spell::getSlug)
                     .containsExactly(spell.getSlug());
         }
@@ -140,23 +140,23 @@ class SpellServiceIT extends AbstractIntegrationTest {
         @Test
         void removeSpellFromCharacterPersitsRemoval() {
             User user = TestDataFactory.aUser(userRepository, "user1");
-            PlayerCharacter character = playerCharacterRepository.save(TestDataFactory.aCharacter(user));
+            GameCharacter character = gameCharacterRepository.save(TestDataFactory.aCharacter(user));
             Spell spell = spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
 
-            character.getSpells().add(spell);
-            playerCharacterRepository.save(character);
+            character.getDnd5eData().getSpells().add(spell);
+            gameCharacterRepository.save(character);
 
             spellService.removeSpellFromCharacter(character.getId(), spell.getSlug(), user.getId());
 
-            PlayerCharacter reloaded = playerCharacterRepository.findById(character.getId()).orElseThrow();
-            assertThat(reloaded.getSpells()).isEmpty();
+            GameCharacter reloaded = gameCharacterRepository.findById(character.getId()).orElseThrow();
+            assertThat(reloaded.getDnd5eData().getSpells()).isEmpty();
         }
 
         @Test
         void sameSpellCanBeAttachedToTwoDifferentCharacters() {
             User user = TestDataFactory.aUser(userRepository, "user1");
-            PlayerCharacter character1 = playerCharacterRepository.save(TestDataFactory.aCharacter(user));
-            PlayerCharacter character2 = playerCharacterRepository.save(TestDataFactory.aCharacter(user));
+            GameCharacter character1 = gameCharacterRepository.save(TestDataFactory.aCharacter(user));
+            GameCharacter character2 = gameCharacterRepository.save(TestDataFactory.aCharacter(user));
             Spell spell = spellRepository.save(TestDataFactory.aSpell("fireball", "Fireball", "{\"name\":\"Fireball\"}"));
 
             spellService.addSpellToCharacter(
@@ -170,13 +170,13 @@ class SpellServiceIT extends AbstractIntegrationTest {
                     user.getId()
             );
 
-            PlayerCharacter reloaded1 = playerCharacterRepository.findById(character1.getId()).orElseThrow();
-            PlayerCharacter reloaded2 = playerCharacterRepository.findById(character2.getId()).orElseThrow();
+            GameCharacter reloaded1 = gameCharacterRepository.findById(character1.getId()).orElseThrow();
+            GameCharacter reloaded2 = gameCharacterRepository.findById(character2.getId()).orElseThrow();
 
-            assertThat(reloaded1.getSpells())
+            assertThat(reloaded1.getDnd5eData().getSpells())
                     .extracting(Spell::getSlug)
                     .containsExactly(spell.getSlug());
-            assertThat(reloaded2.getSpells())
+            assertThat(reloaded2.getDnd5eData().getSpells())
                     .extracting(Spell::getSlug)
                     .containsExactly(spell.getSlug());
         }

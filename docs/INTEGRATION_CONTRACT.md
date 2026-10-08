@@ -60,53 +60,60 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 **POST /api/characters**
 - Requires: ROLE_USER
-- Request: `PlayerCharacterInputDTO { ownerId?, campaignId?, name, level (0–20), characterClass, imageUrl?, race, playerCharacterData }`
+- Request: `CharacterInputDTO { ownerId?, campaignId?, name, systemType, notes?, avatarUrl?, dnd5e?, offworlders? }`
+  - `systemType`: `DND5E` | `OFFWORLDERS`
+  - `dnd5e = { level (1–20), characterClass, race, hitPoints?, armorClass?, stats }` (used only for `systemType === 'DND5E'`)
+  - `offworlders = { characterClass?, species?, look?, xp?, health?, armor?, supply?, supplyMax?, stats?, skills?, abilities? }` (used only for `systemType === 'OFFWORLDERS'`)
+    - `stats = { strength, agility, intelligence, willpower }`, each −1…+3; Health is derived as `max(1, 12 + strength + agility)`
+    - `skills` / `abilities` are arrays of strings: canonical catalog entries plus any free-text custom entries
 - `ownerId` defaults to logged-in user if null
-- Response: `PlayerCharacterOutputDTO`
+- Response: `CharacterOutputDTO`
 - Status: 201, 400, 401
 
 **GET /api/characters**
 - Query params: `campaignId` (optional)
-- Response: `[ PlayerCharacterOutputDTO ]`
+- Response: `[ CharacterOutputDTO ]`
 - Status: 200, 401
 
 **GET /api/characters/me**
 - Requires: ROLE_USER
-- Response: `[ PlayerCharacterOutputDTO ]` — all characters owned by the logged-in user
+- Response: `[ CharacterOutputDTO ]` — all characters owned by the logged-in user
 - Status: 200, 401
 
 **GET /api/characters/without-campaign**
 - Requires: ROLE_USER
-- Response: `[ PlayerCharacterOutputDTO ]` — owned characters not linked to any campaign
+- Response: `[ CharacterOutputDTO ]` — owned characters not linked to any campaign
 - Status: 200, 401
 
 **GET /api/characters/{id}**
 - Requires: ROLE_USER
-- Response: `PlayerCharacterOutputDTO { id, ownerId, campaignId, name, level, characterClass, race, imageUrl, playerCharacterData, createdAt, updatedAt }`
+- Response: `CharacterOutputDTO { id, ownerId, campaignId, name, systemType, notes, avatarUrl, dnd5e, offworlders, createdAt, updatedAt }`
+  - `dnd5e` (nullable) is `{ level, characterClass, race, hitPoints, armorClass, stats }` — present only when `systemType === 'DND5E'`
+  - `offworlders` (nullable) is `{ characterClass, species, look, xp, health, armor, supply, supplyMax, stats, skills, abilities }` — present only when `systemType === 'OFFWORLDERS'`
 - Status: 200, 401, 404
 
 **PATCH /api/characters/{id}**
 - Requires: ROLE_USER, must be owner
-- Request: `PlayerCharacterInputDTO` — partial, null-safe patch. Omitted/null fields are left unchanged.
-- Response: `PlayerCharacterOutputDTO`
+- Request: `CharacterInputDTO` — partial, null-safe patch. Omitted/null fields are left unchanged.
+- Response: `CharacterOutputDTO`
 - Status: 200, 400, 401, 403, 404
 
 **POST /api/characters/{id}/image**
 - Requires: ROLE_USER, must be owner
 - Request: `multipart/form-data`, field: `file`
-- Response: `PlayerCharacterOutputDTO` (with updated imageUrl)
+- Response: `CharacterOutputDTO` (with updated imageUrl)
 - Status: 200, 400, 401, 403
 
 **PATCH /api/characters/{id}/campaign**
 - Requires: ROLE_USER, must be owner
 - Request: `{ campaignId: Long }`
-- Response: `PlayerCharacterOutputDTO`
+- Response: `CharacterOutputDTO`
 - Status: 200, 400, 401, 403, 404
 
 **DELETE /api/characters/{id}/campaign**
 - Requires: ROLE_USER, must be owner
 - Sets campaignId = null without deleting the character
-- Response: `PlayerCharacterOutputDTO`
+- Response: `CharacterOutputDTO`
 - Status: 200, 401, 403, 404
 
 **DELETE /api/characters/{id}**
@@ -301,29 +308,37 @@ Intended as per-campaign message boards. Messages are visible only to campaign p
 }
 ```
 
-### PlayerCharacterOutputDTO
+### CharacterOutputDTO
 ```json
 {
   "id": 14,
   "ownerId": 7,
   "campaignId": null,
   "name": "Aragorn",
-  "level": 5,
-  "characterClass": "Fighter",
-  "race": "Human",
-  "imageUrl": null,
-  "playerCharacterData": {
-    "strength": 16,
-    "dexterity": 14,
-    "constitution": 15,
-    "intelligence": 12,
-    "wisdom": 14,
-    "charisma": 13
+  "systemType": "DND5E",
+  "notes": null,
+  "avatarUrl": null,
+  "dnd5e": {
+    "level": 5,
+    "characterClass": "Fighter",
+    "race": "Human",
+    "hitPoints": 44,
+    "armorClass": 17,
+    "stats": {
+      "strength": 16,
+      "dexterity": 14,
+      "constitution": 15,
+      "intelligence": 12,
+      "wisdom": 14,
+      "charisma": 13
+    }
   },
   "createdAt": "2026-05-29T09:00:00",
   "updatedAt": null
 }
 ```
+
+> For non-D&D characters (`systemType != "DND5E"`) the `dnd5e` block is `null`.
 
 ### CampaignResponseDTO
 ```json
