@@ -3,6 +3,7 @@ package org.kruskopf.backend.playercharacter.entity;
 import jakarta.persistence.*;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
+import org.kruskopf.backend.offworlders.entity.OffworldersCharacterData;
 import org.kruskopf.backend.user.entity.User;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
@@ -17,7 +18,8 @@ import java.time.LocalDateTime;
  * <p>
  * Holds only fields that are meaningful for any tabletop RPG system. All
  * system-specific data is stored in a dedicated 1:1 entity selected by
- * {@link #systemType} (e.g. {@link Dnd5eCharacterData} for {@link GameSystem#DND5E}).
+ * {@link #systemType} (e.g. {@link Dnd5eCharacterData} for {@link GameSystem#DND5E}
+ * or {@link OffworldersCharacterData} for {@link GameSystem#OFFWORLDERS}).
  */
 @Entity
 @EntityListeners(AuditingEntityListener.class)
@@ -52,6 +54,9 @@ public class GameCharacter {
     @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Dnd5eCharacterData dnd5eData;
 
+    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private OffworldersCharacterData offworldersData;
+
     @CreatedDate
     private LocalDateTime createdAt;
 
@@ -81,6 +86,16 @@ public class GameCharacter {
      */
     public void attachDnd5eData(Dnd5eCharacterData data) {
         this.dnd5eData = data;
+        if (data != null) {
+            data.setCharacter(this);
+        }
+    }
+
+    /**
+     * Attaches the 1:1 Offworlders data and keeps both sides of the relationship in sync.
+     */
+    public void attachOffworldersData(OffworldersCharacterData data) {
+        this.offworldersData = data;
         if (data != null) {
             data.setCharacter(this);
         }
@@ -145,6 +160,14 @@ public class GameCharacter {
 
     public void setDnd5eData(Dnd5eCharacterData dnd5eData) {
         this.dnd5eData = dnd5eData;
+    }
+
+    public OffworldersCharacterData getOffworldersData() {
+        return offworldersData;
+    }
+
+    public void setOffworldersData(OffworldersCharacterData offworldersData) {
+        this.offworldersData = offworldersData;
     }
 
     public LocalDateTime getCreatedAt() {

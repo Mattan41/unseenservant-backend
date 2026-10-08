@@ -407,6 +407,7 @@ Valid `role` values: `GM` | `PLAYER`
 | `campaignId` | Long | Optional |
 | `ownerId` | Long | Optional; defaults to logged-in user if null |
 | `dnd5e` | object | Optional; applied only when `systemType === 'DND5E'`. Shape: `{ level (1–20), characterClass, race, hitPoints?, armorClass?, stats }` |
+| `offworlders` | object | Optional; applied only when `systemType === 'OFFWORLDERS'`. Shape: `{ characterClass?, species?, look?, xp?, health?, armor?, supply?, supplyMax?, stats?, skills?, abilities? }`. `stats = { strength, agility, intelligence, willpower }` (each −1…+3); `skills` / `abilities` are string arrays mixing canonical options with free text |
 
 > If `ownerId` is `null`, the logged-in user is automatically set as owner.
 
@@ -436,6 +437,37 @@ Valid `role` values: `GM` | `PLAYER`
 }
 ```
 
+**Offworlders example (201):**
+
+The endpoint is system-agnostic. When `systemType` is `OFFWORLDERS`, send (and receive) the `offworlders` block instead of `dnd5e`:
+
+```json
+{
+  "name": "Vex",
+  "systemType": "OFFWORLDERS",
+  "offworlders": {
+    "characterClass": "Outlaw",
+    "species": "Human",
+    "look": "Sharp-eyed, patched flight jacket",
+    "xp": 3,
+    "health": 15,
+    "armor": 1,
+    "supply": 2,
+    "supplyMax": 5,
+    "stats": {
+      "strength": 1, "agility": 3, "intelligence": 1, "willpower": 0
+    },
+    "skills": ["Pilot", "Sneak", "Tech"],
+    "abilities": ["Lucky", "Smuggle", "Shoot First"]
+  }
+}
+```
+
+> Offworlders attributes range from −1 to +3 and Armor from 0 to 3. `health` may be omitted and
+> derived from the attributes as `max(1, 12 + strength + agility)`. `skills` and `abilities` are
+> string arrays so players can combine the canonical catalogs with free-text custom entries.
+
+---
 ---
 
 ### GET /api/characters — Get characters

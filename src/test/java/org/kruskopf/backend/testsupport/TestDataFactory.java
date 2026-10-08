@@ -3,6 +3,8 @@ package org.kruskopf.backend.testsupport;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.message.entity.Message;
 import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
+import org.kruskopf.backend.offworlders.OffworldersStats;
+import org.kruskopf.backend.offworlders.entity.OffworldersCharacterData;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
 import org.kruskopf.backend.spell.entity.Spell;
@@ -113,6 +115,34 @@ public final class TestDataFactory {
     public static GameCharacter aCharacter(User owner, Campaign campaign) {
         GameCharacter character = aCharacter(owner);
         character.setCampaign(campaign);
+        return character;
+    }
+
+    /**
+     * Builds a valid Offworlders {@link GameCharacter} with all mandatory fields
+     * set. An {@link OffworldersCharacterData} block (with empty skill/ability
+     * lists) is attached and {@code campaign} is left null.
+     *
+     * @param owner the owning {@link User}
+     * @return a transient {@link GameCharacter}
+     */
+    public static GameCharacter anOffworldersCharacter(User owner) {
+        GameCharacter character = new GameCharacter();
+        character.setOwner(owner);
+        character.setName("Test Runner");
+        character.setSystemType(GameSystem.OFFWORLDERS);
+
+        OffworldersStats stats = new OffworldersStats(1, 2, 0, -1);
+        OffworldersCharacterData data = new OffworldersCharacterData("Outlaw", "Human", stats);
+        data.setLook("Weathered spacer");
+        data.setXp(3);
+        data.setHealth(15);
+        data.setArmor(1);
+        data.setSupply(2);
+        data.setSupplyMax(5);
+        data.setSkills(new java.util.ArrayList<>(java.util.List.of("Pilot", "Sneak")));
+        data.setAbilities(new java.util.ArrayList<>(java.util.List.of("Lucky")));
+        character.attachOffworldersData(data);
         return character;
     }
 

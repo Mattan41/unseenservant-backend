@@ -61,6 +61,15 @@ org.kruskopf.backend/
 │   │   └── Dnd5eCharacterDataOutputDTO.java
 │   ├── Dnd5eCharacterStats.java         # Stats value object
 │   └── Dnd5eCharacterStatsConverter.java  # JPA AttributeConverter
+├── offworlders/                          # Offworlders-specific character data
+│   ├── entity/OffworldersCharacterData.java      # 1:1 with GameCharacter (shared PK)
+│   ├── repository/OffworldersCharacterDataRepository.java
+│   ├── dto/
+│   │   ├── OffworldersCharacterDataInputDTO.java
+│   │   └── OffworldersCharacterDataOutputDTO.java
+│   ├── OffworldersStats.java             # Attribute value object (strength/agility/intelligence/willpower)
+│   ├── OffworldersStatsConverter.java    # JPA AttributeConverter
+│   └── StringListConverter.java          # Generic List<String> ↔ JSON converter (skills, abilities)
 ├── spell/
 │   ├── controller/
 │   │   ├── CharacterSpellController.java
@@ -143,8 +152,9 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | Entity | Key fields | Relations |
 |--------|-----------|-----------|
 | `User` | id, email, role, providerType | has many GameCharacters, CampaignUsers |
-| `GameCharacter` | id, name, systemType, notes, avatarUrl | generic core character; belongs to User, optionally linked to Campaign; 1:1 with Dnd5eCharacterData when `systemType = DND5E` |
+| `GameCharacter` | id, name, systemType, notes, avatarUrl | generic core character; belongs to User, optionally linked to Campaign; 1:1 with Dnd5eCharacterData when `systemType = DND5E`, 1:1 with OffworldersCharacterData when `systemType = OFFWORLDERS` |
 | `Dnd5eCharacterData` | characterId (shared PK), level, characterClass, race, hitPoints, armorClass, stats (JSON) | D&D 5e data; 1:1 with GameCharacter; many-to-many with Spell via `character_spell` |
+| `OffworldersCharacterData` | characterId (shared PK), characterClass, species, look, xp, health, armor, supply, supplyMax, stats (JSON), skills (JSON array), abilities (JSON array) | Offworlders data; 1:1 with GameCharacter. Skills/abilities are JSON string arrays so players can mix canonical options with free text |
 | `Campaign` | id, name, imageUrl | has many CampaignUsers |
 | `CampaignUser` | campaignId + userId (composite PK), role | join table Campaign ↔ User |
 | `Message` | id, content, timestamp | belongs to Campaign |

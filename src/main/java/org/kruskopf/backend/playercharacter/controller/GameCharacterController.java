@@ -44,7 +44,8 @@ public class GameCharacterController {
                     inputDTO.systemType(),
                     inputDTO.notes(),
                     inputDTO.avatarUrl(),
-                    inputDTO.dnd5e()
+                    inputDTO.dnd5e(),
+                    inputDTO.offworlders()
             );
         }
 

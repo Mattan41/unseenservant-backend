@@ -4,12 +4,17 @@ import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.dnd5e.dto.Dnd5eCharacterDataInputDTO;
 import org.kruskopf.backend.dnd5e.dto.Dnd5eCharacterDataOutputDTO;
 import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
+import org.kruskopf.backend.offworlders.dto.OffworldersCharacterDataInputDTO;
+import org.kruskopf.backend.offworlders.dto.OffworldersCharacterDataOutputDTO;
+import org.kruskopf.backend.offworlders.entity.OffworldersCharacterData;
 import org.kruskopf.backend.playercharacter.dto.CharacterInputDTO;
 import org.kruskopf.backend.playercharacter.dto.CharacterOutputDTO;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
 import org.kruskopf.backend.user.entity.User;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
 
 @Component
 public class GameCharacterMapper {
@@ -24,6 +29,7 @@ public class GameCharacterMapper {
                 character.getNotes(),
                 character.getImageUrl(),
                 toDnd5eOutputDTO(character),
+                toOffworldersOutputDTO(character),
                 character.getCreatedAt(),
                 character.getUpdatedAt()
         );
@@ -47,6 +53,29 @@ public class GameCharacterMapper {
         );
     }
 
+    private OffworldersCharacterDataOutputDTO toOffworldersOutputDTO(GameCharacter character) {
+        if (character.getSystemType() != GameSystem.OFFWORLDERS) {
+            return null;
+        }
+        OffworldersCharacterData data = character.getOffworldersData();
+        if (data == null) {
+            return null;
+        }
+        return new OffworldersCharacterDataOutputDTO(
+                data.getCharacterClass(),
+                data.getSpecies(),
+                data.getLook(),
+                data.getXp(),
+                data.getHealth(),
+                data.getArmor(),
+                data.getSupply(),
+                data.getSupplyMax(),
+                data.getStats(),
+                data.getSkills(),
+                data.getAbilities()
+        );
+    }
+
     public GameCharacter toEntity(CharacterInputDTO dto, User owner, Campaign campaign) {
         GameSystem system = dto.systemType() != null ? dto.systemType() : GameSystem.DND5E;
 
@@ -58,6 +87,8 @@ public class GameCharacterMapper {
 
         if (system == GameSystem.DND5E) {
             character.attachDnd5eData(toDnd5eEntity(dto.dnd5e()));
+        } else if (system == GameSystem.OFFWORLDERS) {
+            character.attachOffworldersData(toOffworldersEntity(dto.offworlders()));
         }
 
         return character;
@@ -72,6 +103,24 @@ public class GameCharacterMapper {
             if (dto.hitPoints() != null) data.setHitPoints(dto.hitPoints());
             if (dto.armorClass() != null) data.setArmorClass(dto.armorClass());
             if (dto.stats() != null) data.setStats(dto.stats());
+        }
+        return data;
+    }
+
+    private OffworldersCharacterData toOffworldersEntity(OffworldersCharacterDataInputDTO dto) {
+        OffworldersCharacterData data = new OffworldersCharacterData();
+        if (dto != null) {
+            if (dto.characterClass() != null) data.setCharacterClass(dto.characterClass());
+            if (dto.species() != null) data.setSpecies(dto.species());
+            if (dto.look() != null) data.setLook(dto.look());
+            if (dto.xp() != null) data.setXp(dto.xp());
+            if (dto.health() != null) data.setHealth(dto.health());
+            if (dto.armor() != null) data.setArmor(dto.armor());
+            if (dto.supply() != null) data.setSupply(dto.supply());
+            if (dto.supplyMax() != null) data.setSupplyMax(dto.supplyMax());
+            if (dto.stats() != null) data.setStats(dto.stats());
+            if (dto.skills() != null) data.setSkills(new ArrayList<>(dto.skills()));
+            if (dto.abilities() != null) data.setAbilities(new ArrayList<>(dto.abilities()));
         }
         return data;
     }
@@ -92,6 +141,16 @@ public class GameCharacterMapper {
                 patchDnd5e(data, dto.dnd5e());
             }
         }
+
+        // Patch system-specific data only when the active system is Offworlders.
+        if (dto.offworlders() != null && entity.getSystemType() == GameSystem.OFFWORLDERS) {
+            OffworldersCharacterData data = entity.getOffworldersData();
+            if (data == null) {
+                entity.attachOffworldersData(toOffworldersEntity(dto.offworlders()));
+            } else {
+                patchOffworlders(data, dto.offworlders());
+            }
+        }
     }
 
     private void patchDnd5e(Dnd5eCharacterData data, Dnd5eCharacterDataInputDTO dto) {
@@ -101,5 +160,19 @@ public class GameCharacterMapper {
         if (dto.hitPoints() != null) data.setHitPoints(dto.hitPoints());
         if (dto.armorClass() != null) data.setArmorClass(dto.armorClass());
         if (dto.stats() != null) data.setStats(dto.stats());
+    }
+
+    private void patchOffworlders(OffworldersCharacterData data, OffworldersCharacterDataInputDTO dto) {
+        if (dto.characterClass() != null) data.setCharacterClass(dto.characterClass());
+        if (dto.species() != null) data.setSpecies(dto.species());
+        if (dto.look() != null) data.setLook(dto.look());
+        if (dto.xp() != null) data.setXp(dto.xp());
+        if (dto.health() != null) data.setHealth(dto.health());
+        if (dto.armor() != null) data.setArmor(dto.armor());
+        if (dto.supply() != null) data.setSupply(dto.supply());
+        if (dto.supplyMax() != null) data.setSupplyMax(dto.supplyMax());
+        if (dto.stats() != null) data.setStats(dto.stats());
+        if (dto.skills() != null) data.setSkills(new ArrayList<>(dto.skills()));
+        if (dto.abilities() != null) data.setAbilities(new ArrayList<>(dto.abilities()));
     }
 }
