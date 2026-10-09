@@ -74,7 +74,9 @@ public class GameCharacterMapper {
                 data.getStats(),
                 data.getSkills(),
                 data.getAbilities(),
-                data.getItems()
+                data.getItems(),
+                data.getCurrentHealth(),
+                data.getHealthModifier()
         );
     }
 
@@ -125,6 +127,8 @@ public class GameCharacterMapper {
             if (dto.skills() != null) data.setSkills(new ArrayList<>(dto.skills()));
             if (dto.abilities() != null) data.setAbilities(new ArrayList<>(dto.abilities()));
             if (dto.items() != null) data.setItems(new ArrayList<>(dto.items()));
+            if (dto.currentHealth() != null) data.setCurrentHealth(dto.currentHealth());
+            if (dto.healthModifier() != null) data.setHealthModifier(dto.healthModifier());
         }
         return data;
     }
@@ -180,5 +184,7 @@ public class GameCharacterMapper {
         if (dto.skills() != null) data.setSkills(new ArrayList<>(dto.skills()));
         if (dto.abilities() != null) data.setAbilities(new ArrayList<>(dto.abilities()));
         if (dto.items() != null) data.setItems(new ArrayList<>(dto.items()));
+        if (dto.currentHealth() != null) data.setCurrentHealth(dto.currentHealth());
+        if (dto.healthModifier() != null) data.setHealthModifier(dto.healthModifier());
     }
 }

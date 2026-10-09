@@ -157,7 +157,7 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | `User` | id, email, role, providerType | has many GameCharacters, CampaignUsers |
 | `GameCharacter` | id, name, systemType, notes, avatarUrl | generic core character; belongs to User, optionally linked to Campaign; 1:1 with Dnd5eCharacterData when `systemType = DND5E`, 1:1 with OffworldersCharacterData when `systemType = OFFWORLDERS` |
 | `Dnd5eCharacterData` | characterId (shared PK), level, characterClass, race, hitPoints, armorClass, stats (JSON) | D&D 5e data; 1:1 with GameCharacter; many-to-many with Spell via `character_spell` |
-| `OffworldersCharacterData` | characterId (shared PK), characterClass, species, look, xp, health, armor, supply, supplyMax, credits, stats (JSON), skills (JSON), abilities (JSON), items (JSON) | Offworlders data; 1:1 with GameCharacter. `skills`/`abilities` are JSON arrays of `{ name, description }` entries so players can mix canonical options with free text; `items` is a free-form inventory array |
+| `OffworldersCharacterData` | characterId (shared PK), characterClass, species, look, xp, health, currentHealth, healthModifier, armor, supply, supplyMax, credits, stats (JSON), skills (JSON), abilities (JSON), items (JSON) | Offworlders data; 1:1 with GameCharacter. `skills`/`abilities` are JSON arrays of `{ name, description }` entries so players can mix canonical options with free text; `items` is a free-form inventory array |
 | `Campaign` | id, name, imageUrl | has many CampaignUsers |
 | `CampaignUser` | campaignId + userId (composite PK), role | join table Campaign ↔ User |
 | `Message` | id, content, timestamp | belongs to Campaign |

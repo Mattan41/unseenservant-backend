@@ -122,7 +122,9 @@ class GameCharacterMapperTest {
                             new OffworldersStats(0, 1, 3, 2),
                             List.of(new OffworldersEntry("Telekinesis", "")),
                             List.of(new OffworldersEntry("Blast", ""), new OffworldersEntry("Jump", "")),
-                            null
+                            null,
+                            9,
+                            2
                     )
             );
 
@@ -143,6 +145,8 @@ class GameCharacterMapperTest {
             assertThat(character.getOffworldersData().getAbilities())
                     .extracting(OffworldersEntry::getName)
                     .containsExactly("Blast", "Jump");
+            assertThat(character.getOffworldersData().getCurrentHealth()).isEqualTo(9);
+            assertThat(character.getOffworldersData().getHealthModifier()).isEqualTo(2);
         }
 
         @Test
@@ -178,7 +182,7 @@ class GameCharacterMapperTest {
                     null,
                     new Dnd5eCharacterDataInputDTO(5, "Fighter", "Human", 44, 17, null),
                     new OffworldersCharacterDataInputDTO(
-                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null)
+                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null)
             );
 
             // Act
@@ -211,7 +215,7 @@ class GameCharacterMapperTest {
                     null,
                     new OffworldersCharacterDataInputDTO(
                             null, null, null, 9, null, 3, null, null, null, null,
-                            List.of(new OffworldersEntry("Pilot", ""), new OffworldersEntry("Sneak", ""), new OffworldersEntry("Scan", "")), null, null)
+                            List.of(new OffworldersEntry("Pilot", ""), new OffworldersEntry("Sneak", ""), new OffworldersEntry("Scan", "")), null, null, 5, 3)
             );
 
             // Act
@@ -223,6 +227,8 @@ class GameCharacterMapperTest {
             assertThat(character.getOffworldersData().getSkills())
                     .extracting(OffworldersEntry::getName)
                     .containsExactly("Pilot", "Sneak", "Scan");
+            assertThat(character.getOffworldersData().getCurrentHealth()).isEqualTo(5);
+            assertThat(character.getOffworldersData().getHealthModifier()).isEqualTo(3);
             // Untouched fields keep their original values.
             assertThat(character.getOffworldersData().getCharacterClass()).isEqualTo("Outlaw");
             assertThat(character.getOffworldersData().getHealth()).isEqualTo(15);
@@ -237,7 +243,7 @@ class GameCharacterMapperTest {
             CharacterInputDTO dto = new CharacterInputDTO(
                     null, null, "Renamed", null, null, null, null,
                     new OffworldersCharacterDataInputDTO(
-                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null));
+                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null));
 
             // Act
             mapper.patchEntity(character, dto);

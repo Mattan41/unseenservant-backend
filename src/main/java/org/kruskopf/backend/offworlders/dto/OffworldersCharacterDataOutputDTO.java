@@ -23,5 +23,7 @@ public record OffworldersCharacterDataOutputDTO(
         OffworldersStats stats,
         List<OffworldersEntry> skills,
         List<OffworldersEntry> abilities,
-        List<OffworldersItem> items) {
+        List<OffworldersItem> items,
+        int currentHealth,
+        int healthModifier) {
 }

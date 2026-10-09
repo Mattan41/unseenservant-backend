@@ -14,6 +14,10 @@ import java.util.List;
  * <p>
  * Supply is capped at 3 by the rules (p.11); the numeric armor rating is capped
  * at 3 as on the character sheet.
+ * <p>
+ * {@code currentHealth} is the running HP (it may exceed {@code health} for
+ * temporary HP); {@code healthModifier} is a manual ± adjustment to the derived
+ * maximum Health (e.g. Hardy's +4 Health).
  */
 public record OffworldersCharacterDataInputDTO(
         String characterClass,
@@ -28,5 +32,7 @@ public record OffworldersCharacterDataInputDTO(
         OffworldersStats stats,
         List<OffworldersEntry> skills,
         List<OffworldersEntry> abilities,
-        List<OffworldersItem> items) {
+        List<OffworldersItem> items,
+        @Min(0) Integer currentHealth,
+        Integer healthModifier) {
 }

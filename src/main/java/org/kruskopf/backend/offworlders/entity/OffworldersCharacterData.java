@@ -19,6 +19,11 @@ import java.util.List;
  * relevant when the owning character's {@link GameCharacter#getSystemType()} is
  * {@code OFFWORLDERS}.
  * <p>
+ * Vitals: {@link #health} is the maximum (attributes + {@link #healthModifier})
+ * and {@link #armor} the effective rating of the worn armor items, while
+ * {@link #currentHealth} is the running total the player tracks (it may exceed
+ * {@link #health} to represent temporary HP).
+ * <p>
  * Freeform-friendly lists ({@link #skills}, {@link #abilities}) are stored as
  * JSON arrays via {@link OffworldersEntriesConverter} rather than join tables, since the
  * canonical catalogs are small and users may add custom entries.
@@ -52,6 +57,12 @@ public class OffworldersCharacterData {
 
     @Column(nullable = false)
     private int armor = 0;
+
+    @Column(name = "current_health", nullable = false)
+    private int currentHealth = 12;
+
+    @Column(name = "health_modifier", nullable = false)
+    private int healthModifier = 0;
 
     @Column(nullable = false)
     private int supply = 3;
@@ -145,6 +156,22 @@ public class OffworldersCharacterData {
 
     public void setArmor(int armor) {
         this.armor = armor;
+    }
+
+    public int getCurrentHealth() {
+        return currentHealth;
+    }
+
+    public void setCurrentHealth(int currentHealth) {
+        this.currentHealth = currentHealth;
+    }
+
+    public int getHealthModifier() {
+        return healthModifier;
+    }
+
+    public void setHealthModifier(int healthModifier) {
+        this.healthModifier = healthModifier;
     }
 
     public int getSupply() {

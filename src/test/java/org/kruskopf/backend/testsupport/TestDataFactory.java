@@ -143,6 +143,8 @@ public final class TestDataFactory {
         data.setSupply(2);
         data.setSupplyMax(3);
         data.setCredits(10);
+        data.setCurrentHealth(11);
+        data.setHealthModifier(2);
         data.setItems(new java.util.ArrayList<>(java.util.List.of(
                 new OffworldersItem("Snubnosed revolver", "weapon", "1D6", 0, false, ""),
                 new OffworldersItem("Light armor", "armor", "", 1, false, ""))));
