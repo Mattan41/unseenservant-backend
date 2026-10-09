@@ -74,7 +74,7 @@ public class GameCharacterMapper {
                 data.getStats(),
                 data.getSkills(),
                 data.getAbilities(),
-                data.getGear()
+                data.getItems()
         );
     }
 
@@ -124,7 +124,7 @@ public class GameCharacterMapper {
             if (dto.stats() != null) data.setStats(dto.stats());
             if (dto.skills() != null) data.setSkills(new ArrayList<>(dto.skills()));
             if (dto.abilities() != null) data.setAbilities(new ArrayList<>(dto.abilities()));
-            if (dto.gear() != null) data.setGear(dto.gear());
+            if (dto.items() != null) data.setItems(new ArrayList<>(dto.items()));
         }
         return data;
     }
@@ -179,6 +179,6 @@ public class GameCharacterMapper {
         if (dto.stats() != null) data.setStats(dto.stats());
         if (dto.skills() != null) data.setSkills(new ArrayList<>(dto.skills()));
         if (dto.abilities() != null) data.setAbilities(new ArrayList<>(dto.abilities()));
-        if (dto.gear() != null) data.setGear(dto.gear());
+        if (dto.items() != null) data.setItems(new ArrayList<>(dto.items()));
     }
 }

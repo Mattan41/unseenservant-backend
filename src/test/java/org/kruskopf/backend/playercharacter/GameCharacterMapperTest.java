@@ -55,8 +55,13 @@ class GameCharacterMapperTest {
             assertThat(offworlders.supply()).isEqualTo(2);
             assertThat(offworlders.supplyMax()).isEqualTo(3);
             assertThat(offworlders.credits()).isEqualTo(10);
-            assertThat(offworlders.gear().getPrimaryWeapon()).isEqualTo("Snubnosed revolver");
-            assertThat(offworlders.gear().getArmorType()).isEqualTo("Light");
+            assertThat(offworlders.items()).hasSize(2);
+            assertThat(offworlders.items().get(0).getName()).isEqualTo("Snubnosed revolver");
+            assertThat(offworlders.items().get(0).getKind()).isEqualTo("weapon");
+            assertThat(offworlders.items().get(0).getDamage()).isEqualTo("1D6");
+            assertThat(offworlders.items().get(1).getName()).isEqualTo("Light armor");
+            assertThat(offworlders.items().get(1).getKind()).isEqualTo("armor");
+            assertThat(offworlders.items().get(1).getArmorRating()).isEqualTo(1);
             assertThat(offworlders.stats().getStrength()).isEqualTo(1);
             assertThat(offworlders.stats().getAgility()).isEqualTo(2);
             assertThat(offworlders.stats().getIntelligence()).isZero();

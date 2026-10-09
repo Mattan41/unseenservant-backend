@@ -3,7 +3,7 @@ package org.kruskopf.backend.testsupport;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.message.entity.Message;
 import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
-import org.kruskopf.backend.offworlders.OffworldersGear;
+import org.kruskopf.backend.offworlders.OffworldersItem;
 import org.kruskopf.backend.offworlders.OffworldersStats;
 import org.kruskopf.backend.offworlders.entity.OffworldersCharacterData;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
@@ -142,11 +142,9 @@ public final class TestDataFactory {
         data.setSupply(2);
         data.setSupplyMax(3);
         data.setCredits(10);
-        OffworldersGear gear = new OffworldersGear();
-        gear.setPrimaryWeapon("Snubnosed revolver");
-        gear.setPrimaryWeaponType("Light");
-        gear.setArmorType("Light");
-        data.setGear(gear);
+        data.setItems(new java.util.ArrayList<>(java.util.List.of(
+                new OffworldersItem("Snubnosed revolver", "weapon", "1D6", 0, false, ""),
+                new OffworldersItem("Light armor", "armor", "", 1, false, ""))));
         data.setSkills(new java.util.ArrayList<>(java.util.List.of("Pilot", "Sneak")));
         data.setAbilities(new java.util.ArrayList<>(java.util.List.of("Lucky")));
         character.attachOffworldersData(data);

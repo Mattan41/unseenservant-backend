@@ -1,8 +1,8 @@
 package org.kruskopf.backend.offworlders.entity;
 
 import jakarta.persistence.*;
-import org.kruskopf.backend.offworlders.OffworldersGear;
-import org.kruskopf.backend.offworlders.OffworldersGearConverter;
+import org.kruskopf.backend.offworlders.OffworldersItem;
+import org.kruskopf.backend.offworlders.OffworldersItemsConverter;
 import org.kruskopf.backend.offworlders.OffworldersStats;
 import org.kruskopf.backend.offworlders.OffworldersStatsConverter;
 import org.kruskopf.backend.offworlders.StringListConverter;
@@ -74,8 +74,8 @@ public class OffworldersCharacterData {
     private List<String> abilities = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
-    @Convert(converter = OffworldersGearConverter.class)
-    private OffworldersGear gear = new OffworldersGear();
+    @Convert(converter = OffworldersItemsConverter.class)
+    private List<OffworldersItem> items = new ArrayList<>();
 
     public OffworldersCharacterData() {
     }
@@ -194,11 +194,11 @@ public class OffworldersCharacterData {
         this.abilities = abilities;
     }
 
-    public OffworldersGear getGear() {
-        return gear;
+    public List<OffworldersItem> getItems() {
+        return items;
     }
 
-    public void setGear(OffworldersGear gear) {
-        this.gear = gear;
+    public void setItems(List<OffworldersItem> items) {
+        this.items = items;
     }
 }

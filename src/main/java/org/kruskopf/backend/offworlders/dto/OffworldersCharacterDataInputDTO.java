@@ -2,7 +2,7 @@ package org.kruskopf.backend.offworlders.dto;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import org.kruskopf.backend.offworlders.OffworldersGear;
+import org.kruskopf.backend.offworlders.OffworldersItem;
 import org.kruskopf.backend.offworlders.OffworldersStats;
 
 import java.util.List;
@@ -27,5 +27,5 @@ public record OffworldersCharacterDataInputDTO(
         OffworldersStats stats,
         List<String> skills,
         List<String> abilities,
-        OffworldersGear gear) {
+        List<OffworldersItem> items) {
 }

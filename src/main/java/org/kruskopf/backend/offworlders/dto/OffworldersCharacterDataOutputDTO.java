@@ -1,6 +1,6 @@
 package org.kruskopf.backend.offworlders.dto;
 
-import org.kruskopf.backend.offworlders.OffworldersGear;
+import org.kruskopf.backend.offworlders.OffworldersItem;
 import org.kruskopf.backend.offworlders.OffworldersStats;
 
 import java.util.List;
@@ -22,5 +22,5 @@ public record OffworldersCharacterDataOutputDTO(
         OffworldersStats stats,
         List<String> skills,
         List<String> abilities,
-        OffworldersGear gear) {
+        List<OffworldersItem> items) {
 }
