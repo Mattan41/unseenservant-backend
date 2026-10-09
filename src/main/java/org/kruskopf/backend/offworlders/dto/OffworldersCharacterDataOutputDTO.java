@@ -1,5 +1,6 @@
 package org.kruskopf.backend.offworlders.dto;
 
+import org.kruskopf.backend.offworlders.OffworldersEntry;
 import org.kruskopf.backend.offworlders.OffworldersItem;
 import org.kruskopf.backend.offworlders.OffworldersStats;
 
@@ -20,7 +21,7 @@ public record OffworldersCharacterDataOutputDTO(
         int supplyMax,
         int credits,
         OffworldersStats stats,
-        List<String> skills,
-        List<String> abilities,
+        List<OffworldersEntry> skills,
+        List<OffworldersEntry> abilities,
         List<OffworldersItem> items) {
 }

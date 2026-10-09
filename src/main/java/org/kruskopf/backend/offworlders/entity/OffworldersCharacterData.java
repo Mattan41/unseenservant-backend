@@ -1,11 +1,12 @@
 package org.kruskopf.backend.offworlders.entity;
 
 import jakarta.persistence.*;
+import org.kruskopf.backend.offworlders.OffworldersEntry;
 import org.kruskopf.backend.offworlders.OffworldersItem;
 import org.kruskopf.backend.offworlders.OffworldersItemsConverter;
 import org.kruskopf.backend.offworlders.OffworldersStats;
 import org.kruskopf.backend.offworlders.OffworldersStatsConverter;
-import org.kruskopf.backend.offworlders.StringListConverter;
+import org.kruskopf.backend.offworlders.OffworldersEntriesConverter;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
 
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ import java.util.List;
  * {@code OFFWORLDERS}.
  * <p>
  * Freeform-friendly lists ({@link #skills}, {@link #abilities}) are stored as
- * JSON arrays via {@link StringListConverter} rather than join tables, since the
+ * JSON arrays via {@link OffworldersEntriesConverter} rather than join tables, since the
  * canonical catalogs are small and users may add custom entries.
  */
 @Entity
@@ -66,12 +67,12 @@ public class OffworldersCharacterData {
     private OffworldersStats stats = new OffworldersStats();
 
     @Column(columnDefinition = "TEXT")
-    @Convert(converter = StringListConverter.class)
-    private List<String> skills = new ArrayList<>();
+    @Convert(converter = OffworldersEntriesConverter.class)
+    private List<OffworldersEntry> skills = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
-    @Convert(converter = StringListConverter.class)
-    private List<String> abilities = new ArrayList<>();
+    @Convert(converter = OffworldersEntriesConverter.class)
+    private List<OffworldersEntry> abilities = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
     @Convert(converter = OffworldersItemsConverter.class)
@@ -178,19 +179,19 @@ public class OffworldersCharacterData {
         this.stats = stats;
     }
 
-    public List<String> getSkills() {
+    public List<OffworldersEntry> getSkills() {
         return skills;
     }
 
-    public void setSkills(List<String> skills) {
+    public void setSkills(List<OffworldersEntry> skills) {
         this.skills = skills;
     }
 
-    public List<String> getAbilities() {
+    public List<OffworldersEntry> getAbilities() {
         return abilities;
     }
 
-    public void setAbilities(List<String> abilities) {
+    public void setAbilities(List<OffworldersEntry> abilities) {
         this.abilities = abilities;
     }
 

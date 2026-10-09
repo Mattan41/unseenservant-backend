@@ -65,7 +65,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
   - `dnd5e = { level (1–20), characterClass, race, hitPoints?, armorClass?, stats }` (used only for `systemType === 'DND5E'`)
   - `offworlders = { characterClass?, species?, look?, xp?, health?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, items? }` (used only for `systemType === 'OFFWORLDERS'`)
     - `stats = { strength, agility, intelligence, willpower }`, each −1…+3; Health is derived as `max(1, 12 + strength + agility)`
-    - `skills` / `abilities` are arrays of strings: canonical catalog entries plus any free-text custom entries
+    - `skills` / `abilities` are arrays of `{ name, description }` entries: canonical catalog entries (empty `description`, text supplied by the frontend catalog) plus any free-text custom entries
     - `characterClass` is optional — it may be empty ("no class"), since experienced players may ignore classes
     - `supplyMax` is fixed at `3` by the rules
     - `items` is a free-form array: `[ { name, kind: 'weapon'|'armor'|'item', damage, armorRating, heavy, notes } ]`; `credits` is the tracked currency

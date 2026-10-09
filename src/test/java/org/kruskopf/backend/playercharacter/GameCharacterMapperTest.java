@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.kruskopf.backend.dnd5e.dto.Dnd5eCharacterDataInputDTO;
+import org.kruskopf.backend.offworlders.OffworldersEntry;
 import org.kruskopf.backend.offworlders.OffworldersStats;
 import org.kruskopf.backend.offworlders.dto.OffworldersCharacterDataInputDTO;
 import org.kruskopf.backend.offworlders.dto.OffworldersCharacterDataOutputDTO;
@@ -66,8 +67,10 @@ class GameCharacterMapperTest {
             assertThat(offworlders.stats().getAgility()).isEqualTo(2);
             assertThat(offworlders.stats().getIntelligence()).isZero();
             assertThat(offworlders.stats().getWillpower()).isEqualTo(-1);
-            assertThat(offworlders.skills()).containsExactly("Pilot", "Sneak");
-            assertThat(offworlders.abilities()).containsExactly("Lucky");
+            assertThat(offworlders.skills()).extracting(OffworldersEntry::getName)
+                    .containsExactly("Pilot", "Sneak");
+            assertThat(offworlders.abilities()).extracting(OffworldersEntry::getName)
+                    .containsExactly("Lucky");
         }
 
         @Test
@@ -117,8 +120,8 @@ class GameCharacterMapperTest {
                             3,
                             10,
                             new OffworldersStats(0, 1, 3, 2),
-                            List.of("Telekinesis"),
-                            List.of("Blast", "Jump"),
+                            List.of(new OffworldersEntry("Telekinesis", "")),
+                            List.of(new OffworldersEntry("Blast", ""), new OffworldersEntry("Jump", "")),
                             null
                     )
             );
@@ -134,8 +137,12 @@ class GameCharacterMapperTest {
             assertThat(character.getOffworldersData().getCharacterClass()).isEqualTo("Psychic");
             assertThat(character.getOffworldersData().getCredits()).isEqualTo(10);
             assertThat(character.getOffworldersData().getStats().getIntelligence()).isEqualTo(3);
-            assertThat(character.getOffworldersData().getSkills()).containsExactly("Telekinesis");
-            assertThat(character.getOffworldersData().getAbilities()).containsExactly("Blast", "Jump");
+            assertThat(character.getOffworldersData().getSkills())
+                    .extracting(OffworldersEntry::getName)
+                    .containsExactly("Telekinesis");
+            assertThat(character.getOffworldersData().getAbilities())
+                    .extracting(OffworldersEntry::getName)
+                    .containsExactly("Blast", "Jump");
         }
 
         @Test
@@ -204,7 +211,7 @@ class GameCharacterMapperTest {
                     null,
                     new OffworldersCharacterDataInputDTO(
                             null, null, null, 9, null, 3, null, null, null, null,
-                            List.of("Pilot", "Sneak", "Scan"), null, null)
+                            List.of(new OffworldersEntry("Pilot", ""), new OffworldersEntry("Sneak", ""), new OffworldersEntry("Scan", "")), null, null)
             );
 
             // Act
@@ -214,6 +221,7 @@ class GameCharacterMapperTest {
             assertThat(character.getOffworldersData().getXp()).isEqualTo(9);
             assertThat(character.getOffworldersData().getArmor()).isEqualTo(3);
             assertThat(character.getOffworldersData().getSkills())
+                    .extracting(OffworldersEntry::getName)
                     .containsExactly("Pilot", "Sneak", "Scan");
             // Untouched fields keep their original values.
             assertThat(character.getOffworldersData().getCharacterClass()).isEqualTo("Outlaw");

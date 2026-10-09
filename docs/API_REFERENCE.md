@@ -407,7 +407,7 @@ Valid `role` values: `GM` | `PLAYER`
 | `campaignId` | Long | Optional |
 | `ownerId` | Long | Optional; defaults to logged-in user if null |
 | `dnd5e` | object | Optional; applied only when `systemType === 'DND5E'`. Shape: `{ level (1–20), characterClass, race, hitPoints?, armorClass?, stats }` |
-| `offworlders` | object | Optional; applied only when `systemType === 'OFFWORLDERS'`. Shape: `{ characterClass?, species?, look?, xp?, health?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, items? }`. `stats = { strength, agility, intelligence, willpower }` (each −1…+3); `skills` / `abilities` are string arrays mixing canonical options with free text; `characterClass` is optional (may be empty); `supplyMax` is fixed at `3`; `items` is a free-form array `[ { name, kind: 'weapon'|'armor'|'item', damage, armorRating, heavy, notes } ]` |
+| `offworlders` | object | Optional; applied only when `systemType === 'OFFWORLDERS'`. Shape: `{ characterClass?, species?, look?, xp?, health?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, items? }`. `stats = { strength, agility, intelligence, willpower }` (each −1…+3); `skills` / `abilities` are entry arrays `[ { name, description } ]` mixing canonical options with free text (canonical descriptions live in the frontend catalog; custom entries carry their own `description`); `characterClass` is optional (may be empty); `supplyMax` is fixed at `3`; `items` is a free-form array `[ { name, kind: 'weapon'|'armor'|'item', damage, armorRating, heavy, notes } ]` |
 
 > If `ownerId` is `null`, the logged-in user is automatically set as owner.
 
@@ -458,8 +458,16 @@ The endpoint is system-agnostic. When `systemType` is `OFFWORLDERS`, send (and r
     "stats": {
       "strength": 1, "agility": 3, "intelligence": 1, "willpower": 0
     },
-    "skills": ["Pilot", "Sneak", "Tech"],
-    "abilities": ["Lucky", "Smuggle", "Shoot First"],
+    "skills": [
+      { "name": "Pilot", "description": "" },
+      { "name": "Sneak", "description": "" },
+      { "name": "Tech", "description": "" }
+    ],
+    "abilities": [
+      { "name": "Lucky", "description": "" },
+      { "name": "Smuggle", "description": "" },
+      { "name": "Shoot First", "description": "" }
+    ],
     "items": [
       { "name": "Snubnosed revolver", "kind": "weapon", "damage": "1D6", "armorRating": 0, "heavy": false, "notes": "" },
       { "name": "Light armor", "kind": "armor", "damage": "", "armorRating": 1, "heavy": false, "notes": "" }
@@ -470,8 +478,10 @@ The endpoint is system-agnostic. When `systemType` is `OFFWORLDERS`, send (and r
 
 > Offworlders attributes range from −1 to +3 and Armor from 0 to 3. `health` may be omitted and
 > derived from the attributes as `max(1, 12 + strength + agility)`. `supplyMax` is always 3.
-> `characterClass` is optional. `skills` and `abilities` are string arrays so players can combine
-> the canonical catalogs with free-text custom entries. `credits` and `items` are optional additions.
+> `characterClass` is optional. `skills` and `abilities` are arrays of `{ name, description }` entries so
+> players can combine the canonical catalogs with free-text custom entries (a custom entry carries its own
+> `description`; canonical entries use an empty one, their text supplied by the frontend catalog).
+> `credits` and `items` are optional additions.
 
 ---
 ---
