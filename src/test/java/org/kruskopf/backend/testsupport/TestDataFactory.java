@@ -3,6 +3,8 @@ package org.kruskopf.backend.testsupport;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.message.entity.Message;
 import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
+import org.kruskopf.backend.offworlders.OffworldersEntry;
+import org.kruskopf.backend.offworlders.OffworldersItem;
 import org.kruskopf.backend.offworlders.OffworldersStats;
 import org.kruskopf.backend.offworlders.entity.OffworldersCharacterData;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
@@ -139,9 +141,18 @@ public final class TestDataFactory {
         data.setHealth(15);
         data.setArmor(1);
         data.setSupply(2);
-        data.setSupplyMax(5);
-        data.setSkills(new java.util.ArrayList<>(java.util.List.of("Pilot", "Sneak")));
-        data.setAbilities(new java.util.ArrayList<>(java.util.List.of("Lucky")));
+        data.setSupplyMax(3);
+        data.setCredits(10);
+        data.setCurrentHealth(11);
+        data.setHealthModifier(2);
+        data.setItems(new java.util.ArrayList<>(java.util.List.of(
+                new OffworldersItem("Snubnosed revolver", "weapon", "1D6", 0, false, ""),
+                new OffworldersItem("Light armor", "armor", "", 1, false, ""))));
+        data.setSkills(new java.util.ArrayList<>(java.util.List.of(
+                new OffworldersEntry("Pilot", ""),
+                new OffworldersEntry("Sneak", ""))));
+        data.setAbilities(new java.util.ArrayList<>(java.util.List.of(
+                new OffworldersEntry("Lucky", ""))));
         character.attachOffworldersData(data);
         return character;
     }
