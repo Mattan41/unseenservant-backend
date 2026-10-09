@@ -1,6 +1,8 @@
 package org.kruskopf.backend.offworlders.entity;
 
 import jakarta.persistence.*;
+import org.kruskopf.backend.offworlders.OffworldersGear;
+import org.kruskopf.backend.offworlders.OffworldersGearConverter;
 import org.kruskopf.backend.offworlders.OffworldersStats;
 import org.kruskopf.backend.offworlders.OffworldersStatsConverter;
 import org.kruskopf.backend.offworlders.StringListConverter;
@@ -51,10 +53,13 @@ public class OffworldersCharacterData {
     private int armor = 0;
 
     @Column(nullable = false)
-    private int supply = 0;
+    private int supply = 3;
 
     @Column(name = "supply_max", nullable = false)
-    private int supplyMax = 0;
+    private int supplyMax = 3;
+
+    @Column(nullable = false)
+    private int credits = 3;
 
     @Column(columnDefinition = "TEXT")
     @Convert(converter = OffworldersStatsConverter.class)
@@ -67,6 +72,10 @@ public class OffworldersCharacterData {
     @Column(columnDefinition = "TEXT")
     @Convert(converter = StringListConverter.class)
     private List<String> abilities = new ArrayList<>();
+
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = OffworldersGearConverter.class)
+    private OffworldersGear gear = new OffworldersGear();
 
     public OffworldersCharacterData() {
     }
@@ -153,6 +162,14 @@ public class OffworldersCharacterData {
         this.supplyMax = supplyMax;
     }
 
+    public int getCredits() {
+        return credits;
+    }
+
+    public void setCredits(int credits) {
+        this.credits = credits;
+    }
+
     public OffworldersStats getStats() {
         return stats;
     }
@@ -175,5 +192,13 @@ public class OffworldersCharacterData {
 
     public void setAbilities(List<String> abilities) {
         this.abilities = abilities;
+    }
+
+    public OffworldersGear getGear() {
+        return gear;
+    }
+
+    public void setGear(OffworldersGear gear) {
+        this.gear = gear;
     }
 }

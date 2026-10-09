@@ -70,9 +70,11 @@ public class GameCharacterMapper {
                 data.getArmor(),
                 data.getSupply(),
                 data.getSupplyMax(),
+                data.getCredits(),
                 data.getStats(),
                 data.getSkills(),
-                data.getAbilities()
+                data.getAbilities(),
+                data.getGear()
         );
     }
 
@@ -118,9 +120,11 @@ public class GameCharacterMapper {
             if (dto.armor() != null) data.setArmor(dto.armor());
             if (dto.supply() != null) data.setSupply(dto.supply());
             if (dto.supplyMax() != null) data.setSupplyMax(dto.supplyMax());
+            if (dto.credits() != null) data.setCredits(dto.credits());
             if (dto.stats() != null) data.setStats(dto.stats());
             if (dto.skills() != null) data.setSkills(new ArrayList<>(dto.skills()));
             if (dto.abilities() != null) data.setAbilities(new ArrayList<>(dto.abilities()));
+            if (dto.gear() != null) data.setGear(dto.gear());
         }
         return data;
     }
@@ -171,8 +175,10 @@ public class GameCharacterMapper {
         if (dto.armor() != null) data.setArmor(dto.armor());
         if (dto.supply() != null) data.setSupply(dto.supply());
         if (dto.supplyMax() != null) data.setSupplyMax(dto.supplyMax());
+        if (dto.credits() != null) data.setCredits(dto.credits());
         if (dto.stats() != null) data.setStats(dto.stats());
         if (dto.skills() != null) data.setSkills(new ArrayList<>(dto.skills()));
         if (dto.abilities() != null) data.setAbilities(new ArrayList<>(dto.abilities()));
+        if (dto.gear() != null) data.setGear(dto.gear());
     }
 }

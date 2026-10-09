@@ -63,9 +63,12 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 - Request: `CharacterInputDTO { ownerId?, campaignId?, name, systemType, notes?, avatarUrl?, dnd5e?, offworlders? }`
   - `systemType`: `DND5E` | `OFFWORLDERS`
   - `dnd5e = { level (1–20), characterClass, race, hitPoints?, armorClass?, stats }` (used only for `systemType === 'DND5E'`)
-  - `offworlders = { characterClass?, species?, look?, xp?, health?, armor?, supply?, supplyMax?, stats?, skills?, abilities? }` (used only for `systemType === 'OFFWORLDERS'`)
+  - `offworlders = { characterClass?, species?, look?, xp?, health?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, gear? }` (used only for `systemType === 'OFFWORLDERS'`)
     - `stats = { strength, agility, intelligence, willpower }`, each −1…+3; Health is derived as `max(1, 12 + strength + agility)`
     - `skills` / `abilities` are arrays of strings: canonical catalog entries plus any free-text custom entries
+    - `characterClass` is optional — it may be empty ("no class"), since experienced players may ignore classes
+    - `supplyMax` is fixed at `3` by the rules
+    - `gear = { primaryWeapon?, primaryWeaponType?, secondaryWeapon?, secondaryWeaponType?, armorType?, notes? }`; `credits` is the tracked currency
 - `ownerId` defaults to logged-in user if null
 - Response: `CharacterOutputDTO`
 - Status: 201, 400, 401
@@ -89,7 +92,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 - Requires: ROLE_USER
 - Response: `CharacterOutputDTO { id, ownerId, campaignId, name, systemType, notes, avatarUrl, dnd5e, offworlders, createdAt, updatedAt }`
   - `dnd5e` (nullable) is `{ level, characterClass, race, hitPoints, armorClass, stats }` — present only when `systemType === 'DND5E'`
-  - `offworlders` (nullable) is `{ characterClass, species, look, xp, health, armor, supply, supplyMax, stats, skills, abilities }` — present only when `systemType === 'OFFWORLDERS'`
+  - `offworlders` (nullable) is `{ characterClass, species, look, xp, health, armor, supply, supplyMax, credits, stats, skills, abilities, gear }` — present only when `systemType === 'OFFWORLDERS'`
 - Status: 200, 401, 404
 
 **PATCH /api/characters/{id}**

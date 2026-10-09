@@ -53,7 +53,10 @@ class GameCharacterMapperTest {
             assertThat(offworlders.health()).isEqualTo(15);
             assertThat(offworlders.armor()).isEqualTo(1);
             assertThat(offworlders.supply()).isEqualTo(2);
-            assertThat(offworlders.supplyMax()).isEqualTo(5);
+            assertThat(offworlders.supplyMax()).isEqualTo(3);
+            assertThat(offworlders.credits()).isEqualTo(10);
+            assertThat(offworlders.gear().getPrimaryWeapon()).isEqualTo("Snubnosed revolver");
+            assertThat(offworlders.gear().getArmorType()).isEqualTo("Light");
             assertThat(offworlders.stats().getStrength()).isEqualTo(1);
             assertThat(offworlders.stats().getAgility()).isEqualTo(2);
             assertThat(offworlders.stats().getIntelligence()).isZero();
@@ -105,11 +108,13 @@ class GameCharacterMapperTest {
                             2,
                             13,
                             0,
-                            4,
-                            5,
+                            2,
+                            3,
+                            10,
                             new OffworldersStats(0, 1, 3, 2),
                             List.of("Telekinesis"),
-                            List.of("Blast", "Jump")
+                            List.of("Blast", "Jump"),
+                            null
                     )
             );
 
@@ -122,6 +127,7 @@ class GameCharacterMapperTest {
             assertThat(character.getOffworldersData()).isNotNull();
             assertThat(character.getOffworldersData().getCharacter()).isSameAs(character);
             assertThat(character.getOffworldersData().getCharacterClass()).isEqualTo("Psychic");
+            assertThat(character.getOffworldersData().getCredits()).isEqualTo(10);
             assertThat(character.getOffworldersData().getStats().getIntelligence()).isEqualTo(3);
             assertThat(character.getOffworldersData().getSkills()).containsExactly("Telekinesis");
             assertThat(character.getOffworldersData().getAbilities()).containsExactly("Blast", "Jump");
@@ -160,7 +166,7 @@ class GameCharacterMapperTest {
                     null,
                     new Dnd5eCharacterDataInputDTO(5, "Fighter", "Human", 44, 17, null),
                     new OffworldersCharacterDataInputDTO(
-                            "Outlaw", null, null, null, null, null, null, null, null, null, null)
+                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null)
             );
 
             // Act
@@ -192,8 +198,8 @@ class GameCharacterMapperTest {
                     null,
                     null,
                     new OffworldersCharacterDataInputDTO(
-                            null, null, null, 9, null, 3, null, null, null,
-                            List.of("Pilot", "Sneak", "Scan"), null)
+                            null, null, null, 9, null, 3, null, null, null, null,
+                            List.of("Pilot", "Sneak", "Scan"), null, null)
             );
 
             // Act
@@ -218,7 +224,7 @@ class GameCharacterMapperTest {
             CharacterInputDTO dto = new CharacterInputDTO(
                     null, null, "Renamed", null, null, null, null,
                     new OffworldersCharacterDataInputDTO(
-                            "Outlaw", null, null, null, null, null, null, null, null, null, null));
+                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null));
 
             // Act
             mapper.patchEntity(character, dto);
