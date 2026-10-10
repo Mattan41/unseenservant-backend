@@ -2,6 +2,7 @@ package org.kruskopf.backend.campaign.entity;
 
 import jakarta.persistence.*;
 import org.kruskopf.backend.message.entity.Message;
+import org.kruskopf.backend.playercharacter.entity.GameSystem;
 import org.kruskopf.backend.user.entity.User;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
@@ -26,8 +27,22 @@ public class Campaign {
     @Column(columnDefinition = "LONGTEXT")
     private String description;
 
+    /**
+     * Private description — visible to the campaign owner and campaign GMs only.
+     */
+    @Column(name = "private_description", columnDefinition = "LONGTEXT")
+    private String privateDescription;
+
     @Column(length = 1024)
     private String imageUrl;
+
+    /**
+     * Optional primary game system for the campaign. Drives which
+     * system-specific sub-sections are shown; {@code null} means "not chosen".
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "primary_system")
+    private GameSystem primarySystem;
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -79,12 +94,28 @@ public class Campaign {
         this.description = description;
     }
 
+    public String getPrivateDescription() {
+        return privateDescription;
+    }
+
+    public void setPrivateDescription(String privateDescription) {
+        this.privateDescription = privateDescription;
+    }
+
     public String getImageUrl() {
         return imageUrl;
     }
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public GameSystem getPrimarySystem() {
+        return primarySystem;
+    }
+
+    public void setPrimarySystem(GameSystem primarySystem) {
+        this.primarySystem = primarySystem;
     }
 
     public LocalDateTime getCreatedAt() {

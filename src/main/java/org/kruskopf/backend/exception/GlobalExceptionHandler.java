@@ -26,6 +26,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
+    @ExceptionHandler(ConcurrentUpdateException.class)
+    public ResponseEntity<String> handleConcurrentUpdateException(ConcurrentUpdateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
     @ExceptionHandler(UniqueConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleUniqueConstraintViolation(UniqueConstraintViolationException ex) {
         Map<String, Object> response = new HashMap<>();

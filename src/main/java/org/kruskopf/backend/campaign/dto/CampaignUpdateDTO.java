@@ -1,4 +1,6 @@
 package org.kruskopf.backend.campaign.dto;
 
-public record CampaignUpdateDTO(String name, String description) {
+import org.kruskopf.backend.playercharacter.entity.GameSystem;
+
+public record CampaignUpdateDTO(String name, String description, String privateDescription, GameSystem primarySystem) {
 }
