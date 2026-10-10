@@ -167,3 +167,11 @@ VALUES
 ('srd_shield', 'Shield',
  '{"slug":"srd_shield","key":"srd_shield","name":"Shield","desc":"An invisible barrier of magical force appears and protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from magic missile.","level":1,"school":{"name":"Abjuration","key":"abjuration"},"classes":[{"name":"Sorcerer","key":"srd_sorcerer"},{"name":"Wizard","key":"srd_wizard"}],"casting_time":"1 reaction","reaction_condition":"which you take when you are hit by an attack or targeted by the magic missile spell","range_text":"Self","range":0,"duration":"1 round","ritual":false,"concentration":false,"verbal":true,"somatic":true,"material":false}',
  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- =====================================================================================
+-- OFFWORLDERS SHIP
+-- Campaign 2 is played in Offworlders in the demo, so it owns a sample ship.
+-- =====================================================================================
+UPDATE campaign SET primary_system = 'OFFWORLDERS' WHERE id = 2;
+
+INSERT INTO ship (id, campaign_id, version, name, hull, hull_max, armor, damage, drive_fuel, max_drive_fuel, upgrades, notes, created_at, updated_at)
+VALUES (1, 2, 0, 'The Null Gravitas', 15, 15, 1, '1D6', 4, 6, '["Additional Armor","Fuel Tanks"]', 'Cargo: a sealed crate for the Lundenwic job.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

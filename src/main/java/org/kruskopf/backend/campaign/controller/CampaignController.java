@@ -32,7 +32,8 @@ public class CampaignController {
                     campaignDTO.name(),
                     campaignDTO.description(),
                     userId,
-                    campaignDTO.participants()
+                    campaignDTO.participants(),
+                    campaignDTO.primarySystem()
             );
         }
 
