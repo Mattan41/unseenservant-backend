@@ -19,6 +19,7 @@ public record ShipInputDTO(
         Integer maxDriveFuel,
         List<String> upgrades,
         String notes,
+        String imageUrl,
         Long version
 ) {
 }

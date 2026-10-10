@@ -19,6 +19,8 @@ public record ShipDTO(
         int maxDriveFuel,
         List<String> upgrades,
         String notes,
+        String imageUrl,
+        List<String> imageUrls,
         long version
 ) {
 }

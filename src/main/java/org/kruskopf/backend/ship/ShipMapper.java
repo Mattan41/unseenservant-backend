@@ -24,6 +24,8 @@ public class ShipMapper {
                 ship.getMaxDriveFuel(),
                 ship.getUpgrades() != null ? List.copyOf(ship.getUpgrades()) : List.of(),
                 ship.getNotes(),
+                ship.getImageUrl(),
+                ship.getImageUrls() != null ? List.copyOf(ship.getImageUrls()) : List.of(),
                 ship.getVersion()
         );
     }
@@ -58,6 +60,9 @@ public class ShipMapper {
         }
         if (dto.notes() != null) {
             ship.setNotes(dto.notes());
+        }
+        if (dto.imageUrl() != null) {
+            ship.setImageUrl(dto.imageUrl());
         }
     }
 }

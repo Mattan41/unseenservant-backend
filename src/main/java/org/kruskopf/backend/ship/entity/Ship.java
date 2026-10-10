@@ -12,7 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import org.kruskopf.backend.campaign.entity.Campaign;
-import org.kruskopf.backend.ship.ShipUpgradesConverter;
+import org.kruskopf.backend.ship.ShipStringListConverter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
@@ -84,11 +84,20 @@ public class Ship {
     private int maxDriveFuel = DEFAULT_MAX_DRIVE_FUEL;
 
     @Column(columnDefinition = "TEXT")
-    @Convert(converter = ShipUpgradesConverter.class)
+    @Convert(converter = ShipStringListConverter.class)
     private List<String> upgrades = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
     private String notes = "";
+
+    /** Profile image shown for the ship (defaults to the frontend's defaultShip.svg). */
+    @Column(name = "image_url", length = 1024)
+    private String imageUrl;
+
+    /** Gallery images (drawings, maps, etc.), stored as a JSON array of URLs. */
+    @Column(name = "image_urls", columnDefinition = "TEXT")
+    @Convert(converter = ShipStringListConverter.class)
+    private List<String> imageUrls = new ArrayList<>();
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -199,6 +208,22 @@ public class Ship {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 
     public LocalDateTime getCreatedAt() {

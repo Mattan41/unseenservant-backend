@@ -6,6 +6,7 @@ import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.ConcurrentUpdateException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
+import org.kruskopf.backend.filestorage.FileStorageService;
 import org.kruskopf.backend.ship.ShipMapper;
 import org.kruskopf.backend.ship.dto.ShipDTO;
 import org.kruskopf.backend.ship.dto.ShipInputDTO;
@@ -13,6 +14,11 @@ import org.kruskopf.backend.ship.entity.Ship;
 import org.kruskopf.backend.ship.repository.ShipRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Offworlders ship lifecycle, scoped to a campaign.
@@ -27,15 +33,18 @@ public class ShipService {
     private final ShipRepository shipRepository;
     private final CampaignRepository campaignRepository;
     private final CampaignPermissionService campaignPermissionService;
+    private final FileStorageService fileStorageService;
     private final ShipMapper shipMapper;
 
     public ShipService(ShipRepository shipRepository,
                        CampaignRepository campaignRepository,
                        CampaignPermissionService campaignPermissionService,
+                       FileStorageService fileStorageService,
                        ShipMapper shipMapper) {
         this.shipRepository = shipRepository;
         this.campaignRepository = campaignRepository;
         this.campaignPermissionService = campaignPermissionService;
+        this.fileStorageService = fileStorageService;
         this.shipMapper = shipMapper;
     }
 
@@ -89,6 +98,58 @@ public class ShipService {
                     ship.setCampaign(campaign);
                     return shipRepository.save(ship);
                 });
+    }
+
+    /**
+     * Upload (or replace) the ship's profile image. Any participant may do this.
+     */
+    @Transactional
+    public ShipDTO uploadProfileImage(Long campaignId, MultipartFile file, long userId) {
+        Ship ship = loadShipForEdit(campaignId, userId);
+        ship.setImageUrl(storeImage(file, "ship_" + campaignId));
+        ship.setVersion(ship.getVersion() + 1);
+        return shipMapper.toDTO(shipRepository.save(ship));
+    }
+
+    /** Append an image to the ship's gallery (drawings, maps, etc.). */
+    @Transactional
+    public ShipDTO addGalleryImage(Long campaignId, MultipartFile file, long userId) {
+        Ship ship = loadShipForEdit(campaignId, userId);
+        List<String> imageUrls = new ArrayList<>(ship.getImageUrls());
+        imageUrls.add(storeImage(file, "ship_" + campaignId + "_gallery"));
+        ship.setImageUrls(imageUrls);
+        ship.setVersion(ship.getVersion() + 1);
+        return shipMapper.toDTO(shipRepository.save(ship));
+    }
+
+    /** Remove an image from the ship's gallery by its stored URL. */
+    @Transactional
+    public ShipDTO removeGalleryImage(Long campaignId, String url, long userId) {
+        Ship ship = loadShipForEdit(campaignId, userId);
+        List<String> imageUrls = new ArrayList<>(ship.getImageUrls());
+        imageUrls.remove(url);
+        ship.setImageUrls(imageUrls);
+        ship.setVersion(ship.getVersion() + 1);
+        return shipMapper.toDTO(shipRepository.save(ship));
+    }
+
+    /** Loads the ship for editing, creating the default one if none exists yet. */
+    private Ship loadShipForEdit(Long campaignId, long userId) {
+        Campaign campaign = requireCampaign(campaignId);
+        requireParticipant(campaignId, userId);
+        return shipRepository.findByCampaignId(campaignId).orElseGet(() -> {
+            Ship ship = Ship.createDefault();
+            ship.setCampaign(campaign);
+            return ship;
+        });
+    }
+
+    private String storeImage(MultipartFile file, String prefix) {
+        try {
+            return "/images/" + fileStorageService.storeFile(file, prefix, "IMAGE");
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to store ship image", e);
+        }
     }
 
     private Campaign requireCampaign(Long campaignId) {

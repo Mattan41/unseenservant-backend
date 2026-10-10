@@ -10,6 +10,7 @@ import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.ConcurrentUpdateException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
+import org.kruskopf.backend.filestorage.FileStorageService;
 import org.kruskopf.backend.ship.ShipMapper;
 import org.kruskopf.backend.ship.dto.ShipDTO;
 import org.kruskopf.backend.ship.dto.ShipInputDTO;
@@ -42,6 +43,9 @@ class ShipServiceTest {
 
     @Mock
     private CampaignPermissionService campaignPermissionService;
+
+    @Mock
+    private FileStorageService fileStorageService;
 
     @Spy
     private ShipMapper shipMapper = new ShipMapper();
@@ -114,7 +118,7 @@ class ShipServiceTest {
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.empty());
         when(shipRepository.save(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ShipInputDTO input = new ShipInputDTO("The Desert Rose", null, null, null, null, null, null, null, null, null);
+        ShipInputDTO input = new ShipInputDTO("The Desert Rose", null, null, null, null, null, null, null, null, null, null);
         ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
 
         assertThat(dto.name()).isEqualTo("The Desert Rose");
@@ -129,7 +133,7 @@ class ShipServiceTest {
         when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(existingShip(15, 3L)));
 
-        ShipInputDTO stale = new ShipInputDTO(null, 10, null, null, null, null, null, null, null, 2L);
+        ShipInputDTO stale = new ShipInputDTO(null, 10, null, null, null, null, null, null, null, null, 2L);
 
         assertThatThrownBy(() -> shipService.saveShip(CAMPAIGN_ID, stale, USER_ID))
                 .isInstanceOf(ConcurrentUpdateException.class);
@@ -143,7 +147,7 @@ class ShipServiceTest {
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(existingShip(15, 3L)));
         when(shipRepository.save(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ShipInputDTO input = new ShipInputDTO(null, 7, null, null, null, null, null, null, null, 3L);
+        ShipInputDTO input = new ShipInputDTO(null, 7, null, null, null, null, null, null, null, null, 3L);
         ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
 
         assertThat(dto.hull()).isEqualTo(7);
