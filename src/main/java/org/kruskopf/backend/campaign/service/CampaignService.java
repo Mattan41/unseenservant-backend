@@ -53,6 +53,7 @@ public class CampaignService {
     @Transactional
     public CampaignResponseDTO createCampaign(CampaignCreationDTO dto) {
         Campaign campaign = new Campaign(dto.name(), dto.description());
+        campaign.setPrivateDescription(dto.privateDescription());
         campaign.setPrimarySystem(dto.primarySystem());
 
         // Add owner as participant
@@ -93,20 +94,20 @@ public class CampaignService {
 
         Campaign savedCampaign = campaignRepository.save(campaign);
         createDefaultShipIfOffworlders(savedCampaign);
-        return mapToResponseDTO(savedCampaign);
+        return mapToResponseDTO(savedCampaign, dto.ownerId());
     }
 
     @Transactional(readOnly = true)
     public List<CampaignResponseDTO> getAllCampaigns() {
         return campaignRepository.findAll().stream()
-                .map(this::mapToResponseDTO)
+                .map(campaign -> mapToResponseDTO(campaign, -1L))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<CampaignResponseDTO> getAllCampaignsForCurrentUser(long userId) {
         return campaignRepository.findAllByParticipantsUserId(userId).stream()
-                .map(this::mapToResponseDTO)
+                .map(campaign -> mapToResponseDTO(campaign, userId))
                 .toList();
     }
 
@@ -124,7 +125,7 @@ public class CampaignService {
         boolean isParticipant = campaignPermissionService.isParticipant(campaignId, userId);
 
         if (isParticipant)
-            return mapToResponseDTO(campaign);
+            return mapToResponseDTO(campaign, userId);
 
         // If user is not a participant, throw exception
         throw new UnauthorizedAccessException("User is not authorized to access this campaign");
@@ -143,11 +144,12 @@ public class CampaignService {
 
         campaign.setName(dto.name());
         campaign.setDescription(dto.description());
+        campaign.setPrivateDescription(dto.privateDescription());
         campaign.setPrimarySystem(dto.primarySystem());
 
         Campaign savedCampaign = campaignRepository.save(campaign);
         createDefaultShipIfOffworlders(savedCampaign);
-        return mapToResponseDTO(savedCampaign);
+        return mapToResponseDTO(savedCampaign, currentUserId);
     }
 
     @Transactional
@@ -388,11 +390,26 @@ public class CampaignService {
         }
     }
 
+    /** Maps without private fields (fails closed). */
     private CampaignResponseDTO mapToResponseDTO(Campaign campaign) {
+        return mapToResponseDTO(campaign, -1L);
+    }
+
+    /**
+     * Maps a campaign. The private description is only included when the viewer
+     * is the campaign owner or a campaign GM; everyone else receives null.
+     */
+    private CampaignResponseDTO mapToResponseDTO(Campaign campaign, long viewerId) {
+        boolean includePrivate = campaign.isOwnedBy(viewerId)
+                || campaign.getParticipants().stream().anyMatch(participant ->
+                        participant.getUser().getId().equals(viewerId)
+                                && participant.getRole() == CampaignRole.GM);
+
         return new CampaignResponseDTO(
                 campaign.getId(),
                 campaign.getName(),
                 campaign.getDescription(),
+                includePrivate ? campaign.getPrivateDescription() : null,
                 campaign.getImageUrl(),
                 campaign.getPrimarySystem(),
                 campaign.getOwner() != null ? campaign.getOwner().getId() : null,

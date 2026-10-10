@@ -27,6 +27,12 @@ public class Campaign {
     @Column(columnDefinition = "LONGTEXT")
     private String description;
 
+    /**
+     * Private description — visible to the campaign owner and campaign GMs only.
+     */
+    @Column(name = "private_description", columnDefinition = "LONGTEXT")
+    private String privateDescription;
+
     @Column(length = 1024)
     private String imageUrl;
 
@@ -86,6 +92,14 @@ public class Campaign {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getPrivateDescription() {
+        return privateDescription;
+    }
+
+    public void setPrivateDescription(String privateDescription) {
+        this.privateDescription = privateDescription;
     }
 
     public String getImageUrl() {

@@ -31,6 +31,7 @@ public class CampaignController {
             effectiveDTO = new CampaignCreationDTO(
                     campaignDTO.name(),
                     campaignDTO.description(),
+                    campaignDTO.privateDescription(),
                     userId,
                     campaignDTO.participants(),
                     campaignDTO.primarySystem()
