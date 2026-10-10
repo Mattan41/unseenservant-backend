@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import org.kruskopf.backend.offworlders.OffworldersEntry;
 import org.kruskopf.backend.offworlders.OffworldersItem;
 import org.kruskopf.backend.offworlders.OffworldersStats;
+import org.kruskopf.backend.offworlders.OffworldersWeapon;
 
 import java.util.List;
 
@@ -22,7 +23,6 @@ import java.util.List;
 public record OffworldersCharacterDataInputDTO(
         String characterClass,
         String species,
-        String look,
         @Min(0) Integer xp,
         @Min(0) Integer health,
         @Min(0) @Max(3) Integer armor,
@@ -32,6 +32,7 @@ public record OffworldersCharacterDataInputDTO(
         OffworldersStats stats,
         List<OffworldersEntry> skills,
         List<OffworldersEntry> abilities,
+        List<OffworldersWeapon> weapons,
         List<OffworldersItem> items,
         @Min(0) Integer currentHealth,
         Integer healthModifier) {

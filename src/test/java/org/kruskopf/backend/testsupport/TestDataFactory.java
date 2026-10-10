@@ -6,6 +6,7 @@ import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
 import org.kruskopf.backend.offworlders.OffworldersEntry;
 import org.kruskopf.backend.offworlders.OffworldersItem;
 import org.kruskopf.backend.offworlders.OffworldersStats;
+import org.kruskopf.backend.offworlders.OffworldersWeapon;
 import org.kruskopf.backend.offworlders.entity.OffworldersCharacterData;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
@@ -133,10 +134,12 @@ public final class TestDataFactory {
         character.setOwner(owner);
         character.setName("Test Runner");
         character.setSystemType(GameSystem.OFFWORLDERS);
+        character.setAppearance("Weathered spacer");
+        character.setBackstory("Public backstory");
+        character.setPrivateBackstory("Private backstory");
 
         OffworldersStats stats = new OffworldersStats(1, 2, 0, -1);
         OffworldersCharacterData data = new OffworldersCharacterData("Outlaw", "Human", stats);
-        data.setLook("Weathered spacer");
         data.setXp(3);
         data.setHealth(15);
         data.setArmor(1);
@@ -145,9 +148,10 @@ public final class TestDataFactory {
         data.setCredits(10);
         data.setCurrentHealth(11);
         data.setHealthModifier(2);
+        data.setWeapons(new java.util.ArrayList<>(java.util.List.of(
+                new OffworldersWeapon("Light", "Snubnosed revolver"))));
         data.setItems(new java.util.ArrayList<>(java.util.List.of(
-                new OffworldersItem("Snubnosed revolver", "weapon", "1D6", 0, false, ""),
-                new OffworldersItem("Light armor", "armor", "", 1, false, ""))));
+                new OffworldersItem("Band t-shirts", "Rotating collection."))));
         data.setSkills(new java.util.ArrayList<>(java.util.List.of(
                 new OffworldersEntry("Pilot", ""),
                 new OffworldersEntry("Sneak", ""))));

@@ -60,15 +60,18 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 **POST /api/characters**
 - Requires: ROLE_USER
-- Request: `CharacterInputDTO { ownerId?, campaignId?, name, systemType, notes?, avatarUrl?, dnd5e?, offworlders? }`
+- Request: `CharacterInputDTO { ownerId?, campaignId?, name, systemType, notes?, avatarUrl?, appearance?, backstory?, privateBackstory?, dnd5e?, offworlders? }`
   - `systemType`: `DND5E` | `OFFWORLDERS`
+  - `appearance` / `backstory` / `privateBackstory`: free-text core-character fields (any system). `appearance` and `backstory` are public to the campaign; `privateBackstory` is readable by the owner and the campaign GM only. Writes are owner-only (PATCH requires ownership; the GM has read access, not write).
   - `dnd5e = { level (1–20), characterClass, race, hitPoints?, armorClass?, stats }` (used only for `systemType === 'DND5E'`)
-  - `offworlders = { characterClass?, species?, look?, xp?, health?, currentHealth?, healthModifier?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, items? }` (used only for `systemType === 'OFFWORLDERS'`)
+  - `offworlders = { characterClass?, species?, xp?, health?, currentHealth?, healthModifier?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, weapons?, items? }` (used only for `systemType === 'OFFWORLDERS'`)
     - `stats = { strength, agility, intelligence, willpower }`, each −1…+3; Health is derived as `max(1, 12 + strength + agility)`
     - `skills` / `abilities` are arrays of `{ name, description }` entries: canonical catalog entries (empty `description`, text supplied by the frontend catalog) plus any free-text custom entries
     - `characterClass` is optional — it may be empty ("no class"), since experienced players may ignore classes
     - `supplyMax` is fixed at `3` by the rules
-    - `items` is a free-form array: `[ { name, kind: 'weapon'|'armor'|'item', damage, armorRating, heavy, notes } ]`; `credits` is the tracked currency
+    - `armor` is the single worn armor value 0–3 (0 None / 1 Light / 2 Heavy / 3 Assault)
+    - `weapons` is a typed array: `[ { type: 'Light' | 'Medium' | 'Heavy', description } ]` — damage (1D6 / 1D6+1 / 1D6+2) and `heavy` follow from `type`, not stored
+    - `items` is a free-text array: `[ { name, description } ]` (custom weapons and everything else); `credits` is the tracked currency
 - `ownerId` defaults to logged-in user if null
 - Response: `CharacterOutputDTO`
 - Status: 201, 400, 401

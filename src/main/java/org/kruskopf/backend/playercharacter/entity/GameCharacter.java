@@ -48,6 +48,18 @@ public class GameCharacter {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /** Public backstory — visible to all campaign members. */
+    @Column(columnDefinition = "TEXT")
+    private String backstory;
+
+    /** Private backstory — visible to the owner and the campaign GM only. */
+    @Column(name = "private_backstory", columnDefinition = "TEXT")
+    private String privateBackstory;
+
+    /** Appearance — generic, meaningful for every system (formerly Offworlders-only "look"). */
+    @Column(columnDefinition = "TEXT")
+    private String appearance;
+
     @Column
     private String imageUrl;
 
@@ -144,6 +156,30 @@ public class GameCharacter {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getBackstory() {
+        return backstory;
+    }
+
+    public void setBackstory(String backstory) {
+        this.backstory = backstory;
+    }
+
+    public String getPrivateBackstory() {
+        return privateBackstory;
+    }
+
+    public void setPrivateBackstory(String privateBackstory) {
+        this.privateBackstory = privateBackstory;
+    }
+
+    public String getAppearance() {
+        return appearance;
+    }
+
+    public void setAppearance(String appearance) {
+        this.appearance = appearance;
     }
 
     public String getImageUrl() {

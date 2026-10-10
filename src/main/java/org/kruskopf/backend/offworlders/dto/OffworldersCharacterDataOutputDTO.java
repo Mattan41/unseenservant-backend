@@ -3,6 +3,7 @@ package org.kruskopf.backend.offworlders.dto;
 import org.kruskopf.backend.offworlders.OffworldersEntry;
 import org.kruskopf.backend.offworlders.OffworldersItem;
 import org.kruskopf.backend.offworlders.OffworldersStats;
+import org.kruskopf.backend.offworlders.OffworldersWeapon;
 
 import java.util.List;
 
@@ -13,7 +14,6 @@ import java.util.List;
 public record OffworldersCharacterDataOutputDTO(
         String characterClass,
         String species,
-        String look,
         int xp,
         int health,
         int armor,
@@ -23,6 +23,7 @@ public record OffworldersCharacterDataOutputDTO(
         OffworldersStats stats,
         List<OffworldersEntry> skills,
         List<OffworldersEntry> abilities,
+        List<OffworldersWeapon> weapons,
         List<OffworldersItem> items,
         int currentHealth,
         int healthModifier) {
