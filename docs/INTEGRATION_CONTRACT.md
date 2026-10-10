@@ -60,11 +60,11 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 **POST /api/characters**
 - Requires: ROLE_USER
-- Request: `CharacterInputDTO { ownerId?, campaignId?, name, systemType, notes?, avatarUrl?, backstory?, privateBackstory?, dnd5e?, offworlders? }`
+- Request: `CharacterInputDTO { ownerId?, campaignId?, name, systemType, notes?, avatarUrl?, appearance?, backstory?, privateBackstory?, dnd5e?, offworlders? }`
   - `systemType`: `DND5E` | `OFFWORLDERS`
-  - `backstory` / `privateBackstory`: free-text core-character fields (any system). `backstory` is public to the campaign; `privateBackstory` is readable by the owner and the campaign GM only. Writes are owner-only (PATCH requires ownership; the GM has read access, not write).
+  - `appearance` / `backstory` / `privateBackstory`: free-text core-character fields (any system). `appearance` and `backstory` are public to the campaign; `privateBackstory` is readable by the owner and the campaign GM only. Writes are owner-only (PATCH requires ownership; the GM has read access, not write).
   - `dnd5e = { level (1–20), characterClass, race, hitPoints?, armorClass?, stats }` (used only for `systemType === 'DND5E'`)
-  - `offworlders = { characterClass?, species?, look?, xp?, health?, currentHealth?, healthModifier?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, weapons?, items? }` (used only for `systemType === 'OFFWORLDERS'`)
+  - `offworlders = { characterClass?, species?, xp?, health?, currentHealth?, healthModifier?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, weapons?, items? }` (used only for `systemType === 'OFFWORLDERS'`)
     - `stats = { strength, agility, intelligence, willpower }`, each −1…+3; Health is derived as `max(1, 12 + strength + agility)`
     - `skills` / `abilities` are arrays of `{ name, description }` entries: canonical catalog entries (empty `description`, text supplied by the frontend catalog) plus any free-text custom entries
     - `characterClass` is optional — it may be empty ("no class"), since experienced players may ignore classes

@@ -61,8 +61,9 @@ migrations is safe.
 | V7 | `V7__offworlders_health_tracking.sql` | SQL | `current_health`, `health_modifier` |
 | V8 | `V8__split_offworlders_weapons_and_items.java` | Java | 1.5 `items` → typed `weapons` + free-text `items`, `armor` folded |
 | V9 | `V9__add_character_backstory.sql` | SQL | Add `backstory` + `private_backstory` to `game_character` |
+| V10 | `V10__promote_offworlders_look_to_generic_appearance.sql` | SQL | Move Offworlders `look` → generic `game_character.appearance` |
 
-Versions are complete and strictly increasing (1–9, no gaps or duplicates).
+Versions are complete and strictly increasing (1–10, no gaps or duplicates).
 
 ## Rules
 
@@ -88,4 +89,4 @@ FROM flyway_schema_history
 ORDER BY installed_rank;
 ```
 
-should list V1–V9 with `success = 1`.
+should list V1–V10 with `success = 1`.

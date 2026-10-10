@@ -14,7 +14,6 @@ import java.util.List;
 public record OffworldersCharacterDataOutputDTO(
         String characterClass,
         String species,
-        String look,
         int xp,
         int health,
         int armor,

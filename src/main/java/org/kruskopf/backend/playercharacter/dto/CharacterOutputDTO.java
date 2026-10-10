@@ -22,6 +22,7 @@ public record CharacterOutputDTO(
         GameSystem systemType,
         @Nullable String notes,
         String avatarUrl,
+        @Nullable String appearance,
         @Nullable String backstory,
         @Nullable @JsonProperty("privateBackstory") String privateBackstory,
         @Nullable @JsonProperty("dnd5e") Dnd5eCharacterDataOutputDTO dnd5e,

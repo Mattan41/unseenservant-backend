@@ -89,18 +89,17 @@ public class GameCharacterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + id));
 
         boolean isOwner = character.getOwner().getId().equals(userId);
-        boolean isGameMaster = character.getCampaign() != null
-                && campaignPermissionService.isGameMaster(character.getCampaign().getId(), userId);
+        Long campaignId = character.getCampaign() != null ? character.getCampaign().getId() : null;
+        boolean isParticipant = campaignId != null && campaignPermissionService.isParticipant(campaignId, userId);
+        boolean isGameMaster = campaignId != null && campaignPermissionService.isGameMaster(campaignId, userId);
 
-        if (character.getCampaign() == null) {
-            if (!isOwner) {
-                throw new UnauthorizedAccessException("User is not the owner of the character");
-            }
-        } else if (!isOwner && !isGameMaster) {
-            throw new UnauthorizedAccessException("User is not the owner of the character, nor GM of the campaign");
+        // Any member of the character's campaign may view it (the campaign list
+        // already exposes these characters to every participant). The owner and
+        // the campaign GM additionally receive the private backstory.
+        if (!isOwner && !isParticipant) {
+            throw new UnauthorizedAccessException("User may not view this character");
         }
 
-        // The owner and the campaign GM may read the private backstory.
         return gameCharacterMapper.toOutputDTO(character, isOwner || isGameMaster);
     }
 

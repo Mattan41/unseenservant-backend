@@ -43,13 +43,13 @@ class GameCharacterMapperTest {
 
             // Assert
             assertThat(dto.systemType()).isEqualTo(GameSystem.OFFWORLDERS);
+            assertThat(dto.appearance()).isEqualTo("Weathered spacer");
             assertThat(dto.dnd5e()).isNull();
 
             OffworldersCharacterDataOutputDTO offworlders = dto.offworlders();
             assertThat(offworlders).isNotNull();
             assertThat(offworlders.characterClass()).isEqualTo("Outlaw");
             assertThat(offworlders.species()).isEqualTo("Human");
-            assertThat(offworlders.look()).isEqualTo("Weathered spacer");
             assertThat(offworlders.xp()).isEqualTo(3);
             assertThat(offworlders.health()).isEqualTo(15);
             assertThat(offworlders.armor()).isEqualTo(1);
@@ -125,10 +125,10 @@ class GameCharacterMapperTest {
                     null,
                     null,
                     null,
+                    null,
                     new OffworldersCharacterDataInputDTO(
                             "Psychic",
                             "Human",
-                            "Sharp eyes",
                             2,
                             13,
                             0,
@@ -172,7 +172,7 @@ class GameCharacterMapperTest {
             // Arrange
             User owner = TestDataFactory.aUser("player");
             CharacterInputDTO dto = new CharacterInputDTO(
-                    null, null, "Nova", GameSystem.OFFWORLDERS, null, null, null, null, null, null);
+                    null, null, "Nova", GameSystem.OFFWORLDERS, null, null, null, null, null, null, null);
 
             // Act
             GameCharacter character = mapper.toEntity(dto, owner, null);
@@ -199,9 +199,10 @@ class GameCharacterMapperTest {
                     null,
                     null,
                     null,
+                    null,
                     new Dnd5eCharacterDataInputDTO(5, "Fighter", "Human", 44, 17, null),
                     new OffworldersCharacterDataInputDTO(
-                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)
+                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null)
             );
 
             // Act
@@ -234,8 +235,9 @@ class GameCharacterMapperTest {
                     null,
                     null,
                     null,
+                    null,
                     new OffworldersCharacterDataInputDTO(
-                            null, null, null, 9, null, 3, null, null, null, null,
+                            null, null, 9, null, 3, null, null, null, null,
                             List.of(new OffworldersEntry("Pilot", ""), new OffworldersEntry("Sneak", ""), new OffworldersEntry("Scan", "")), null, null, null, 5, 3)
             );
 
@@ -262,9 +264,9 @@ class GameCharacterMapperTest {
             User owner = TestDataFactory.aUser("player");
             GameCharacter character = TestDataFactory.aCharacter(owner);
             CharacterInputDTO dto = new CharacterInputDTO(
-                    null, null, "Renamed", null, null, null, null, null, null,
+                    null, null, "Renamed", null, null, null, null, null, null, null,
                     new OffworldersCharacterDataInputDTO(
-                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null));
+                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null));
 
             // Act
             mapper.patchEntity(character, dto);

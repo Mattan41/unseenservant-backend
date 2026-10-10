@@ -56,6 +56,10 @@ public class GameCharacter {
     @Column(name = "private_backstory", columnDefinition = "TEXT")
     private String privateBackstory;
 
+    /** Appearance — generic, meaningful for every system (formerly Offworlders-only "look"). */
+    @Column(columnDefinition = "TEXT")
+    private String appearance;
+
     @Column
     private String imageUrl;
 
@@ -168,6 +172,14 @@ public class GameCharacter {
 
     public void setPrivateBackstory(String privateBackstory) {
         this.privateBackstory = privateBackstory;
+    }
+
+    public String getAppearance() {
+        return appearance;
+    }
+
+    public void setAppearance(String appearance) {
+        this.appearance = appearance;
     }
 
     public String getImageUrl() {

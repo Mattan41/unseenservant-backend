@@ -134,12 +134,12 @@ public final class TestDataFactory {
         character.setOwner(owner);
         character.setName("Test Runner");
         character.setSystemType(GameSystem.OFFWORLDERS);
+        character.setAppearance("Weathered spacer");
         character.setBackstory("Public backstory");
         character.setPrivateBackstory("Private backstory");
 
         OffworldersStats stats = new OffworldersStats(1, 2, 0, -1);
         OffworldersCharacterData data = new OffworldersCharacterData("Outlaw", "Human", stats);
-        data.setLook("Weathered spacer");
         data.setXp(3);
         data.setHealth(15);
         data.setArmor(1);

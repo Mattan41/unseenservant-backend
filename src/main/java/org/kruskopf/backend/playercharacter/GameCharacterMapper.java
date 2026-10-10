@@ -38,6 +38,7 @@ public class GameCharacterMapper {
                 character.getSystemType(),
                 character.getNotes(),
                 character.getImageUrl(),
+                character.getAppearance(),
                 character.getBackstory(),
                 includePrivateBackstory ? character.getPrivateBackstory() : null,
                 toDnd5eOutputDTO(character),
@@ -76,7 +77,6 @@ public class GameCharacterMapper {
         return new OffworldersCharacterDataOutputDTO(
                 data.getCharacterClass(),
                 data.getSpecies(),
-                data.getLook(),
                 data.getXp(),
                 data.getHealth(),
                 data.getArmor(),
@@ -98,6 +98,7 @@ public class GameCharacterMapper {
 
         GameCharacter character = new GameCharacter(owner, campaign, dto.name(), system);
         character.setNotes(dto.notes());
+        character.setAppearance(dto.appearance());
         character.setBackstory(dto.backstory());
         character.setPrivateBackstory(dto.privateBackstory());
         if (dto.avatarUrl() != null) {
@@ -131,7 +132,6 @@ public class GameCharacterMapper {
         if (dto != null) {
             if (dto.characterClass() != null) data.setCharacterClass(dto.characterClass());
             if (dto.species() != null) data.setSpecies(dto.species());
-            if (dto.look() != null) data.setLook(dto.look());
             if (dto.xp() != null) data.setXp(dto.xp());
             if (dto.health() != null) data.setHealth(dto.health());
             if (dto.armor() != null) data.setArmor(dto.armor());
@@ -153,6 +153,7 @@ public class GameCharacterMapper {
         if (dto.name() != null) entity.setName(dto.name());
         if (dto.systemType() != null) entity.setSystemType(dto.systemType());
         if (dto.notes() != null) entity.setNotes(dto.notes());
+        if (dto.appearance() != null) entity.setAppearance(dto.appearance());
         if (dto.backstory() != null) entity.setBackstory(dto.backstory());
         if (dto.privateBackstory() != null) entity.setPrivateBackstory(dto.privateBackstory());
         // this is to be able to update the imageUrl
@@ -191,7 +192,6 @@ public class GameCharacterMapper {
     private void patchOffworlders(OffworldersCharacterData data, OffworldersCharacterDataInputDTO dto) {
         if (dto.characterClass() != null) data.setCharacterClass(dto.characterClass());
         if (dto.species() != null) data.setSpecies(dto.species());
-        if (dto.look() != null) data.setLook(dto.look());
         if (dto.xp() != null) data.setXp(dto.xp());
         if (dto.health() != null) data.setHealth(dto.health());
         if (dto.armor() != null) data.setArmor(dto.armor());

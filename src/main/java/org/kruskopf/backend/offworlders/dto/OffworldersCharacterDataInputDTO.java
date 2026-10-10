@@ -23,7 +23,6 @@ import java.util.List;
 public record OffworldersCharacterDataInputDTO(
         String characterClass,
         String species,
-        String look,
         @Min(0) Integer xp,
         @Min(0) Integer health,
         @Min(0) @Max(3) Integer armor,

@@ -50,9 +50,6 @@ public class OffworldersCharacterData {
     private String species = "";
 
     @Column(nullable = false)
-    private String look = "";
-
-    @Column(nullable = false)
     private int xp = 0;
 
     @Column(nullable = false)
@@ -131,14 +128,6 @@ public class OffworldersCharacterData {
 
     public void setSpecies(String species) {
         this.species = species;
-    }
-
-    public String getLook() {
-        return look;
-    }
-
-    public void setLook(String look) {
-        this.look = look;
     }
 
     public int getXp() {
