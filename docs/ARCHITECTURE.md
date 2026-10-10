@@ -8,6 +8,14 @@
 - MySQL
 - Testcontainers (integration tests)
 
+## Database migrations
+
+Flyway owns the schema. Migrations are discovered from the single location
+`classpath:db/migration`, split by file type between
+`src/main/resources/db/migration` (SQL) and `src/main/java/db/migration` (Java
+migrations). See [`MIGRATIONS.md`](./MIGRATIONS.md) for why some are Java, the
+environment matrix, the full version sequence, and the rules for adding new ones.
+
 ## Package structure
 
 ```
@@ -69,7 +77,9 @@ org.kruskopf.backend/
 │   │   └── OffworldersCharacterDataOutputDTO.java
 │   ├── OffworldersStats.java             # Attribute value object (strength/agility/intelligence/willpower)
 │   ├── OffworldersStatsConverter.java    # JPA AttributeConverter
-│   ├── OffworldersItem.java              # Free-form inventory item value object
+│   ├── OffworldersWeapon.java            # Typed weapon value object (type + description)
+│   ├── OffworldersWeaponsConverter.java  # JPA AttributeConverter: List<OffworldersWeapon> ↔ JSON array
+│   ├── OffworldersItem.java              # Free-text inventory item value object (name + description)
 │   ├── OffworldersItemsConverter.java    # JPA AttributeConverter: List<OffworldersItem> ↔ JSON array
 │   ├── OffworldersEntry.java             # Skill/ability entry value object (name + description)
 │   └── OffworldersEntriesConverter.java  # JPA AttributeConverter: List<OffworldersEntry> ↔ JSON array
@@ -155,7 +165,7 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | Entity | Key fields | Relations |
 |--------|-----------|-----------|
 | `User` | id, email, role, providerType | has many GameCharacters, CampaignUsers |
-| `GameCharacter` | id, name, systemType, notes, avatarUrl | generic core character; belongs to User, optionally linked to Campaign; 1:1 with Dnd5eCharacterData when `systemType = DND5E`, 1:1 with OffworldersCharacterData when `systemType = OFFWORLDERS` |
+| `GameCharacter` | id, name, systemType, notes, avatarUrl, backstory, privateBackstory | generic core character; belongs to User, optionally linked to Campaign; 1:1 with Dnd5eCharacterData when `systemType = DND5E`, 1:1 with OffworldersCharacterData when `systemType = OFFWORLDERS`. `backstory` is public to the campaign; `privateBackstory` is only returned to the owner or the campaign GM |
 | `Dnd5eCharacterData` | characterId (shared PK), level, characterClass, race, hitPoints, armorClass, stats (JSON) | D&D 5e data; 1:1 with GameCharacter; many-to-many with Spell via `character_spell` |
 | `OffworldersCharacterData` | characterId (shared PK), characterClass, species, look, xp, health, currentHealth, healthModifier, armor, supply, supplyMax, credits, stats (JSON), skills (JSON), abilities (JSON), items (JSON) | Offworlders data; 1:1 with GameCharacter. `skills`/`abilities` are JSON arrays of `{ name, description }` entries so players can mix canonical options with free text; `items` is a free-form inventory array |
 | `Campaign` | id, name, imageUrl | has many CampaignUsers |

@@ -6,6 +6,8 @@ import org.kruskopf.backend.offworlders.OffworldersItem;
 import org.kruskopf.backend.offworlders.OffworldersItemsConverter;
 import org.kruskopf.backend.offworlders.OffworldersStats;
 import org.kruskopf.backend.offworlders.OffworldersStatsConverter;
+import org.kruskopf.backend.offworlders.OffworldersWeapon;
+import org.kruskopf.backend.offworlders.OffworldersWeaponsConverter;
 import org.kruskopf.backend.offworlders.OffworldersEntriesConverter;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
 
@@ -26,7 +28,8 @@ import java.util.List;
  * <p>
  * Freeform-friendly lists ({@link #skills}, {@link #abilities}) are stored as
  * JSON arrays via {@link OffworldersEntriesConverter} rather than join tables, since the
- * canonical catalogs are small and users may add custom entries.
+ * canonical catalogs are small and users may add custom entries. The typed
+ * {@link #weapons} and free-text {@link #items} lists follow the same pattern.
  */
 @Entity
 @Table(name = "offworlders_character_data")
@@ -84,6 +87,10 @@ public class OffworldersCharacterData {
     @Column(columnDefinition = "TEXT")
     @Convert(converter = OffworldersEntriesConverter.class)
     private List<OffworldersEntry> abilities = new ArrayList<>();
+
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = OffworldersWeaponsConverter.class)
+    private List<OffworldersWeapon> weapons = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
     @Convert(converter = OffworldersItemsConverter.class)
@@ -220,6 +227,14 @@ public class OffworldersCharacterData {
 
     public void setAbilities(List<OffworldersEntry> abilities) {
         this.abilities = abilities;
+    }
+
+    public List<OffworldersWeapon> getWeapons() {
+        return weapons;
+    }
+
+    public void setWeapons(List<OffworldersWeapon> weapons) {
+        this.weapons = weapons;
     }
 
     public List<OffworldersItem> getItems() {

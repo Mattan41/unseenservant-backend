@@ -56,13 +56,12 @@ class GameCharacterMapperTest {
             assertThat(offworlders.supply()).isEqualTo(2);
             assertThat(offworlders.supplyMax()).isEqualTo(3);
             assertThat(offworlders.credits()).isEqualTo(10);
-            assertThat(offworlders.items()).hasSize(2);
-            assertThat(offworlders.items().get(0).getName()).isEqualTo("Snubnosed revolver");
-            assertThat(offworlders.items().get(0).getKind()).isEqualTo("weapon");
-            assertThat(offworlders.items().get(0).getDamage()).isEqualTo("1D6");
-            assertThat(offworlders.items().get(1).getName()).isEqualTo("Light armor");
-            assertThat(offworlders.items().get(1).getKind()).isEqualTo("armor");
-            assertThat(offworlders.items().get(1).getArmorRating()).isEqualTo(1);
+            assertThat(offworlders.weapons()).hasSize(1);
+            assertThat(offworlders.weapons().get(0).getType()).isEqualTo("Light");
+            assertThat(offworlders.weapons().get(0).getDescription()).isEqualTo("Snubnosed revolver");
+            assertThat(offworlders.items()).hasSize(1);
+            assertThat(offworlders.items().get(0).getName()).isEqualTo("Band t-shirts");
+            assertThat(offworlders.items().get(0).getDescription()).isEqualTo("Rotating collection.");
             assertThat(offworlders.stats().getStrength()).isEqualTo(1);
             assertThat(offworlders.stats().getAgility()).isEqualTo(2);
             assertThat(offworlders.stats().getIntelligence()).isZero();
@@ -71,6 +70,21 @@ class GameCharacterMapperTest {
                     .containsExactly("Pilot", "Sneak");
             assertThat(offworlders.abilities()).extracting(OffworldersEntry::getName)
                     .containsExactly("Lucky");
+        }
+
+        @Test
+        @DisplayName("Withholds the private backstory unless explicitly allowed")
+        void withholdsPrivateBackstoryByDefault() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            ReflectionTestUtils.setField(owner, "id", 7L);
+            GameCharacter character = TestDataFactory.anOffworldersCharacter(owner);
+
+            // Assert: the public backstory is always present…
+            assertThat(mapper.toOutputDTO(character).backstory()).isEqualTo("Public backstory");
+            // …but the private one only when the caller opts in.
+            assertThat(mapper.toOutputDTO(character).privateBackstory()).isNull();
+            assertThat(mapper.toOutputDTO(character, true).privateBackstory()).isEqualTo("Private backstory");
         }
 
         @Test
@@ -109,6 +123,8 @@ class GameCharacterMapperTest {
                     null,
                     null,
                     null,
+                    null,
+                    null,
                     new OffworldersCharacterDataInputDTO(
                             "Psychic",
                             "Human",
@@ -122,6 +138,7 @@ class GameCharacterMapperTest {
                             new OffworldersStats(0, 1, 3, 2),
                             List.of(new OffworldersEntry("Telekinesis", "")),
                             List.of(new OffworldersEntry("Blast", ""), new OffworldersEntry("Jump", "")),
+                            null,
                             null,
                             9,
                             2
@@ -155,7 +172,7 @@ class GameCharacterMapperTest {
             // Arrange
             User owner = TestDataFactory.aUser("player");
             CharacterInputDTO dto = new CharacterInputDTO(
-                    null, null, "Nova", GameSystem.OFFWORLDERS, null, null, null, null);
+                    null, null, "Nova", GameSystem.OFFWORLDERS, null, null, null, null, null, null);
 
             // Act
             GameCharacter character = mapper.toEntity(dto, owner, null);
@@ -180,9 +197,11 @@ class GameCharacterMapperTest {
                     GameSystem.DND5E,
                     null,
                     null,
+                    null,
+                    null,
                     new Dnd5eCharacterDataInputDTO(5, "Fighter", "Human", 44, 17, null),
                     new OffworldersCharacterDataInputDTO(
-                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null)
+                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)
             );
 
             // Act
@@ -213,9 +232,11 @@ class GameCharacterMapperTest {
                     null,
                     null,
                     null,
+                    null,
+                    null,
                     new OffworldersCharacterDataInputDTO(
                             null, null, null, 9, null, 3, null, null, null, null,
-                            List.of(new OffworldersEntry("Pilot", ""), new OffworldersEntry("Sneak", ""), new OffworldersEntry("Scan", "")), null, null, 5, 3)
+                            List.of(new OffworldersEntry("Pilot", ""), new OffworldersEntry("Sneak", ""), new OffworldersEntry("Scan", "")), null, null, null, 5, 3)
             );
 
             // Act
@@ -241,9 +262,9 @@ class GameCharacterMapperTest {
             User owner = TestDataFactory.aUser("player");
             GameCharacter character = TestDataFactory.aCharacter(owner);
             CharacterInputDTO dto = new CharacterInputDTO(
-                    null, null, "Renamed", null, null, null, null,
+                    null, null, "Renamed", null, null, null, null, null, null,
                     new OffworldersCharacterDataInputDTO(
-                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null));
+                            "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null));
 
             // Act
             mapper.patchEntity(character, dto);

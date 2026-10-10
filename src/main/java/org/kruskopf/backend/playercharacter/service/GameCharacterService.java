@@ -52,7 +52,8 @@ public class GameCharacterService {
         GameCharacter character = gameCharacterMapper.toEntity(inputDTO, owner, null);
         GameCharacter savedCharacter = gameCharacterRepository.save(character);
 
-        return gameCharacterMapper.toOutputDTO(savedCharacter);
+        // The creator is the owner, so they may see the private backstory.
+        return gameCharacterMapper.toOutputDTO(savedCharacter, true);
     }
 
     public List<CharacterOutputDTO> getAllCharacters() {
@@ -69,7 +70,7 @@ public class GameCharacterService {
         return gameCharacterRepository.findByOwner(user)
                 .stream()
                 .filter(character -> character.getCampaign() == null)
-                .map(gameCharacterMapper::toOutputDTO)
+                .map(character -> gameCharacterMapper.toOutputDTO(character, true))
                 .collect(Collectors.toList());
     }
 
@@ -79,25 +80,28 @@ public class GameCharacterService {
 
         return gameCharacterRepository.findByOwner(user)
                 .stream()
-                .map(gameCharacterMapper::toOutputDTO)
+                .map(character -> gameCharacterMapper.toOutputDTO(character, true))
                 .collect(Collectors.toList());
     }
 
     public CharacterOutputDTO getCharacterById(long id, long userId) {
-        CharacterOutputDTO character = gameCharacterRepository.findById(id)
-                .map(gameCharacterMapper::toOutputDTO)
+        GameCharacter character = gameCharacterRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + id));
 
-        if (character.campaignId() == null) {
-            if (isNotOwner(character, userId)) {
+        boolean isOwner = character.getOwner().getId().equals(userId);
+        boolean isGameMaster = character.getCampaign() != null
+                && campaignPermissionService.isGameMaster(character.getCampaign().getId(), userId);
+
+        if (character.getCampaign() == null) {
+            if (!isOwner) {
                 throw new UnauthorizedAccessException("User is not the owner of the character");
             }
-        } else {
-            if (isNotOwner(character, userId) && !campaignPermissionService.isGameMaster(character.campaignId(), userId)) {
-                throw new UnauthorizedAccessException("User is not the owner of the character, nor GM of the campaign");
-            }
+        } else if (!isOwner && !isGameMaster) {
+            throw new UnauthorizedAccessException("User is not the owner of the character, nor GM of the campaign");
         }
-        return character;
+
+        // The owner and the campaign GM may read the private backstory.
+        return gameCharacterMapper.toOutputDTO(character, isOwner || isGameMaster);
     }
 
     @Transactional
@@ -113,7 +117,7 @@ public class GameCharacterService {
         gameCharacterMapper.patchEntity(character, inputDTO);
 
         GameCharacter updatedCharacter = gameCharacterRepository.save(character);
-        return gameCharacterMapper.toOutputDTO(updatedCharacter);
+        return gameCharacterMapper.toOutputDTO(updatedCharacter, true);
     }
 
     public CharacterOutputDTO uploadCharacterImage(long characterId, MultipartFile file, long userId) {
@@ -128,7 +132,7 @@ public class GameCharacterService {
             String fileName = fileStorageService.storeFile(file, "character_" + characterId, "IMAGE");
             character.setImageUrl("/images/" + fileName);
             GameCharacter savedCharacter = gameCharacterRepository.save(character);
-            return gameCharacterMapper.toOutputDTO(savedCharacter);
+            return gameCharacterMapper.toOutputDTO(savedCharacter, true);
         } catch (IOException e) {
             throw new RuntimeException("Failed to store file", e);
         }
@@ -153,7 +157,7 @@ public class GameCharacterService {
         character.setCampaign(campaign);
         GameCharacter savedCharacter = gameCharacterRepository.save(character);
 
-        return gameCharacterMapper.toOutputDTO(savedCharacter);
+        return gameCharacterMapper.toOutputDTO(savedCharacter, true);
     }
 
     @Transactional
@@ -170,7 +174,7 @@ public class GameCharacterService {
         character.setCampaign(null);
         GameCharacter savedCharacter = gameCharacterRepository.save(character);
 
-        return gameCharacterMapper.toOutputDTO(savedCharacter);
+        return gameCharacterMapper.toOutputDTO(savedCharacter, true);
     }
 
     //delete one character
@@ -207,15 +211,14 @@ public class GameCharacterService {
         if (!campaignPermissionService.isParticipant(campaignId, userId)) {
             throw new UnauthorizedAccessException("User is not a participant in this campaign");
         }
+        // The GM may read every private backstory in the campaign; a member who
+        // owns one of the characters may read that character's private backstory.
+        boolean isGameMaster = campaignPermissionService.isGameMaster(campaignId, userId);
         return gameCharacterRepository.findByCampaignId(campaignId)
                 .stream()
-                .map(gameCharacterMapper::toOutputDTO)
+                .map(character -> gameCharacterMapper.toOutputDTO(
+                        character,
+                        isGameMaster || character.getOwner().getId().equals(userId)))
                 .collect(Collectors.toList());
-    }
-
-    // helper methods
-
-    private boolean isNotOwner(CharacterOutputDTO character, long userId) {
-        return !character.ownerId().equals(userId);
     }
 }

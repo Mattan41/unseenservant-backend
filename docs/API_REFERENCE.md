@@ -404,10 +404,12 @@ Valid `role` values: `GM` | `PLAYER`
 | `systemType` | enum | `DND5E` \| `OFFWORLDERS`; defaults to `DND5E` |
 | `notes` | string | Optional |
 | `avatarUrl` | string | Optional |
+| `backstory` | string | Optional; free-text public backstory, visible to all campaign members (any system) |
+| `privateBackstory` | string | Optional; free-text private backstory, returned only to the owner or the campaign GM. Owner-written (PATCH requires ownership) |
 | `campaignId` | Long | Optional |
 | `ownerId` | Long | Optional; defaults to logged-in user if null |
 | `dnd5e` | object | Optional; applied only when `systemType === 'DND5E'`. Shape: `{ level (1–20), characterClass, race, hitPoints?, armorClass?, stats }` |
-| `offworlders` | object | Optional; applied only when `systemType === 'OFFWORLDERS'`. Shape: `{ characterClass?, species?, look?, xp?, health?, currentHealth?, healthModifier?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, items? }`. `stats = { strength, agility, intelligence, willpower }` (each −1…+3); `skills` / `abilities` are entry arrays `[ { name, description } ]` mixing canonical options with free text (canonical descriptions live in the frontend catalog; custom entries carry their own `description`); `health` is the maximum HP (client-derived from the attributes + `healthModifier`) and `currentHealth` the running total (may exceed `health` for temporary HP); `armor` is the effective rating of the worn armor items; `characterClass` is optional (may be empty); `supplyMax` is fixed at `3`; `items` is a free-form array `[ { name, kind: 'weapon'|'armor'|'item', damage, armorRating, heavy, notes } ]` |
+| `offworlders` | object | Optional; applied only when `systemType === 'OFFWORLDERS'`. Shape: `{ characterClass?, species?, look?, xp?, health?, currentHealth?, healthModifier?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, weapons?, items? }`. `stats = { strength, agility, intelligence, willpower }` (each −1…+3); `skills` / `abilities` are entry arrays `[ { name, description } ]` mixing canonical options with free text (canonical descriptions live in the frontend catalog; custom entries carry their own `description`); `health` is the maximum HP (client-derived from the attributes + `healthModifier`) and `currentHealth` the running total (may exceed `health` for temporary HP); `armor` is the single worn armor value 0–3 (0 None / 1 Light / 2 Heavy / 3 Assault); `characterClass` is optional (may be empty); `supplyMax` is fixed at `3`; `weapons` is a typed array `[ { type: 'Light'|'Medium'|'Heavy', description } ]` (damage and `heavy` are derived from `type`, not stored); `items` is a free-text array `[ { name, description } ]` |
 
 > If `ownerId` is `null`, the logged-in user is automatically set as owner.
 
@@ -470,9 +472,12 @@ The endpoint is system-agnostic. When `systemType` is `OFFWORLDERS`, send (and r
       { "name": "Smuggle", "description": "" },
       { "name": "Shoot First", "description": "" }
     ],
+    "weapons": [
+      { "type": "Light", "description": "Snubnosed revolver" },
+      { "type": "Medium", "description": "Hunting rifle" }
+    ],
     "items": [
-      { "name": "Snubnosed revolver", "kind": "weapon", "damage": "1D6", "armorRating": 0, "heavy": false, "notes": "" },
-      { "name": "Light armor", "kind": "armor", "damage": "", "armorRating": 1, "heavy": false, "notes": "" }
+      { "name": "Band t-shirts", "description": "Rotating collection." }
     ]
   }
 }
@@ -480,14 +485,18 @@ The endpoint is system-agnostic. When `systemType` is `OFFWORLDERS`, send (and r
 
 > Offworlders attributes range from −1 to +3 and Armor from 0 to 3. `health` is the maximum and is
 > derived on the client as `max(1, 12 + strength + agility + healthModifier)`; `currentHealth` tracks
-> the running HP and may exceed `health` to represent temporary HP. `armor` is the effective rating,
-> derived from the highest `armorRating` among `kind: 'armor'` items, clamped to 0…3. Both `health` and
-> `armor` also fold in the passive bonuses of the selected abilities (Hardy's +4 Health, Unstoppable's
-> +1 armor). `supplyMax` is always 3.
+> the running HP and may exceed `health` to represent temporary HP. `armor` is a single value 0–3
+> (0 None / 1 Light / 2 Heavy / 3 Assault); the displayed armor folds in the passive bonuses of the
+> selected abilities (Hardy's +4 Health, Unstoppable's +1 armor) on top. `supplyMax` is always 3.
+> Each weapon is `{ type: 'Light' | 'Medium' | 'Heavy', description }`; its damage (1D6 / 1D6+1 / 1D6+2)
+> and the "heavy" flag follow from `type` and are not stored.
 > `characterClass` is optional. `skills` and `abilities` are arrays of `{ name, description }` entries so
 > players can combine the canonical catalogs with free-text custom entries (a custom entry carries its own
 > `description`; canonical entries use an empty one, their text supplied by the frontend catalog).
-> `credits` and `items` are optional additions.
+> `credits`, `weapons` and `items` are optional.
+
+> **Migration note:** Flyway `V8` rewrites pre-1.6 rows: the old `kind`-discriminated `items` array is
+> split into `weapons` and free-text `items`, and any armor items are folded into the single `armor` value.
 
 ---
 ---

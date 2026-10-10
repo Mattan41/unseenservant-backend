@@ -18,6 +18,8 @@ public record CharacterInputDTO(
         GameSystem systemType,
         String notes,
         String avatarUrl,
+        String backstory,
+        @JsonProperty("privateBackstory") String privateBackstory,
         @JsonProperty("dnd5e") Dnd5eCharacterDataInputDTO dnd5e,
         @JsonProperty("offworlders") OffworldersCharacterDataInputDTO offworlders) {
 }
