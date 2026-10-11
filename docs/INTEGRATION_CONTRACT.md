@@ -132,9 +132,11 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 ## Campaigns
 
 **POST /api/campaigns**
-- Request: `CampaignCreationDTO { name, description, privateDescription?, ownerId?, participants?, primarySystem? }`
+- Request: `CampaignCreationDTO { name, description, worldLore?, privateDescription?, ownerId?, participants?, primarySystem? }`
 - `ownerId` defaults to logged-in user if null
-- `privateDescription`: GM-only description (returned to the owner/GM only)
+- `description`: short overview, rendered on the campaign's Overview page
+- `worldLore`: World Lore & Background material (public — returned to every participant)
+- `privateDescription`: GM-only notes (returned to the owner/GM only; labelled "GM notes" in the UI)
 - `primarySystem`: `DND5E` | `OFFWORLDERS` | null (optional; `null` = not chosen). If `OFFWORLDERS`, the backend also creates the campaign's default ship.
 - Response: `CampaignResponseDTO`
 - Status: 201, 400, 401
@@ -151,12 +153,12 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 **GET /api/campaigns/{id}**
 - Requires: authorized participant
-- Response: `CampaignResponseDTO { id, name, description, privateDescription, imageUrl, primarySystem, ownerId, participants: [ { id, nickname, role } ] }`
-  - `privateDescription` is `null` unless the requester is the campaign owner or a campaign GM
+- Response: `CampaignResponseDTO { id, name, description, worldLore, privateDescription, imageUrl, primarySystem, ownerId, participants: [ { id, nickname, role } ] }`
+  - `privateDescription` is `null` unless the requester is the campaign owner or a campaign GM; `worldLore` is always included
 - Status: 200, 401, 403, 404
 
 **PUT /api/campaigns/{id}**
-- Request: `CampaignUpdateDTO { name, description, privateDescription, primarySystem }` (`primarySystem`: `DND5E` | `OFFWORLDERS` | null)
+- Request: `CampaignUpdateDTO { name, description, worldLore, privateDescription, primarySystem }` (`primarySystem`: `DND5E` | `OFFWORLDERS` | null)
 - Setting `primarySystem` to `OFFWORLDERS` creates the campaign's default ship the first time (idempotent). Changing away from `OFFWORLDERS` keeps the ship.
 - Response: `CampaignResponseDTO`
 - Status: 200, 400, 401, 403, 404
@@ -404,7 +406,8 @@ Intended as per-campaign message boards. Messages are visible only to campaign p
 {
   "id": 2,
   "name": "Neptune",
-  "description": "...",
+  "description": "Short overview, shown on the Overview page.",
+  "worldLore": "World lore & background, shown to every participant.",
   "privateDescription": "GM-only notes...",
   "imageUrl": "https://...",
   "primarySystem": "OFFWORLDERS",

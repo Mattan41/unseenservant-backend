@@ -53,6 +53,7 @@ public class CampaignService {
     @Transactional
     public CampaignResponseDTO createCampaign(CampaignCreationDTO dto) {
         Campaign campaign = new Campaign(dto.name(), dto.description());
+        campaign.setWorldLore(dto.worldLore());
         campaign.setPrivateDescription(dto.privateDescription());
         campaign.setPrimarySystem(dto.primarySystem());
 
@@ -144,6 +145,7 @@ public class CampaignService {
 
         campaign.setName(dto.name());
         campaign.setDescription(dto.description());
+        campaign.setWorldLore(dto.worldLore());
         campaign.setPrivateDescription(dto.privateDescription());
         campaign.setPrimarySystem(dto.primarySystem());
 
@@ -398,6 +400,7 @@ public class CampaignService {
     /**
      * Maps a campaign. The private description is only included when the viewer
      * is the campaign owner or a campaign GM; everyone else receives null.
+     * World lore is public, so it is always included.
      */
     private CampaignResponseDTO mapToResponseDTO(Campaign campaign, long viewerId) {
         boolean includePrivate = campaign.isOwnedBy(viewerId)
@@ -409,6 +412,7 @@ public class CampaignService {
                 campaign.getId(),
                 campaign.getName(),
                 campaign.getDescription(),
+                campaign.getWorldLore(),
                 includePrivate ? campaign.getPrivateDescription() : null,
                 campaign.getImageUrl(),
                 campaign.getPrimarySystem(),

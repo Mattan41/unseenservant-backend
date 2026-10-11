@@ -62,8 +62,12 @@ migrations is safe.
 | V8 | `V8__split_offworlders_weapons_and_items.java` | Java | 1.5 `items` → typed `weapons` + free-text `items`, `armor` folded |
 | V9 | `V9__add_character_backstory.sql` | SQL | Add `backstory` + `private_backstory` to `game_character` |
 | V10 | `V10__promote_offworlders_look_to_generic_appearance.sql` | SQL | Move Offworlders `look` → generic `game_character.appearance` |
+| V11 | `V11__add_campaign_primary_system_and_ship.sql` | SQL | Add `campaign.primary_system` and the 1:1 `ship` table |
+| V12 | `V12__add_campaign_private_description.sql` | SQL | Add `campaign.private_description` (owner/GM only) |
+| V13 | `V13__add_ship_images.sql` | SQL | Add `ship.image_url` (profile image) + `ship.image_urls` (gallery) |
+| V14 | `V14__add_campaign_world_lore.sql` | SQL | Add `campaign.world_lore` (public world lore & background) |
 
-Versions are complete and strictly increasing (1–10, no gaps or duplicates).
+Versions are complete and strictly increasing (1–14, no gaps or duplicates).
 
 ## Rules
 
@@ -75,9 +79,15 @@ Versions are complete and strictly increasing (1–10, no gaps or duplicates).
    the first commit — V8 was still changeable only because it was uncommitted.
 3. **Naming:** `V<version>__<snake_case_description>.sql|.java`, versions strictly
    increasing with no gaps.
-4. **SQL by default.** Use a Java migration only when a JSON/data transform
+4. **Check the next free version before creating a file.** Versions are shared
+   across the SQL and Java migrations, and a duplicate makes Flyway abort at
+   startup with `Found more than one migration with version N` — the app never
+   boots. List the whole folder (don't filter the output) and take
+   `highest + 1`; if two branches are in flight, take `highest + 2` rather than
+   reusing a number.
+5. **SQL by default.** Use a Java migration only when a JSON/data transform
    genuinely requires it.
-5. **Keep the `demo` profile working.** It does not run Flyway, so any new table or
+6. **Keep the `demo` profile working.** It does not run Flyway, so any new table or
    column is created by Hibernate from the entity; update `demo-data.sql` if a seed
    needs the new data.
 
@@ -89,4 +99,4 @@ FROM flyway_schema_history
 ORDER BY installed_rank;
 ```
 
-should list V1–V10 with `success = 1`.
+should list V1–V14 with `success = 1`.

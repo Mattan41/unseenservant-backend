@@ -29,9 +29,18 @@ public class Campaign {
 
     /**
      * Private description — visible to the campaign owner and campaign GMs only.
+     * Surfaced in the UI as "GM notes".
      */
     @Column(name = "private_description", columnDefinition = "LONGTEXT")
     private String privateDescription;
+
+    /**
+     * World lore &amp; background — the campaign's public setting material,
+     * shown in the "World Lore &amp; Background" section. Always returned,
+     * unlike {@link #privateDescription}.
+     */
+    @Column(name = "world_lore", columnDefinition = "LONGTEXT")
+    private String worldLore;
 
     @Column(length = 1024)
     private String imageUrl;
@@ -100,6 +109,14 @@ public class Campaign {
 
     public void setPrivateDescription(String privateDescription) {
         this.privateDescription = privateDescription;
+    }
+
+    public String getWorldLore() {
+        return worldLore;
+    }
+
+    public void setWorldLore(String worldLore) {
+        this.worldLore = worldLore;
     }
 
     public String getImageUrl() {
