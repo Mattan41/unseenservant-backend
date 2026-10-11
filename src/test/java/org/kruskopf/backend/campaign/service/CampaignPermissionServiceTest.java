@@ -59,7 +59,7 @@ class CampaignPermissionServiceTest {
             when(campaignRepository.findById(10L)).thenReturn(Optional.of(campaign));
 
             // Act & Assert
-            assertThat(permissionService.isOwner(10L, 1L)).isTrue();
+            assertThat(permissionService.isCampaignOwner(10L, 1L)).isTrue();
         }
 
         @Test
@@ -71,7 +71,7 @@ class CampaignPermissionServiceTest {
             when(campaignRepository.findById(10L)).thenReturn(Optional.of(campaign));
 
             // Act & Assert
-            assertThat(permissionService.isOwner(10L, 1L)).isFalse();
+            assertThat(permissionService.isCampaignOwner(10L, 1L)).isFalse();
         }
 
         @Test
@@ -81,7 +81,7 @@ class CampaignPermissionServiceTest {
             when(campaignRepository.findById(99L)).thenReturn(Optional.empty());
 
             // Act & Assert
-            assertThat(permissionService.isOwner(99L, 1L)).isFalse();
+            assertThat(permissionService.isCampaignOwner(99L, 1L)).isFalse();
         }
     }
 

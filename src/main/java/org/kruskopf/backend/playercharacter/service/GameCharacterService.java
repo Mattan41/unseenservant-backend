@@ -164,16 +164,28 @@ public class GameCharacterService {
         GameCharacter character = gameCharacterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
-        // Verify that the user is the owner of the character
-        if (!character.getOwner().getId().equals(userId)) {
-            throw new UnauthorizedAccessException("User does not own this character");
+        boolean isCharacterOwner = character.getOwner().getId().equals(userId);
+        Long campaignId = character.getCampaign() != null ? character.getCampaign().getId() : null;
+
+        // The character's owner may always detach it; the campaign's GM or owner
+        // may too. This only detaches (campaignId = null) — it never deletes.
+        boolean isCampaignGm = false;
+        boolean isCampaignOwner = false;
+        if (!isCharacterOwner && campaignId != null) {
+            isCampaignGm = campaignPermissionService.isGameMaster(campaignId, userId);
+            isCampaignOwner = campaignPermissionService.isCampaignOwner(campaignId, userId);
+        }
+
+        if (!isCharacterOwner && !isCampaignGm && !isCampaignOwner) {
+            throw new UnauthorizedAccessException("User may not remove this character from its campaign");
         }
 
         // remove the character from the campaign
         character.setCampaign(null);
         GameCharacter savedCharacter = gameCharacterRepository.save(character);
 
-        return gameCharacterMapper.toOutputDTO(savedCharacter, true);
+        // Only the character's owner or a campaign GM receives the private backstory.
+        return gameCharacterMapper.toOutputDTO(savedCharacter, isCharacterOwner || isCampaignGm);
     }
 
     //delete one character

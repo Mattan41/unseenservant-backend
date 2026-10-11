@@ -93,19 +93,19 @@ class CampaignPermissionServiceIT extends AbstractIntegrationTest {
         @Test
         @DisplayName("Returns true for the campaign owner")
         void returnsTrue_forOwner() {
-            assertThat(permissionService.isOwner(campaign.getId(), owner.getId())).isTrue();
+            assertThat(permissionService.isCampaignOwner(campaign.getId(), owner.getId())).isTrue();
         }
 
         @Test
         @DisplayName("Returns false for a participant who is not the owner")
         void returnsFalse_forParticipantNonOwner() {
-            assertThat(permissionService.isOwner(campaign.getId(), player.getId())).isFalse();
+            assertThat(permissionService.isCampaignOwner(campaign.getId(), player.getId())).isFalse();
         }
 
         @Test
         @DisplayName("Returns false for a non‑existent campaign")
         void returnsFalse_forNonExistentCampaign() {
-            assertThat(permissionService.isOwner(99999L, owner.getId())).isFalse();
+            assertThat(permissionService.isCampaignOwner(99999L, owner.getId())).isFalse();
         }
     }
 
