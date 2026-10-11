@@ -17,6 +17,17 @@
     <properties>
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <!--
+            Mockito's inline mock maker relies on Byte Buddy, which must understand
+            the class file version of the JVM running the tests. Spring Boot 3.4.x
+            pins Byte Buddy 1.15.11, which only supports up to Java 24 (class file 68).
+            Running the unit tests on a JDK 25 toolchain (class file 69) therefore
+            fails with "Mockito cannot mock this class". Byte Buddy 1.17.5+ adds
+            Java 25 support; these overrides use the Java-25-capable pair shipped by
+            Spring Boot 3.5.x so the tests pass on both JDK 21 and JDK 25.
+        -->
+        <byte-buddy.version>1.17.8</byte-buddy.version>
+        <mockito.version>5.17.0</mockito.version>
     </properties>
 
     <dependencyManagement>

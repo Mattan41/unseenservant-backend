@@ -209,7 +209,9 @@ Valid `role` values: `GM` | `PLAYER`
 ```json
 {
   "name": "Neptune",
-  "description": "An epic adventure campaign",
+  "description": "A short overview for the Overview page",
+  "worldLore": "World lore & background material",
+  "privateDescription": "GM-only notes",
   "ownerId": null,
   "participants": []
 }
@@ -222,7 +224,9 @@ Valid `role` values: `GM` | `PLAYER`
 {
   "id": 1,
   "name": "Neptune",
-  "description": "An epic adventure campaign",
+  "description": "A short overview for the Overview page",
+  "worldLore": "World lore & background material",
+  "privateDescription": "GM-only notes",
   "imageUrl": null,
   "ownerId": 7,
   "participants": []
@@ -259,7 +263,9 @@ Valid `role` values: `GM` | `PLAYER`
 {
   "id": 1,
   "name": "Neptune",
-  "description": "An epic adventure campaign",
+  "description": "A short overview for the Overview page",
+  "worldLore": "World lore & background material",
+  "privateDescription": "GM-only notes",
   "imageUrl": "https://example.com/image.jpg",
   "ownerId": 7,
   "participants": [
@@ -280,7 +286,9 @@ Valid `role` values: `GM` | `PLAYER`
 ```json
 {
   "name": "Updated name",
-  "description": "New description"
+  "description": "New short overview",
+  "worldLore": "New world lore & background",
+  "privateDescription": "Updated GM notes"
 }
 ```
 

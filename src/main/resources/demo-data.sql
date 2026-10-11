@@ -67,6 +67,17 @@ Have Fun: Remember, the goal is collective storytelling and enjoyment. Support y
         'https://slyflourish.com/images/eberron_warforged.jpg', 'User5', 'User5', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 
+-- A campaign now carries a short overview (`description`, shown on the Overview
+-- page) plus longer setting material (`world_lore`, shown in "World Lore &
+-- Background"). The demo profile builds its schema from the JPA entity rather
+-- than running Flyway, so the new column is seeded here.
+UPDATE campaign SET world_lore = description WHERE id IN (1, 2, 3);
+
+UPDATE campaign SET description = 'Barovia is a gothic-horror sandbox: a cursed valley ruled by Count Strahd von Zarovich, where every village keeps a secret and every road leads deeper into the mist.' WHERE id = 1;
+UPDATE campaign SET description = 'A city mystery: recover the stolen Amulet of Taharka from a university town of scholars, thieves, and shifting alliances.' WHERE id = 2;
+UPDATE campaign SET description = 'A heist aboard the Iron Colossus: seize a mysterious cargo before rivals, lawmen, or deadly automata claim it first.' WHERE id = 3;
+
+
 -- =====================================================================================
 -- CAMPAIGN USERS (Participants)
 -- =====================================================================================
