@@ -118,7 +118,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 - Status: 200, 400, 401, 403, 404
 
 **DELETE /api/characters/{id}/campaign**
-- Requires: ROLE_USER, must be owner
+- Requires: ROLE_USER; the character's owner, or the campaign's GM/owner
 - Sets campaignId = null without deleting the character
 - Response: `CharacterOutputDTO`
 - Status: 200, 401, 403, 404
@@ -154,31 +154,36 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 **GET /api/campaigns/{id}**
 - Requires: authorized participant
 - Response: `CampaignResponseDTO { id, name, description, worldLore, privateDescription, imageUrl, primarySystem, ownerId, participants: [ { id, nickname, role } ] }`
-  - `privateDescription` is `null` unless the requester is the campaign owner or a campaign GM; `worldLore` is always included
+  - `privateDescription` is `null` unless the requester is a campaign GM (a non-GM owner does not receive it); `worldLore` is always included
 - Status: 200, 401, 403, 404
 
 **PUT /api/campaigns/{id}**
+- Requires: campaign GM
 - Request: `CampaignUpdateDTO { name, description, worldLore, privateDescription, primarySystem }` (`primarySystem`: `DND5E` | `OFFWORLDERS` | null)
 - Setting `primarySystem` to `OFFWORLDERS` creates the campaign's default ship the first time (idempotent). Changing away from `OFFWORLDERS` keeps the ship.
 - Response: `CampaignResponseDTO`
 - Status: 200, 400, 401, 403, 404
 
 **POST /api/campaigns/{id}/image**
+- Requires: campaign GM
 - Request: `multipart/form-data`, field: `file`
 - Response: `CampaignResponseDTO` (with updated imageUrl)
 - Status: 200, 400, 401, 403
 
 **PATCH /api/campaigns/{id}/participants**
+- Requires: campaign owner
 - Request: `UpdateParticipantsDTO { participantsToAdd: [ ParticipantResponseDTO ], participantIdsToRemove: [ Long ] }` (`nickname` optional, defaults server-side)
 - Response: `CampaignResponseDTO`
 - Status: 200, 400, 401, 403, 404
 
 **PATCH /api/campaigns/{id}/participants/{participantId}/nickname**
+- Requires: the participant themselves, or the campaign owner to rename someone else
 - Request body: plain string
 - Response: `CampaignResponseDTO`
 - Status: 200, 401, 403, 404
 
 **PATCH /api/campaigns/{id}/participants/{participantId}/role**
+- Requires: campaign owner
 - Request body: plain string — `"GM"` or `"PLAYER"`
 - Response: `CampaignResponseDTO`
 - Status: 200, 400, 401, 403, 404
@@ -193,6 +198,13 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 - Requires: owner
 - Status: 204, 401, 403, 404
 - Note: A campaign's ship (if any) is removed with the campaign.
+
+**Campaign permission model**
+- Two independent axes: **ownership** (administration) and **table role** (GM = world-building).
+- Content operations — `PUT /api/campaigns/{id}`, `POST /api/campaigns/{id}/image`, world lore and GM notes — require a campaign **GM**.
+- Administration — `PATCH /participants`, `/participants/{id}/nickname` (for another participant), `/participants/{id}/role`, `/owner`, and `DELETE /api/campaigns/{id}` — requires the campaign **owner**.
+- The campaign creator is seeded as a **GM** participant, so owner-as-GM works out of the box; a non-GM owner is not treated as a GM.
+- Enforced in `CampaignService` via `CampaignPermissionService.isGameMaster` / `isCampaignOwner`; the frontend mirrors the same rules (`src/features/campaign/campaignPermissions.js`).
 
 ---
 

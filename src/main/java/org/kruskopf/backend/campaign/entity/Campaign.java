@@ -28,8 +28,8 @@ public class Campaign {
     private String description;
 
     /**
-     * Private description — visible to the campaign owner and campaign GMs only.
-     * Surfaced in the UI as "GM notes".
+     * Private description — visible to campaign GMs only (a non-GM owner does
+     * not receive it). Surfaced in the UI as "GM notes".
      */
     @Column(name = "private_description", columnDefinition = "LONGTEXT")
     private String privateDescription;

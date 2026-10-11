@@ -592,7 +592,7 @@ The endpoint is system-agnostic. When `systemType` is `OFFWORLDERS`, send (and r
 
 ### DELETE /api/characters/{characterId}/campaign — Unlink character from campaign
 
-**Auth:** Yes (ROLE_USER, must be owner)  
+**Auth:** Yes (ROLE_USER; the character owner, or the campaign's GM/owner)  
 **Status:** 200, 401, 403, 404
 
 Sets `campaignId = null` without deleting the character.

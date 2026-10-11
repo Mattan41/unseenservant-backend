@@ -138,8 +138,8 @@ public class CampaignService {
     public CampaignResponseDTO updateCampaign(long id, CampaignUpdateDTO dto, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(id);
 
-        if (!campaign.isOwnedBy(currentUserId)) {
-            throw new UnauthorizedAccessException("Only the campaign owner can update the campaign");
+        if (!campaignPermissionService.isGameMaster(id, currentUserId)) {
+            throw new UnauthorizedAccessException("Only a campaign GM can update the campaign");
         }
 
 
@@ -158,8 +158,8 @@ public class CampaignService {
     public CampaignResponseDTO uploadCampaignImage(long id, MultipartFile file, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(id);
 
-        if (!campaign.isOwnedBy(currentUserId)) {
-            throw new UnauthorizedAccessException("Only the campaign owner can update the campaign image");
+        if (!campaignPermissionService.isGameMaster(id, currentUserId)) {
+            throw new UnauthorizedAccessException("Only a campaign GM can update the campaign image");
         }
 
         try {
@@ -260,8 +260,10 @@ public class CampaignService {
     public CampaignResponseDTO updateParticipantNickname(long campaignId, long participantId, String nickname, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(campaignId);
 
-        if (!campaign.isOwnedBy(currentUserId) && currentUserId != participantId) {
-            throw new UnauthorizedAccessException("Only owner of the campaign is allowed to update other participants nickname");
+        // A participant may rename themselves; otherwise only the campaign owner may.
+        boolean isSelf = currentUserId == participantId;
+        if (!isSelf && !campaignPermissionService.isCampaignOwner(campaignId, currentUserId)) {
+            throw new UnauthorizedAccessException("Only the campaign owner can update another participant's nickname");
         }
 
         CampaignUser participant = campaign.getParticipants().stream()
@@ -398,15 +400,14 @@ public class CampaignService {
     }
 
     /**
-     * Maps a campaign. The private description is only included when the viewer
-     * is the campaign owner or a campaign GM; everyone else receives null.
-     * World lore is public, so it is always included.
+     * Maps a campaign. The private description (GM notes) is only included when
+     * the viewer is a campaign GM; everyone else — including a non-GM campaign
+     * owner — receives null. World lore is public, so it is always included.
      */
     private CampaignResponseDTO mapToResponseDTO(Campaign campaign, long viewerId) {
-        boolean includePrivate = campaign.isOwnedBy(viewerId)
-                || campaign.getParticipants().stream().anyMatch(participant ->
-                        participant.getUser().getId().equals(viewerId)
-                                && participant.getRole() == CampaignRole.GM);
+        boolean includePrivate = campaign.getParticipants().stream().anyMatch(participant ->
+                participant.getUser().getId().equals(viewerId)
+                        && participant.getRole() == CampaignRole.GM);
 
         return new CampaignResponseDTO(
                 campaign.getId(),

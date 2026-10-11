@@ -20,7 +20,7 @@ public class CampaignPermissionService {
 
     // --- Campaign-level ---
 
-    public boolean isOwner(long campaignId, long userId) {
+    public boolean isCampaignOwner(long campaignId, long userId) {
         return campaignRepository.findById(campaignId)
                 .map(c -> c.isOwnedBy(userId))
                 .orElse(false);
@@ -41,8 +41,8 @@ public class CampaignPermissionService {
     // --- Character-level ---
 
     public boolean canViewCharacter(GameCharacter character, long userId) {
-        boolean isOwner = character.getOwner().getId().equals(userId);
-        if (isOwner) return true;
+        boolean isCharacterOwner = character.getOwner().getId().equals(userId);
+        if (isCharacterOwner) return true;
         if (character.getCampaign() != null) {
             return isGameMaster(character.getCampaign().getId(), userId);
         }
