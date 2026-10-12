@@ -59,7 +59,11 @@ public class FileStorageService {
         }
 
         // 3. Generate a unique filename to prevent overwriting existing assets
-        String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
+        String originalFileName = file.getOriginalFilename();
+        if (originalFileName == null) {
+            throw new InvalidFileFormatException("Missing file name");
+        }
+        originalFileName = StringUtils.cleanPath(originalFileName);
         String fileExtension = getFileExtension(originalFileName);
         String fileName = filePrefix + "_" + UUID.randomUUID() + fileExtension;
 
