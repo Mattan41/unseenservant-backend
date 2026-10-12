@@ -87,6 +87,10 @@ All errors are returned in this format (via `GlobalExceptionHandler`):
 
 Sets an HttpOnly `oauth_redirect_origin` cookie (5 min TTL) and redirects to `/oauth2/authorization/{provider}`. OAuth2 is disabled in the `demo` profile.
 
+> **Account linking:** A returning OAuth login is matched first by provider identity (`providerType` + `providerId`) and then by email (case-insensitive). A person who already has an account under the same email — e.g. registered with a different provider — reuses that existing account; no duplicate user is created and the existing account's role / username / display name are left untouched.
+>
+> **Verified email required:** Google sign-in is accepted only when the provider reports a verified email (`email_verified = true`). A rejected login (unverified email, or an address that is not whitelisted) redirects to `{FRONTEND_URL}/under-construction` instead of `/oauth-redirect`, and no JWT is issued.
+
 ---
 
 ### GET /api/auth/me — Get current authenticated user
@@ -302,6 +306,8 @@ Valid `role` values: `GM` | `PLAYER`
 **Status:** 200, 400, 401, 403
 
 **Request:** `multipart/form-data`, field name: `file`.
+
+> Max file size: **5MB** per file (`app.upload.max-file-size`). The HTTP multipart limits (`spring.servlet.multipart.max-file-size` / `max-request-size`) are 8MB.
 
 **Response (200):** `CampaignResponseDTO` with updated `imageUrl`.
 
@@ -569,6 +575,8 @@ The endpoint is system-agnostic. When `systemType` is `OFFWORLDERS`, send (and r
 **Status:** 200, 400, 401, 403
 
 **Request:** `multipart/form-data`, field name: `file`.
+
+> Max file size: **5MB** per file (`app.upload.max-file-size`). The HTTP multipart limits (`spring.servlet.multipart.max-file-size` / `max-request-size`) are 8MB.
 
 **Response (200):** `CharacterOutputDTO` with updated `imageUrl`.
 
