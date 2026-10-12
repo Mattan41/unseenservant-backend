@@ -1,5 +1,6 @@
 package org.kruskopf.backend.user.repository;
 
+import org.kruskopf.backend.user.entity.ProviderType;
 import org.kruskopf.backend.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,6 +11,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUserName(String userName);
 
     Optional<User> findByProviderId(String providerId);
+
+    Optional<User> findByProviderTypeAndProviderId(ProviderType providerType, String providerId);
+
+    Optional<User> findByEmailIgnoreCase(String email);
 
     List<User> findByUserNameContainingOrEmailContainingOrFullNameContaining(
             String username, String email, String fullName);

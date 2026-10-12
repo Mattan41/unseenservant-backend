@@ -89,6 +89,13 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             case GITHUB -> getGitHubAttributes(oAuth2User, accessToken);
         };
 
+        // A provider may decline the login (e.g. an unverified Google email).
+        // Reject through the same path used for a non-whitelisted email.
+        if (userAttributes == null) {
+            response.sendRedirect(frontendUrl + "/under-construction");
+            return;
+        }
+
         String email = userAttributes.email();
         String name = userAttributes.name();
         String providerId = userAttributes.providerId();
@@ -201,6 +208,12 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     }
 
     private UserAttributes getGoogleAttributes(OAuth2User oAuth2User) {
+        // Only a verified email may be trusted. A missing attribute must not throw.
+        Boolean emailVerified = oAuth2User.getAttribute("email_verified");
+        if (!Boolean.TRUE.equals(emailVerified)) {
+            // Reject through the same path as a non-whitelisted email (handled by the caller).
+            return null;
+        }
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
         String providerId = oAuth2User.getAttribute("sub");
