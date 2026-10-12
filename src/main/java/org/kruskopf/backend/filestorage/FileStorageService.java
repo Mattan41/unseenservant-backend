@@ -4,6 +4,7 @@ import org.kruskopf.backend.exception.InvalidFileFormatException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -23,6 +24,9 @@ public class FileStorageService {
 
     @Value("${file.upload-dir}")
     private String uploadDir;
+
+    @Value("${app.upload.max-file-size:5MB}")
+    private DataSize maxFileSize;
 
     // Define allowed MIME types centrally
     private static final List<String> ALLOWED_IMAGE_TYPES = Arrays.asList(
@@ -84,16 +88,17 @@ public class FileStorageService {
      * Performs generic validations applicable to all uploaded files.
      *
      * @param file The multipart file to validate
-     * @throws InvalidFileFormatException If the file is empty or exceeds the 5MB size limit
+     * @throws InvalidFileFormatException If the file is empty or exceeds the configured size limit
      */
     private void validateGenericFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new InvalidFileFormatException("Cannot upload empty file");
         }
 
-        // Enforce a maximum file size limit of 5MB
-        if (file.getSize() > 5 * 1024 * 1024) {
-            throw new InvalidFileFormatException("File size exceeds maximum limit of 5MB");
+        // Enforce the configured maximum file size limit (app.upload.max-file-size)
+        if (file.getSize() > maxFileSize.toBytes()) {
+            throw new InvalidFileFormatException(
+                    "File size exceeds maximum limit of " + maxFileSize.toMegabytes() + "MB");
         }
     }
 
