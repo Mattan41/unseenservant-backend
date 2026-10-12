@@ -71,7 +71,6 @@ public class User {
         this.email = email;
         this.fullName = fullName;
         this.userName = username;
-        this.displayName = displayName;
         this.role = role;
         setPassword(password);
     }

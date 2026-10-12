@@ -39,21 +39,32 @@ public class UserService {
 
     public User findOrCreateOAuthUser(String providerId, ProviderType providerType,
                                       String email, String fullName, UserRole role) {
-        return userRepository.findByProviderId(providerId)
-                .orElseGet(() -> {
-                    // Generate a random and secure pwd-string for OAuth2-users
-                    String securePlaceholder = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
-                    User newUser = new User(
-                            providerId,
-                            providerType,
-                            email,
-                            fullName,
-                            email, // username = email as default for OAuth
-                            role,
-                            securePlaceholder
-                    );
-                    return userRepository.save(newUser);
-                });
+        // 1. Returning user for this exact provider identity.
+        Optional<User> byProvider = userRepository.findByProviderTypeAndProviderId(providerType, providerId);
+        if (byProvider.isPresent()) {
+            return byProvider.get();
+        }
+
+        // 2. Same email already registered via another provider: reuse that account as-is.
+        //    Do NOT overwrite providerId, providerType, role, userName or displayName.
+        Optional<User> byEmail = userRepository.findByEmailIgnoreCase(email);
+        if (byEmail.isPresent()) {
+            return byEmail.get();
+        }
+
+        // 3. First time we see this person: create a user.
+        // Generate a random and secure pwd-string for OAuth2-users
+        String securePlaceholder = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
+        User newUser = new User(
+                providerId,
+                providerType,
+                email,
+                fullName,
+                email, // username = email as default for OAuth
+                role,
+                securePlaceholder
+        );
+        return userRepository.save(newUser);
     }
 
     public Optional<User> findById(long id) {
