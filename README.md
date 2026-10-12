@@ -97,6 +97,7 @@ H2 console is available at `http://localhost:8080/h2-console` for database inspe
 | `ADMIN_WHITELIST` | No | Comma-separated user IDs with admin access |
 | `USER_WHITELIST` | No | Comma-separated user IDs with user access |
 | `FILE_UPLOAD_DIR` | No | Directory for character portrait uploads (default: `./uploads/character-images`) |
+| `APP_UPLOAD_MAX_FILE_SIZE` | No | Max size per uploaded image, enforced by `FileStorageService` (default: `5MB`) |
 | `SPRING_DATASOURCE_URL` | Yes (prod) | Database connection URL |
 | `SPRING_DATASOURCE_USERNAME` | Yes (prod) | Database user |
 | `SPRING_DATASOURCE_PASSWORD` | Yes (prod) | Database password |

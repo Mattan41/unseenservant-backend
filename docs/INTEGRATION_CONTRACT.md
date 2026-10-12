@@ -24,6 +24,8 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 - Query params: `provider` (google|github), `origin`
 - Redirects to OAuth2 provider; sets HttpOnly `oauth_redirect_origin` cookie
 - Disabled in `demo` profile
+- Account linking: a login is matched by provider identity (`providerType` + `providerId`), then by email (case-insensitive) — an existing account with the same email is reused, no duplicate user is created
+- Google requires a verified email (`email_verified = true`); a rejected login (unverified or non-whitelisted email) redirects to `{FRONTEND_URL}/under-construction`, not `/oauth-redirect`
 - Status: 302, 400
 
 **GET /api/auth/me**
@@ -108,6 +110,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 **POST /api/characters/{id}/image**
 - Requires: ROLE_USER, must be owner
 - Request: `multipart/form-data`, field: `file`
+- Max file size: 5MB per file (configurable via `app.upload.max-file-size`; multipart limits are 8MB)
 - Response: `CharacterOutputDTO` (with updated avatarUrl)
 - Status: 200, 400, 401, 403
 
@@ -167,6 +170,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 **POST /api/campaigns/{id}/image**
 - Requires: campaign GM
 - Request: `multipart/form-data`, field: `file`
+- Max file size: 5MB per file (configurable via `app.upload.max-file-size`; multipart limits are 8MB)
 - Response: `CampaignResponseDTO` (with updated imageUrl)
 - Status: 200, 400, 401, 403
 
@@ -231,6 +235,7 @@ participant may view and edit; there is **no delete**.
 **POST /api/campaigns/{id}/ship/image**
 - Requires: campaign participant
 - Request: multipart/form-data with field `file`
+- Max file size: 5MB per file (configurable via `app.upload.max-file-size`; multipart limits are 8MB)
 - Replaces the ship's profile image (`imageUrl`); the UI falls back to `/defaultShip.svg`
 - Response: `ShipDTO`
 - Status: 200, 400, 401, 403, 404
@@ -238,6 +243,7 @@ participant may view and edit; there is **no delete**.
 **POST /api/campaigns/{id}/ship/images**
 - Requires: campaign participant
 - Request: multipart/form-data with field `file`
+- Max file size: 5MB per file (configurable via `app.upload.max-file-size`; multipart limits are 8MB)
 - Appends an image to the ship's gallery (`imageUrls`)
 - Response: `ShipDTO`
 - Status: 200, 400, 401, 403, 404

@@ -150,6 +150,8 @@ Each domain is a self-contained package with:
 ### Security
 - JWT filter validates token on every request (`JwtAuthenticationFilter`)
 - OAuth2 success handler issues JWT after Google/GitHub login (`CustomOAuth2SuccessHandler`)
+- OAuth logins are matched by provider identity (`providerType` + `providerId`), then by email (case-insensitive) so an existing account is reused rather than duplicated
+- Google requires a verified email; a rejected login (unverified or non-whitelisted email) redirects to `{FRONTEND_URL}/under-construction`
 - Email whitelist controls who can register (`EmailWhitelistService`)
 - All `/api/**` endpoints require authentication unless explicitly permitted
 
