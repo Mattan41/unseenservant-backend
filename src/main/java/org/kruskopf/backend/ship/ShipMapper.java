@@ -22,6 +22,7 @@ public class ShipMapper {
                 ship.getDamage(),
                 ship.getDriveFuel(),
                 ship.getMaxDriveFuel(),
+                ship.getCredits(),
                 ship.getUpgrades() != null ? List.copyOf(ship.getUpgrades()) : List.of(),
                 ship.getNotes(),
                 ship.getImageUrl(),
@@ -54,6 +55,9 @@ public class ShipMapper {
         }
         if (dto.maxDriveFuel() != null) {
             ship.setMaxDriveFuel(dto.maxDriveFuel());
+        }
+        if (dto.credits() != null) {
+            ship.setCredits(dto.credits());
         }
         if (dto.upgrades() != null) {
             ship.setUpgrades(new ArrayList<>(dto.upgrades()));

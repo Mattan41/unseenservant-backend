@@ -216,8 +216,8 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 A ship is `1:1` with a campaign (unique `campaign_id` FK) and only meaningful when the
 campaign's `primarySystem` is `OFFWORLDERS`. Defaults mirror the Offworlders rulebook
-(p.13): 15 Hull, 0 Armor, 1D6 Damage, 4 Max Drive Fuel, no upgrades. Every campaign
-participant may view and edit; there is **no delete**.
+(p.13): 15 Hull, 0 Armor, 1D6 Damage, 4 Max Drive Fuel, 0 Credits, no upgrades. Every
+campaign participant may view and edit; there is **no delete**.
 
 **GET /api/campaigns/{id}/ship**
 - Requires: campaign participant
@@ -449,6 +449,7 @@ Intended as per-campaign message boards. Messages are visible only to campaign p
   "damage": "1D6",
   "driveFuel": 4,
   "maxDriveFuel": 6,
+  "credits": 0,
   "upgrades": ["Additional Armor", "Fuel Tanks"],
   "notes": "Cargo: a sealed crate.",
   "imageUrl": null,

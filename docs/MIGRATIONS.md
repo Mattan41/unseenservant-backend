@@ -66,8 +66,9 @@ migrations is safe.
 | V12 | `V12__add_campaign_private_description.sql` | SQL | Add `campaign.private_description` (owner/GM only) |
 | V13 | `V13__add_ship_images.sql` | SQL | Add `ship.image_url` (profile image) + `ship.image_urls` (gallery) |
 | V14 | `V14__add_campaign_world_lore.sql` | SQL | Add `campaign.world_lore` (public world lore & background) |
+| V15 | `V15__add_ship_credits.sql` | SQL | Add `ship.credits` (shared crew credits balance) |
 
-Versions are complete and strictly increasing (1–14, no gaps or duplicates).
+Versions are complete and strictly increasing (1–15, no gaps or duplicates).
 
 ## Rules
 
@@ -99,4 +100,4 @@ FROM flyway_schema_history
 ORDER BY installed_rank;
 ```
 
-should list V1–V14 with `success = 1`.
+should list V1–V15 with `success = 1`.

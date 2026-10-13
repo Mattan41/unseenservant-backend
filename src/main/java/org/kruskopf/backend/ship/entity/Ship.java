@@ -48,6 +48,7 @@ public class Ship {
     public static final int DEFAULT_ARMOR = 0;
     public static final String DEFAULT_DAMAGE = "1D6";
     public static final int DEFAULT_MAX_DRIVE_FUEL = 4;
+    public static final int DEFAULT_CREDITS = 0;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -82,6 +83,10 @@ public class Ship {
 
     @Column(name = "max_drive_fuel", nullable = false)
     private int maxDriveFuel = DEFAULT_MAX_DRIVE_FUEL;
+
+    /** Shared crew credits balance (minimum 0, no upper cap). */
+    @Column(nullable = false)
+    private int credits = DEFAULT_CREDITS;
 
     @Column(columnDefinition = "TEXT")
     @Convert(converter = ShipStringListConverter.class)
@@ -192,6 +197,14 @@ public class Ship {
 
     public void setMaxDriveFuel(int maxDriveFuel) {
         this.maxDriveFuel = maxDriveFuel;
+    }
+
+    public int getCredits() {
+        return credits;
+    }
+
+    public void setCredits(int credits) {
+        this.credits = credits;
     }
 
     public List<String> getUpgrades() {
