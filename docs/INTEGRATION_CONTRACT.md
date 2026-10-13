@@ -256,6 +256,42 @@ campaign participant may view and edit; there is **no delete**.
 
 ---
 
+## Campaign Ship Crew (Offworlders)
+
+The crew manifest: one entry per participant, each holding free-text notes,
+gallery images and the characters the participant has aboard (name + role on the
+ship, both free text, the role optional). Entries are keyed on the **user**, so a
+participant who leaves the campaign keeps their entry — it is simply no longer
+returned — and rejoining re-activates it unchanged. Any participant may read the
+manifest; each participant may edit only their own entry (`/me`).
+
+**GET /api/campaigns/{id}/ship/crew**
+- Requires: campaign participant
+- Response: `[ ShipCrewMemberDTO ]` — one entry per **current** participant, in roster order (a participant without an entry yet comes back with empty fields)
+- Status: 200, 401, 403, 404
+
+**PUT /api/campaigns/{id}/ship/crew/me**
+- Requires: campaign participant
+- Request: `{ notes?, characters? }` where `characters` is `[ { name, roleOnShip } ]` (role optional); a null field is left unchanged
+- Response: `ShipCrewMemberDTO`
+- Status: 200, 400, 401, 403, 404
+
+**POST /api/campaigns/{id}/ship/crew/me/images**
+- Requires: campaign participant
+- Request: multipart/form-data with field `file`
+- Max file size: 5MB per file (configurable via `app.upload.max-file-size`; multipart limits are 8MB)
+- Appends an image to the caller's entry; crew images are shown in the ship's single gallery
+- Response: `ShipCrewMemberDTO`
+- Status: 200, 400, 401, 403, 404
+
+**DELETE /api/campaigns/{id}/ship/crew/me/images?url={url}**
+- Requires: campaign participant
+- Removes the matching image from the caller's entry
+- Response: `ShipCrewMemberDTO`
+- Status: 200, 401, 403, 404
+
+---
+
 ## Messages
 
 Intended as per-campaign message boards. Messages are visible only to campaign participants.
@@ -455,6 +491,21 @@ Intended as per-campaign message boards. Messages are visible only to campaign p
   "imageUrl": null,
   "imageUrls": [],
   "version": 3
+}
+```
+
+### ShipCrewMemberDTO
+```json
+{
+  "userId": 3,
+  "nickname": "User3",
+  "role": "PLAYER",
+  "notes": "Runs the cargo manifest (and the bribes).",
+  "imageUrls": ["/images/ship_crew_2_3_ab12cd34.png"],
+  "characters": [
+    { "name": "Vex", "roleOnShip": "Pilot" },
+    { "name": "Doc", "roleOnShip": "Medic" }
+  ]
 }
 ```
 
