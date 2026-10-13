@@ -17,6 +17,7 @@ public record ShipDTO(
         String damage,
         int driveFuel,
         int maxDriveFuel,
+        int credits,
         List<String> upgrades,
         String notes,
         String imageUrl,

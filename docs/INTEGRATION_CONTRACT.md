@@ -216,8 +216,8 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 A ship is `1:1` with a campaign (unique `campaign_id` FK) and only meaningful when the
 campaign's `primarySystem` is `OFFWORLDERS`. Defaults mirror the Offworlders rulebook
-(p.13): 15 Hull, 0 Armor, 1D6 Damage, 4 Max Drive Fuel, no upgrades. Every campaign
-participant may view and edit; there is **no delete**.
+(p.13): 15 Hull, 0 Armor, 1D6 Damage, 4 Max Drive Fuel, 0 Credits, no upgrades. Every
+campaign participant may view and edit; there is **no delete**.
 
 **GET /api/campaigns/{id}/ship**
 - Requires: campaign participant
@@ -252,6 +252,42 @@ participant may view and edit; there is **no delete**.
 - Requires: campaign participant
 - Removes the matching image from the ship's gallery (`imageUrls`)
 - Response: `ShipDTO`
+- Status: 200, 401, 403, 404
+
+---
+
+## Campaign Ship Crew (Offworlders)
+
+The crew manifest: one entry per participant, each holding free-text notes,
+gallery images and the characters the participant has aboard (name + role on the
+ship, both free text, the role optional). Entries are keyed on the **user**, so a
+participant who leaves the campaign keeps their entry — it is simply no longer
+returned — and rejoining re-activates it unchanged. Any participant may read the
+manifest; each participant may edit only their own entry (`/me`).
+
+**GET /api/campaigns/{id}/ship/crew**
+- Requires: campaign participant
+- Response: `[ ShipCrewMemberDTO ]` — one entry per **current** participant, in roster order (a participant without an entry yet comes back with empty fields)
+- Status: 200, 401, 403, 404
+
+**PUT /api/campaigns/{id}/ship/crew/me**
+- Requires: campaign participant
+- Request: `{ notes?, characters? }` where `characters` is `[ { name, roleOnShip } ]` (role optional); a null field is left unchanged
+- Response: `ShipCrewMemberDTO`
+- Status: 200, 400, 401, 403, 404
+
+**POST /api/campaigns/{id}/ship/crew/me/images**
+- Requires: campaign participant
+- Request: multipart/form-data with field `file`
+- Max file size: 5MB per file (configurable via `app.upload.max-file-size`; multipart limits are 8MB)
+- Appends an image to the caller's entry; crew images are shown in the ship's single gallery
+- Response: `ShipCrewMemberDTO`
+- Status: 200, 400, 401, 403, 404
+
+**DELETE /api/campaigns/{id}/ship/crew/me/images?url={url}**
+- Requires: campaign participant
+- Removes the matching image from the caller's entry
+- Response: `ShipCrewMemberDTO`
 - Status: 200, 401, 403, 404
 
 ---
@@ -449,11 +485,27 @@ Intended as per-campaign message boards. Messages are visible only to campaign p
   "damage": "1D6",
   "driveFuel": 4,
   "maxDriveFuel": 6,
+  "credits": 0,
   "upgrades": ["Additional Armor", "Fuel Tanks"],
   "notes": "Cargo: a sealed crate.",
   "imageUrl": null,
   "imageUrls": [],
   "version": 3
+}
+```
+
+### ShipCrewMemberDTO
+```json
+{
+  "userId": 3,
+  "nickname": "User3",
+  "role": "PLAYER",
+  "notes": "Runs the cargo manifest (and the bribes).",
+  "imageUrls": ["/images/ship_crew_2_3_ab12cd34.png"],
+  "characters": [
+    { "name": "Vex", "roleOnShip": "Pilot" },
+    { "name": "Doc", "roleOnShip": "Medic" }
+  ]
 }
 ```
 

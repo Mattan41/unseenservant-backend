@@ -172,6 +172,8 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | `OffworldersCharacterData` | characterId (shared PK), characterClass, species, xp, health, currentHealth, healthModifier, armor, supply, supplyMax, credits, stats (JSON), skills (JSON), abilities (JSON), weapons (JSON), items (JSON) | Offworlders data; 1:1 with GameCharacter. `skills`/`abilities` are JSON arrays of `{ name, description }` entries; `weapons` is a typed array `{ type, description }`; `items` is a free-text array `{ name, description }` (appearance moved to the generic GameCharacter in V10) |
 | `Campaign` | id, name, imageUrl | has many CampaignUsers |
 | `CampaignUser` | campaignId + userId (composite PK), role | join table Campaign ↔ User |
+| `Ship` | id, campaignId (unique), version, name, hull, hullMax, armor, damage, driveFuel, maxDriveFuel, credits, upgrades (JSON), notes, imageUrl, imageUrls (JSON) | Offworlders ship; 1:1 with Campaign; optimistic concurrency via `version` |
+| `ShipCrewMember` | id, shipId + userId (unique), notes, imageUrls (JSON), characters (JSON) | one crew entry per participant; keyed on the **User** (not CampaignUser) so it survives a participant leaving and re-activates on rejoin; `characters` is `[ { name, roleOnShip } ]` (free text) |
 | `Message` | id, content, timestamp | belongs to Campaign |
 | `Spell` | slug (PK), name, rawJsonData (TEXT) | many-to-many with Dnd5eCharacterData; stored in local DB from bulk Open5e import |
 | `EmailWhitelist` | email | standalone |

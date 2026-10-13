@@ -184,5 +184,13 @@ VALUES
 -- =====================================================================================
 UPDATE campaign SET primary_system = 'OFFWORLDERS' WHERE id = 2;
 
-INSERT INTO ship (id, campaign_id, version, name, hull, hull_max, armor, damage, drive_fuel, max_drive_fuel, upgrades, notes, created_at, updated_at)
-VALUES (1, 2, 0, 'The Null Gravitas', 15, 15, 1, '1D6', 4, 6, '["Additional Armor","Fuel Tanks"]', 'Cargo: a sealed crate for the Lundenwic job.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO ship (id, campaign_id, version, name, hull, hull_max, armor, damage, drive_fuel, max_drive_fuel, credits, upgrades, notes, created_at, updated_at)
+VALUES (1, 2, 0, 'The Null Gravitas', 15, 15, 1, '1D6', 4, 6, 0, '["Additional Armor","Fuel Tanks"]', 'Cargo: a sealed crate for the Lundenwic job.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- Crew manifest: one entry per participant. User 1's is filled in; the other
+-- participants start empty and fill theirs in from the ship view. Entries are
+-- keyed on the user, so they survive a participant leaving the campaign.
+INSERT INTO ship_crew (ship_id, user_id, notes, image_urls, characters, created_at, updated_at)
+VALUES (1, 1, 'Runs the cargo manifest (and the bribes).', '[]',
+        '[{"name":"Vex","roleOnShip":"Pilot"},{"name":"Doc","roleOnShip":"Medic"}]',
+        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

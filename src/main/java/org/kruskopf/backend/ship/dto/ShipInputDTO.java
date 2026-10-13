@@ -17,6 +17,7 @@ public record ShipInputDTO(
         String damage,
         Integer driveFuel,
         Integer maxDriveFuel,
+        Integer credits,
         List<String> upgrades,
         String notes,
         String imageUrl,

@@ -87,6 +87,7 @@ class ShipServiceTest {
         assertThat(dto.hull()).isEqualTo(Ship.DEFAULT_HULL);
         assertThat(dto.damage()).isEqualTo(Ship.DEFAULT_DAMAGE);
         assertThat(dto.maxDriveFuel()).isEqualTo(Ship.DEFAULT_MAX_DRIVE_FUEL);
+        assertThat(dto.credits()).isEqualTo(Ship.DEFAULT_CREDITS);
     }
 
     @Test
@@ -118,7 +119,7 @@ class ShipServiceTest {
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.empty());
         when(shipRepository.save(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ShipInputDTO input = new ShipInputDTO("The Desert Rose", null, null, null, null, null, null, null, null, null, null);
+        ShipInputDTO input = new ShipInputDTO("The Desert Rose", null, null, null, null, null, null, null, null, null, null, null);
         ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
 
         assertThat(dto.name()).isEqualTo("The Desert Rose");
@@ -133,7 +134,7 @@ class ShipServiceTest {
         when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(existingShip(15, 3L)));
 
-        ShipInputDTO stale = new ShipInputDTO(null, 10, null, null, null, null, null, null, null, null, 2L);
+        ShipInputDTO stale = new ShipInputDTO(null, 10, null, null, null, null, null, null, null, null, null, 2L);
 
         assertThatThrownBy(() -> shipService.saveShip(CAMPAIGN_ID, stale, USER_ID))
                 .isInstanceOf(ConcurrentUpdateException.class);
@@ -147,11 +148,25 @@ class ShipServiceTest {
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(existingShip(15, 3L)));
         when(shipRepository.save(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ShipInputDTO input = new ShipInputDTO(null, 7, null, null, null, null, null, null, null, null, 3L);
+        ShipInputDTO input = new ShipInputDTO(null, 7, null, null, null, null, null, null, null, null, null, 3L);
         ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
 
         assertThat(dto.hull()).isEqualTo(7);
         assertThat(dto.version()).isEqualTo(4L);
+    }
+
+    @Test
+    @DisplayName("saveShip applies a credits update")
+    void saveShip_appliesCredits() {
+        when(campaignRepository.findById(CAMPAIGN_ID)).thenReturn(Optional.of(campaign));
+        when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
+        when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(existingShip(15, 3L)));
+        when(shipRepository.save(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ShipInputDTO input = new ShipInputDTO(null, null, null, null, null, null, null, 12, null, null, null, 3L);
+        ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
+
+        assertThat(dto.credits()).isEqualTo(12);
     }
 
     @Test
