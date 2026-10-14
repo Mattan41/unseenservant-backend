@@ -1,0 +1,17 @@
+# Build output
+target/
+
+# Version control and editor metadata
+.git/
+.gitignore
+.github/
+.idea/
+*.iml
+.vscode/
+
+# Local-only assets and documentation
+uploads/
+docs/
+
+# Local environment files
+.env
