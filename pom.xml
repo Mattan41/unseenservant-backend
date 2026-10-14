@@ -25,6 +25,7 @@
             fails with "Mockito cannot mock this class". Byte Buddy 1.17.5+ adds
             Java 25 support; these overrides use the Java-25-capable pair shipped by
             Spring Boot 3.5.x so the tests pass on both JDK 21 and JDK 25.
+            Todo: clean up after migration to spring boot 4.
         -->
         <byte-buddy.version>1.17.8</byte-buddy.version>
         <mockito.version>5.17.0</mockito.version>
