@@ -1,0 +1,37 @@
+name: CI
+
+# Pull requests only: the release workflow packages the image with tests
+# skipped (-DskipTests), so this is where the suite actually runs. Integration
+# tests (AbstractIntegrationTest and every *IT) use Testcontainers, which needs
+# the Docker daemon that GitHub-hosted runners already provide — no service
+# container and no repository secret, so Dependabot pull requests work too.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Java
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      # verify (not test): surefire runs *Test, failsafe runs *IT on verify, so
+      # this is the only goal that runs the whole suite.
+      - name: Test
+        run: ./mvnw -B verify
