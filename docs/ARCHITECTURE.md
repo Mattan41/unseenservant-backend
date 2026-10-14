@@ -1,7 +1,7 @@
 # Architecture — unseenservant-backend
 
 ## Tech stack
-- Java 21
+- Java 25
 - Spring Boot
 - Spring Security (JWT + OAuth2)
 - Spring Data JPA
