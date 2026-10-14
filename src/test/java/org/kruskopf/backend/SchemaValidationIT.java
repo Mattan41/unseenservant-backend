@@ -34,7 +34,7 @@ class SchemaValidationIT {
 
     @Container
     @ServiceConnection
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0.42")
+    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4.11")
             .withDatabaseName("testdb")
             .withUsername("testuser")
             .withPassword("testpass");

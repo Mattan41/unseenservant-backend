@@ -19,7 +19,7 @@ public class TestContainersConfiguration {
     @Bean
     @ServiceConnection
     public MySQLContainer<?> mysqlContainer() {
-        return new MySQLContainer<>(DockerImageName.parse("mysql:8.0.42"))
+        return new MySQLContainer<>(DockerImageName.parse("mysql:8.4.11"))
                 .withDatabaseName("testdb")
                 .withUsername("testuser")
                 .withPassword("testpass")

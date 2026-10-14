@@ -37,11 +37,21 @@ for genuine JSON/data surgery that SQL cannot express cleanly.
 
 ## Environments
 
+The project runs on the **MySQL 8.4 LTS** series. The image tag is pinned in four
+places and they must be bumped together, or CI and local development drift apart:
+
+| Where | Pin |
+|-------|-----|
+| `compose.yaml` | `mysql:8.4.11` (dev database started by Spring Boot's Docker Compose support) |
+| `.github/workflows/docker-image.yml` | `mysql:8.4.11` (release-runner service container) |
+| `TestContainersConfiguration` | `mysql:8.4.11` (reused test container) |
+| `SchemaValidationIT` | `mysql:8.4.11` (non-reused validation container) |
+
 | Profile | Database | Flyway | Schema created by |
 |---------|----------|--------|-------------------|
-| `prod` | MySQL 8 (`compose.yaml`: `mysql:8.0.42`) | enabled | Flyway |
-| `develop` | MySQL 8 (docker compose) | enabled | Flyway |
-| `test` | MySQL 8 Testcontainer (`TestContainersConfiguration`, `mysql:8.0.42`) | enabled | Flyway |
+| `prod` | MySQL 8.4 LTS (`compose.yaml`: `mysql:8.4.11`) | enabled | Flyway |
+| `develop` | MySQL 8.4 LTS (docker compose) | enabled | Flyway |
+| `test` | MySQL 8.4 LTS Testcontainer (`TestContainersConfiguration`, `mysql:8.4.11`) | enabled | Flyway |
 | `demo` | H2 in-memory | **disabled** (`spring.flyway.enabled=false`) | Hibernate `ddl-auto=create-drop` + `demo-data.sql` |
 
 Because the `demo` profile disables Flyway and builds the schema from the JPA
