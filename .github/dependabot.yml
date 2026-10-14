@@ -1,0 +1,49 @@
+# Dependabot configuration.
+#
+# Two ecosystems: the GitHub Actions the workflow pins and the Maven
+# dependencies. Each keeps minor and patch bumps in a single weekly PR and
+# leaves major bumps as their own PR, so breaking changes are never batched
+# with routine updates. open-pull-requests-limit caps version-update PRs;
+# security updates ignore both the schedule and the limit and open immediately.
+version: 2
+updates:
+  # Pinned GitHub Actions. Dependabot rewrites the commit SHA and its trailing
+  # "# vX.Y.Z" comment together, so the pins stay readable and SonarQube's
+  # full-SHA rule stays satisfied.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Stockholm"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # Backend Java dependencies: the Spring Boot parent and the libraries the BOM
+  # does not manage (Testcontainers, Flyway, the MySQL driver).
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Stockholm"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      maven-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
