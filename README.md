@@ -113,4 +113,17 @@ H2 console is available at `http://localhost:8080/h2-console` for database inspe
 
 The production Docker image is built automatically via GitHub Actions on every new release and pushed to Docker Hub (`mattan41/unseenservant-backend`).
 
+The image is built for `linux/amd64` and `linux/arm64` on native GitHub-hosted
+runners (`ubuntu-latest` / `ubuntu-24.04-arm`) and published as a single
+multi-arch manifest, so `docker pull` selects the right architecture
+automatically. Each architecture is pushed by digest and the manifest is
+assembled with `docker buildx imagetools create`. Because buildx provenance is
+left at its default, the final index also lists the per-architecture
+attestation manifests as extra `unknown/unknown` platform entries — expected,
+and it does not affect `docker pull` or `docker run`.
+
+Build cache and per-architecture staging images live in the GitHub Container
+Registry (`ghcr.io/mattan41/unseenservant-backend:buildcache-<arch>`), not on
+Docker Hub; only the final multi-arch image is published to Docker Hub.
+
 ```
