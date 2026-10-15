@@ -8,6 +8,37 @@
 - MySQL
 - Testcontainers (integration tests)
 
+## Concurrency
+
+The application runs on **virtual threads** (`spring.threads.virtual.enabled=true`),
+so Tomcat creates one virtual thread per request. Its `VirtualThreadExecutor` is
+unbounded, which means `server.tomcat.threads.max` **no longer caps concurrency**.
+The ceilings that matter are:
+
+| Ceiling | Setting | Why |
+|---|---|---|
+| Open sockets | `server.tomcat.max-connections=500` | Blast-radius bound for a single-box deployment; Tomcat's default of 8192 would let a flood open far more sockets than the host should carry. Revisit if a load balancer is introduced. |
+| Database connections | `spring.datasource.hikari.maximum-pool-size=15` | See below. |
+| CPU | 4 cores on the deployment host | Virtual threads add concurrency, not CPU. |
+
+`spring.datasource.hikari.connection-timeout=10000` makes a saturated pool fail
+in 10 seconds instead of the 30-second default.
+
+Pool sizing is a judgement call, not a tuned value. A request holds its
+connection for its whole transaction (several sequential queries), and
+`ShipService.uploadProfileImage` / `addGalleryImage` hold one for the duration of
+a `Files.copy` to disk. 15 is deliberately generous for the ~7-user scale, but
+well below the point where a 4-core InnoDB starts losing throughput to context
+switching. **The pool is not the bottleneck** — MySQL's `innodb_buffer_pool_size`
+matters far more and should be reviewed before any further pool tuning.
+
+Because virtual threads remove the thread ceiling, a burst now competes for CPU
+instead of for threads. CPU-bound work such as Jackson serialization of
+`Spell.rawJsonData` is what to watch if the app ever feels slow.
+
+`VirtualThreadsIT` asserts the property, the connector's executor type, and that
+a request is actually served on a virtual thread.
+
 ## Database migrations
 
 Flyway owns the schema. Migrations are discovered from the single location
