@@ -10,7 +10,7 @@ import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.ConcurrentUpdateException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.filestorage.FileStorageService;
+import org.kruskopf.backend.filestorage.StoredFileTransaction;
 import org.kruskopf.backend.ship.ShipMapper;
 import org.kruskopf.backend.ship.dto.ShipDTO;
 import org.kruskopf.backend.ship.dto.ShipInputDTO;
@@ -45,7 +45,7 @@ class ShipServiceTest {
     private CampaignPermissionService campaignPermissionService;
 
     @Mock
-    private FileStorageService fileStorageService;
+    private StoredFileTransaction storedFileTransaction;
 
     @Spy
     private ShipMapper shipMapper = new ShipMapper();
@@ -117,7 +117,7 @@ class ShipServiceTest {
         when(campaignRepository.findById(CAMPAIGN_ID)).thenReturn(Optional.of(campaign));
         when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.empty());
-        when(shipRepository.save(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(shipRepository.saveAndFlush(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ShipInputDTO input = new ShipInputDTO("The Desert Rose", null, null, null, null, null, null, null, null, null, null, null);
         ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
@@ -141,18 +141,22 @@ class ShipServiceTest {
     }
 
     @Test
-    @DisplayName("saveShip applies the update and increments the version")
-    void saveShip_incrementsVersion() {
+    @DisplayName("saveShip applies the update without touching the version (Hibernate owns it)")
+    void saveShip_leavesVersionToHibernate() {
         when(campaignRepository.findById(CAMPAIGN_ID)).thenReturn(Optional.of(campaign));
         when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
-        when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(existingShip(15, 3L)));
-        when(shipRepository.save(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Ship ship = existingShip(15, 3L);
+        when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(ship));
+        when(shipRepository.saveAndFlush(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ShipInputDTO input = new ShipInputDTO(null, 7, null, null, null, null, null, null, null, null, null, 3L);
         ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
 
         assertThat(dto.hull()).isEqualTo(7);
-        assertThat(dto.version()).isEqualTo(4L);
+        // @Version makes Hibernate bump the version on flush. If the service also
+        // incremented it the client's token would skip a number and every
+        // subsequent save would look stale, so this must stay at 3.
+        assertThat(ship.getVersion()).isEqualTo(3L);
     }
 
     @Test
@@ -161,7 +165,7 @@ class ShipServiceTest {
         when(campaignRepository.findById(CAMPAIGN_ID)).thenReturn(Optional.of(campaign));
         when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(existingShip(15, 3L)));
-        when(shipRepository.save(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(shipRepository.saveAndFlush(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ShipInputDTO input = new ShipInputDTO(null, null, null, null, null, null, null, 12, null, null, null, 3L);
         ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);

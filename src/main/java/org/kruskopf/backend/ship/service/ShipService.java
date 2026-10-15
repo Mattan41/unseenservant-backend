@@ -6,7 +6,7 @@ import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.ConcurrentUpdateException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.filestorage.FileStorageService;
+import org.kruskopf.backend.filestorage.StoredFileTransaction;
 import org.kruskopf.backend.ship.ShipMapper;
 import org.kruskopf.backend.ship.dto.ShipDTO;
 import org.kruskopf.backend.ship.dto.ShipInputDTO;
@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,8 +23,11 @@ import java.util.List;
  * Offworlders ship lifecycle, scoped to a campaign.
  * <p>
  * Every campaign participant may view and edit the ship (there is no delete).
- * Edits use optimistic concurrency: a client must send the version it loaded
- * and a stale write is rejected with {@link ConcurrentUpdateException} (409).
+ * Edits use optimistic concurrency in two layers: the client must send the
+ * version it loaded, and a mismatch against the freshly loaded ship is rejected
+ * with {@link ConcurrentUpdateException} (409). That check cannot see a writer
+ * that commits between the load and the flush, so {@code Ship.version} is also a
+ * JPA {@code @Version} and Hibernate rejects that case too.
  */
 @Service
 public class ShipService {
@@ -33,18 +35,18 @@ public class ShipService {
     private final ShipRepository shipRepository;
     private final CampaignRepository campaignRepository;
     private final CampaignPermissionService campaignPermissionService;
-    private final FileStorageService fileStorageService;
+    private final StoredFileTransaction storedFileTransaction;
     private final ShipMapper shipMapper;
 
     public ShipService(ShipRepository shipRepository,
                        CampaignRepository campaignRepository,
                        CampaignPermissionService campaignPermissionService,
-                       FileStorageService fileStorageService,
+                       StoredFileTransaction storedFileTransaction,
                        ShipMapper shipMapper) {
         this.shipRepository = shipRepository;
         this.campaignRepository = campaignRepository;
         this.campaignPermissionService = campaignPermissionService;
-        this.fileStorageService = fileStorageService;
+        this.storedFileTransaction = storedFileTransaction;
         this.shipMapper = shipMapper;
     }
 
@@ -79,10 +81,11 @@ public class ShipService {
                         "The ship was updated by someone else. Reload and try again.");
             }
             shipMapper.apply(dto, ship);
-            ship.setVersion(ship.getVersion() + 1);
         }
 
-        Ship savedShip = shipRepository.save(ship);
+        // saveAndFlush, not save: @Version increments on flush, and the response
+        // must carry the new version or the client's next save looks stale.
+        Ship savedShip = shipRepository.saveAndFlush(ship);
         return shipMapper.toDTO(savedShip);
     }
 
@@ -102,24 +105,36 @@ public class ShipService {
 
     /**
      * Upload (or replace) the ship's profile image. Any participant may do this.
+     * <p>
+     * Deliberately not {@code @Transactional}: the file is written before the
+     * transaction opens so no database connection is held during the write, and
+     * {@link StoredFileTransaction} removes it again if the transaction fails.
+     * Authorization has to happen first for the same reason — a refused request
+     * must not touch the disk at all.
      */
-    @Transactional
     public ShipDTO uploadProfileImage(Long campaignId, MultipartFile file, long userId) {
-        Ship ship = loadShipForEdit(campaignId, userId);
-        ship.setImageUrl(storeImage(file, "ship_" + campaignId));
-        ship.setVersion(ship.getVersion() + 1);
-        return shipMapper.toDTO(shipRepository.save(ship));
+        requireCampaign(campaignId);
+        requireParticipant(campaignId, userId);
+
+        return storedFileTransaction.storeThenRun(file, "ship_" + campaignId, "IMAGE", storedName -> {
+            Ship ship = loadShipForEdit(campaignId, userId);
+            ship.setImageUrl("/images/" + storedName);
+            return shipMapper.toDTO(shipRepository.saveAndFlush(ship));
+        });
     }
 
     /** Append an image to the ship's gallery (drawings, maps, etc.). */
-    @Transactional
     public ShipDTO addGalleryImage(Long campaignId, MultipartFile file, long userId) {
-        Ship ship = loadShipForEdit(campaignId, userId);
-        List<String> imageUrls = new ArrayList<>(ship.getImageUrls());
-        imageUrls.add(storeImage(file, "ship_" + campaignId + "_gallery"));
-        ship.setImageUrls(imageUrls);
-        ship.setVersion(ship.getVersion() + 1);
-        return shipMapper.toDTO(shipRepository.save(ship));
+        requireCampaign(campaignId);
+        requireParticipant(campaignId, userId);
+
+        return storedFileTransaction.storeThenRun(file, "ship_" + campaignId + "_gallery", "IMAGE", storedName -> {
+            Ship ship = loadShipForEdit(campaignId, userId);
+            List<String> imageUrls = new ArrayList<>(ship.getImageUrls());
+            imageUrls.add("/images/" + storedName);
+            ship.setImageUrls(imageUrls);
+            return shipMapper.toDTO(shipRepository.saveAndFlush(ship));
+        });
     }
 
     /** Remove an image from the ship's gallery by its stored URL. */
@@ -129,8 +144,7 @@ public class ShipService {
         List<String> imageUrls = new ArrayList<>(ship.getImageUrls());
         imageUrls.remove(url);
         ship.setImageUrls(imageUrls);
-        ship.setVersion(ship.getVersion() + 1);
-        return shipMapper.toDTO(shipRepository.save(ship));
+        return shipMapper.toDTO(shipRepository.saveAndFlush(ship));
     }
 
     /** Loads the ship for editing, creating the default one if none exists yet. */
@@ -142,14 +156,6 @@ public class ShipService {
             ship.setCampaign(campaign);
             return ship;
         });
-    }
-
-    private String storeImage(MultipartFile file, String prefix) {
-        try {
-            return "/images/" + fileStorageService.storeFile(file, prefix, "IMAGE");
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to store ship image", e);
-        }
     }
 
     private Campaign requireCampaign(Long campaignId) {

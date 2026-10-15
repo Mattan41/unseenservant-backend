@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.ship.ShipStringListConverter;
 import org.hibernate.annotations.OnDelete;
@@ -59,7 +60,16 @@ public class Ship {
     @JoinColumn(name = "campaign_id", nullable = false, unique = true)
     private Campaign campaign;
 
-    /** Optimistic-concurrency version, incremented on every successful save. */
+    /**
+     * Optimistic-concurrency version, owned by Hibernate. Every update carries
+     * {@code WHERE version = ?}, so a writer whose row changed since it loaded
+     * fails with {@link org.springframework.orm.ObjectOptimisticLockingFailureException}
+     * (mapped to HTTP 409) instead of silently overwriting the other change.
+     * <p>
+     * Never assign this: the service layer compares the client's token against
+     * the loaded value, and Hibernate performs the increment on flush.
+     */
+    @Version
     @Column(nullable = false)
     private long version = 0;
 
@@ -139,6 +149,7 @@ public class Ship {
         return version;
     }
 
+    /** For tests only. Production code must let Hibernate manage the version. */
     public void setVersion(long version) {
         this.version = version;
     }

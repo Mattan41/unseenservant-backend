@@ -7,7 +7,7 @@ import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.filestorage.FileStorageService;
+import org.kruskopf.backend.filestorage.StoredFileTransaction;
 import org.kruskopf.backend.ship.ShipCrewCharacter;
 import org.kruskopf.backend.ship.dto.ShipCrewInputDTO;
 import org.kruskopf.backend.ship.dto.ShipCrewMemberDTO;
@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,18 +41,18 @@ public class ShipCrewService {
     private final ShipCrewRepository shipCrewRepository;
     private final CampaignRepository campaignRepository;
     private final CampaignUserRepository campaignUserRepository;
-    private final FileStorageService fileStorageService;
+    private final StoredFileTransaction storedFileTransaction;
 
     public ShipCrewService(ShipRepository shipRepository,
                            ShipCrewRepository shipCrewRepository,
                            CampaignRepository campaignRepository,
                            CampaignUserRepository campaignUserRepository,
-                           FileStorageService fileStorageService) {
+                           StoredFileTransaction storedFileTransaction) {
         this.shipRepository = shipRepository;
         this.shipCrewRepository = shipCrewRepository;
         this.campaignRepository = campaignRepository;
         this.campaignUserRepository = campaignUserRepository;
-        this.fileStorageService = fileStorageService;
+        this.storedFileTransaction = storedFileTransaction;
     }
 
     /**
@@ -98,15 +97,26 @@ public class ShipCrewService {
         return toDTO(participant, shipCrewRepository.save(member));
     }
 
-    /** Add a gallery image to the caller's own entry. */
-    @Transactional
+    /**
+     * Add a gallery image to the caller's own entry.
+     * <p>
+     * Deliberately not {@code @Transactional}: the file is written before the
+     * transaction opens so no database connection is held during the write, and
+     * {@link StoredFileTransaction} removes it again if the transaction fails. The
+     * participant check has to come first for the same reason — a refused request
+     * must not touch the disk.
+     */
     public ShipCrewMemberDTO addMyImage(Long campaignId, MultipartFile file, long userId) {
         CampaignUser participant = requireParticipant(campaignId, userId);
-        ShipCrewMember member = loadMember(campaignId, participant);
-        List<String> urls = new ArrayList<>(member.getImageUrls());
-        urls.add(storeImage(file, "ship_crew_" + campaignId + "_" + userId));
-        member.setImageUrls(urls);
-        return toDTO(participant, shipCrewRepository.save(member));
+
+        return storedFileTransaction.storeThenRun(
+                file, "ship_crew_" + campaignId + "_" + userId, "IMAGE", storedName -> {
+                    ShipCrewMember member = loadMember(campaignId, participant);
+                    List<String> urls = new ArrayList<>(member.getImageUrls());
+                    urls.add("/images/" + storedName);
+                    member.setImageUrls(urls);
+                    return toDTO(participant, shipCrewRepository.save(member));
+                });
     }
 
     /** Remove a gallery image from the caller's own entry by its stored URL. */
@@ -145,14 +155,6 @@ public class ShipCrewService {
                 member != null ? member.getNotes() : "",
                 imageUrls,
                 characters);
-    }
-
-    private String storeImage(MultipartFile file, String prefix) {
-        try {
-            return "/images/" + fileStorageService.storeFile(file, prefix, "IMAGE");
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to store ship crew image", e);
-        }
     }
 
     private Campaign requireCampaign(Long campaignId) {
