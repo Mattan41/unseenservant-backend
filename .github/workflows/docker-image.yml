@@ -1,12 +1,28 @@
 name: Build and Push Backend Docker Image
 
+# Two events, two different sets of tags:
+#   release published -> :latest and the release tag (production)
+#   push to main      -> :main only (staging)
+# Production watchtower polls :latest, so a merge to main must never be able to
+# move that tag. The decision lives in the "Resolve image tags" step of the
+# merge job, and the step after it re-checks the result before anything is
+# pushed. (This file used to tag from github.ref_name, which on a push to main
+# would have resolved to "main" for :main and :latest alike.)
 on:
   release:
     types: [published]
+  push:
+    branches: [main]
 
 env:
   IMAGE_NAME: mattan41/unseenservant-backend
   CACHE_REGISTRY: ghcr.io
+
+concurrency:
+  # One group per ref, and never cancel: a merge must not kill a running release
+  # build, and two merges must not race on the same :main tag.
+  group: docker-image-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -99,14 +115,58 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
+      # Which tags this run is allowed to move. Kept in one place on purpose:
+      # production watchtower follows :latest, so a merge to main must not be
+      # able to reach it.
+      - name: Resolve image tags
+        id: tags
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -eu
+          case "$EVENT_NAME" in
+            release)
+              if [ -z "$RELEASE_TAG" ]; then
+                echo "::error::release event without a tag name"
+                exit 1
+              fi
+              {
+                echo "args=-t ${IMAGE_NAME}:latest -t ${IMAGE_NAME}:${RELEASE_TAG}"
+                echo "primary=${IMAGE_NAME}:${RELEASE_TAG}"
+              } >> "$GITHUB_OUTPUT"
+              ;;
+            push)
+              {
+                echo "args=-t ${IMAGE_NAME}:main"
+                echo "primary=${IMAGE_NAME}:main"
+              } >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::unsupported event: $EVENT_NAME"
+              exit 1
+              ;;
+          esac
+
+      # Fails before anything is pushed if the resolution above ever regresses
+      # into moving :latest outside a release.
+      - name: Guard :latest against non-release events
+        if: github.event_name != 'release'
+        env:
+          TAG_ARGS: ${{ steps.tags.outputs.args }}
+        run: |
+          case "$TAG_ARGS" in
+            *:latest*) echo "::error::refusing to publish :latest outside a release"; exit 1 ;;
+            *) echo "ok: $TAG_ARGS" ;;
+          esac
+
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create \
-            -t ${{ env.IMAGE_NAME }}:latest \
-            -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
+            ${{ steps.tags.outputs.args }} \
             $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          docker buildx imagetools inspect ${{ steps.tags.outputs.primary }}
