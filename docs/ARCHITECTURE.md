@@ -8,6 +8,39 @@
 - MySQL
 - Testcontainers (integration tests)
 
+## Concurrency
+
+The application runs on **virtual threads** (`spring.threads.virtual.enabled=true`),
+so Tomcat creates one virtual thread per request. Its `VirtualThreadExecutor` is
+unbounded, which means `server.tomcat.threads.max` **no longer caps concurrency**.
+The ceilings that matter are:
+
+| Ceiling | Setting | Why |
+|---|---|---|
+| Open sockets | `server.tomcat.max-connections=500` | Blast-radius bound for a single-box deployment; Tomcat's default of 8192 would let a flood open far more sockets than the host should carry. Revisit if a load balancer is introduced. |
+| Database connections | `spring.datasource.hikari.maximum-pool-size=15` | See below. |
+| CPU | 4 cores on the deployment host | Virtual threads add concurrency, not CPU. |
+
+`spring.datasource.hikari.connection-timeout=10000` makes a saturated pool fail
+in 10 seconds instead of the 30-second default.
+
+Pool sizing is a judgement call, not a tuned value. A request holds its
+connection for its whole transaction (several sequential queries). Image uploads
+deliberately do *not* hold one during the disk write: the file is written first
+and the database work runs in a short transaction afterwards
+(`StoredFileTransaction`), which deletes the file again if that transaction fails.
+15 is deliberately generous for the ~7-user scale, but well below the point where
+a 4-core InnoDB starts losing throughput to context switching. **The pool is not
+the bottleneck** — MySQL's `innodb_buffer_pool_size` matters far more and should
+be reviewed before any further pool tuning.
+
+Because virtual threads remove the thread ceiling, a burst now competes for CPU
+instead of for threads. CPU-bound work such as Jackson serialization of
+`Spell.rawJsonData` is what to watch if the app ever feels slow.
+
+`VirtualThreadsIT` asserts the property, the connector's executor type, and that
+a request is actually served on a virtual thread.
+
 ## Database migrations
 
 Flyway owns the schema. Migrations are discovered from the single location
@@ -172,7 +205,7 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | `OffworldersCharacterData` | characterId (shared PK), characterClass, species, xp, health, currentHealth, healthModifier, armor, supply, supplyMax, credits, stats (JSON), skills (JSON), abilities (JSON), weapons (JSON), items (JSON) | Offworlders data; 1:1 with GameCharacter. `skills`/`abilities` are JSON arrays of `{ name, description }` entries; `weapons` is a typed array `{ type, description }`; `items` is a free-text array `{ name, description }` (appearance moved to the generic GameCharacter in V10) |
 | `Campaign` | id, name, imageUrl | has many CampaignUsers |
 | `CampaignUser` | campaignId + userId (composite PK), role | join table Campaign ↔ User |
-| `Ship` | id, campaignId (unique), version, name, hull, hullMax, armor, damage, driveFuel, maxDriveFuel, credits, upgrades (JSON), notes, imageUrl, imageUrls (JSON) | Offworlders ship; 1:1 with Campaign; optimistic concurrency via `version` |
+| `Ship` | id, campaignId (unique), version, name, hull, hullMax, armor, damage, driveFuel, maxDriveFuel, credits, upgrades (JSON), notes, imageUrl, imageUrls (JSON) | Offworlders ship; 1:1 with Campaign; optimistic concurrency via JPA `@Version` on `version`, which Hibernate enforces with `UPDATE ... WHERE version = ?` (a stale flush becomes a 409 via `ObjectOptimisticLockingFailureException`). `ShipService` additionally compares the version token the client sent against the freshly loaded row and throws `ConcurrentUpdateException` (also 409) before doing any work — that check alone cannot see a writer that commits between the load and the flush |
 | `ShipCrewMember` | id, shipId + userId (unique), notes, imageUrls (JSON), characters (JSON) | one crew entry per participant; keyed on the **User** (not CampaignUser) so it survives a participant leaving and re-activates on rejoin; `characters` is `[ { name, roleOnShip } ]` (free text) |
 | `Message` | id, content, timestamp | belongs to Campaign |
 | `Spell` | slug (PK), name, rawJsonData (TEXT) | many-to-many with Dnd5eCharacterData; stored in local DB from bulk Open5e import |

@@ -7,7 +7,7 @@ import org.kruskopf.backend.campaign.entity.CampaignUser;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.filestorage.FileStorageService;
+import org.kruskopf.backend.filestorage.StoredFileTransaction;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
 import org.kruskopf.backend.playercharacter.service.GameCharacterService;
 import org.kruskopf.backend.ship.service.ShipService;
@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
@@ -34,15 +33,15 @@ public class CampaignService {
     private final UserService userService;
     private final CampaignPermissionService campaignPermissionService;
     private final GameCharacterService gameCharacterService;
-    private final FileStorageService fileStorageService;
+    private final StoredFileTransaction storedFileTransaction;
     private final ShipService shipService;
 
-    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, GameCharacterService gameCharacterService, FileStorageService fileStorageService, ShipService shipService) {
+    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, GameCharacterService gameCharacterService, StoredFileTransaction storedFileTransaction, ShipService shipService) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
         this.campaignPermissionService = campaignPermissionService;
         this.gameCharacterService = gameCharacterService;
-        this.fileStorageService = fileStorageService;
+        this.storedFileTransaction = storedFileTransaction;
         this.shipService = shipService;
     }
 
@@ -154,22 +153,27 @@ public class CampaignService {
         return mapToResponseDTO(savedCampaign, currentUserId);
     }
 
-    @Transactional
+    /**
+     * Upload (or replace) the campaign image. GM only.
+     * <p>
+     * Deliberately not {@code @Transactional}: the file is written before the
+     * transaction opens so no database connection is held during the write, and
+     * {@link StoredFileTransaction} removes it again if the transaction fails.
+     * The 404 and permission checks have to come first for the same reason — a
+     * refused request must not touch the disk.
+     */
     public CampaignResponseDTO uploadCampaignImage(long id, MultipartFile file, long currentUserId) {
-        Campaign campaign = findCampaignOrThrow(id);
+        findCampaignOrThrow(id);
 
         if (!campaignPermissionService.isGameMaster(id, currentUserId)) {
             throw new UnauthorizedAccessException("Only a campaign GM can update the campaign image");
         }
 
-        try {
-            String fileName = fileStorageService.storeFile(file, "campaign_" + id, "IMAGE");
-            campaign.setImageUrl("/images/" + fileName);
-            Campaign savedCampaign = campaignRepository.save(campaign);
-            return mapToResponseDTO(savedCampaign);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to store file", e);
-        }
+        return storedFileTransaction.storeThenRun(file, "campaign_" + id, "IMAGE", storedName -> {
+            Campaign campaign = findCampaignOrThrow(id);
+            campaign.setImageUrl("/images/" + storedName);
+            return mapToResponseDTO(campaignRepository.save(campaign));
+        });
     }
 
     /**

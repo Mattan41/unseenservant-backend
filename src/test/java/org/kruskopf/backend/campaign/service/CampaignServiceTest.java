@@ -11,7 +11,7 @@ import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.filestorage.FileStorageService;
+import org.kruskopf.backend.filestorage.StoredFileTransaction;
 import org.kruskopf.backend.playercharacter.service.GameCharacterService;
 import org.kruskopf.backend.ship.service.ShipService;
 import org.kruskopf.backend.testsupport.TestDataFactory;
@@ -51,7 +51,7 @@ class CampaignServiceTest {
     private GameCharacterService gameCharacterService;
 
     @Mock
-    private FileStorageService fileStorageService;
+    private StoredFileTransaction storedFileTransaction;
 
     @Mock
     private ShipService shipService;
@@ -131,7 +131,7 @@ class CampaignServiceTest {
 
             assertThatThrownBy(() -> campaignService.uploadCampaignImage(CAMPAIGN_ID, null, PLAYER_ID))
                     .isInstanceOf(UnauthorizedAccessException.class);
-            verifyNoInteractions(fileStorageService);
+            verifyNoInteractions(storedFileTransaction);
         }
     }
 

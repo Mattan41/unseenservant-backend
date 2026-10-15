@@ -126,4 +126,10 @@ Build cache and per-architecture staging images live in the GitHub Container
 Registry (`ghcr.io/mattan41/unseenservant-backend:buildcache-<arch>`), not on
 Docker Hub; only the final multi-arch image is published to Docker Hub.
 
+The application serves requests on virtual threads
+(`spring.threads.virtual.enabled`); `server.tomcat.max-connections` and the
+Hikari pool are therefore the concurrency ceilings rather than Tomcat's
+worker-thread pool. See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) →
+"Concurrency" before changing either.
+
 ```

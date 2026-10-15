@@ -10,7 +10,7 @@ import org.kruskopf.backend.campaign.entity.CampaignUser;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.campaign.repository.CampaignUserRepository;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.filestorage.FileStorageService;
+import org.kruskopf.backend.filestorage.StoredFileTransaction;
 import org.kruskopf.backend.ship.ShipCrewCharacter;
 import org.kruskopf.backend.ship.dto.ShipCrewInputDTO;
 import org.kruskopf.backend.ship.dto.ShipCrewMemberDTO;
@@ -20,15 +20,16 @@ import org.kruskopf.backend.ship.repository.ShipCrewRepository;
 import org.kruskopf.backend.ship.repository.ShipRepository;
 import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.User;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -50,7 +51,7 @@ class ShipCrewServiceTest {
     @Mock
     private CampaignUserRepository campaignUserRepository;
     @Mock
-    private FileStorageService fileStorageService;
+    private StoredFileTransaction storedFileTransaction;
 
     @InjectMocks
     private ShipCrewService shipCrewService;
@@ -154,7 +155,7 @@ class ShipCrewServiceTest {
 
     @Test
     @DisplayName("addMyImage appends the stored URL to the caller's entry")
-    void addMyImage_appendsUrl() throws IOException {
+    void addMyImage_appendsUrl() {
         when(campaignUserRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(List.of(
                 participant(gm, CampaignRole.GM, "Game Master (gm)")));
         when(campaignRepository.findById(CAMPAIGN_ID)).thenReturn(Optional.of(campaign));
@@ -162,8 +163,13 @@ class ShipCrewServiceTest {
         when(shipCrewRepository.findByShipIdAndUserId(SHIP_ID, GM_ID))
                 .thenReturn(Optional.of(member(gm)));
         MultipartFile file = mock(MultipartFile.class);
-        when(fileStorageService.storeFile(eq(file), any(String.class), eq("IMAGE")))
-                .thenReturn("stored.png");
+        // The real helper stores the file and then runs the callback inside a
+        // transaction; stand in for that so the callback body is still exercised.
+        when(storedFileTransaction.storeThenRun(eq(file), any(String.class), eq("IMAGE"),
+                ArgumentMatchers.<Function<String, ShipCrewMemberDTO>>any()))
+                .thenAnswer(invocation -> invocation
+                        .<Function<String, ShipCrewMemberDTO>>getArgument(3)
+                        .apply("stored.png"));
         when(shipCrewRepository.save(any(ShipCrewMember.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 

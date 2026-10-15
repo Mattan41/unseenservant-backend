@@ -1,6 +1,8 @@
 package org.kruskopf.backend.filestorage;
 
 import org.kruskopf.backend.exception.InvalidFileFormatException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -21,6 +23,8 @@ import java.util.UUID;
  */
 @Service
 public class FileStorageService {
+
+    private static final Logger log = LoggerFactory.getLogger(FileStorageService.class);
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -140,5 +144,39 @@ public class FileStorageService {
             return fileName.substring(lastIndexOfDot);
         }
         return "";
+    }
+
+    /**
+     * Deletes a previously stored file.
+     * <p>
+     * Meant as a compensating action when the database work that was supposed to
+     * reference the file fails, so a failure to delete is logged rather than
+     * thrown: the caller is already handling a more important error, and a
+     * leftover file is an orphan, never a correctness problem.
+     *
+     * @param fileName The name returned by {@link #storeFile} — not a URL
+     * @throws IllegalArgumentException If the name would resolve outside the upload directory
+     */
+    public void deleteFile(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return;
+        }
+
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Path target = uploadPath.resolve(fileName).normalize();
+
+        // storeFile only ever generates a bare UUID-based name, but this is the one
+        // place a caller-supplied string reaches the filesystem, so refuse anything
+        // that escapes the upload directory.
+        if (!target.startsWith(uploadPath)) {
+            throw new IllegalArgumentException(
+                    "Refusing to delete outside the upload directory: " + fileName);
+        }
+
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException e) {
+            log.warn("Failed to delete stored file '{}'", fileName, e);
+        }
     }
 }

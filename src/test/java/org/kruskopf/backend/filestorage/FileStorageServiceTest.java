@@ -8,9 +8,11 @@ import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -84,5 +86,35 @@ class FileStorageServiceTest {
                 () -> fileStorageService.storeFile(file, "character", "IMAGE"));
 
         assertEquals("File size exceeds maximum limit of 5MB", exception.getMessage());
+    }
+
+    @Test
+    void deleteFileRemovesAStoredFile() throws Exception {
+        Path stored = Files.writeString(tempDir.resolve("character_1.png"), "image-bytes");
+        FileStorageService fileStorageService = newService();
+
+        fileStorageService.deleteFile("character_1.png");
+
+        assertFalse(Files.exists(stored));
+    }
+
+    @Test
+    void deleteFileIsANoOpWhenTheFileIsAlreadyGone() {
+        FileStorageService fileStorageService = newService();
+
+        // Must not throw: this runs as a compensating action inside a catch block.
+        fileStorageService.deleteFile("never-existed.png");
+        fileStorageService.deleteFile(null);
+        fileStorageService.deleteFile("  ");
+    }
+
+    @Test
+    void deleteFileRefusesAPathOutsideTheUploadDirectory() {
+        FileStorageService fileStorageService = newService();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> fileStorageService.deleteFile("../outside.png"));
+        assertThrows(IllegalArgumentException.class,
+                () -> fileStorageService.deleteFile("/etc/passwd"));
     }
 }
