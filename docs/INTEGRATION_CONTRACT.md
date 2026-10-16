@@ -18,7 +18,8 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 - Request: `{ username, password }`
 - Response body: `AuthDTO { id, username, email, role }`
 - JWT returned in `Authorization` response header: `Bearer <token>` — **not** in the body
-- Status: 200, 400, 401
+- Status: 200, 400, 401, 429
+- Throttled on two axes — the client address and the username (`LoginAttemptLimiter`) — because a guess costs a BCrypt comparison and a distributed attack on one account is invisible to a proxy. Over budget the answer is `429` with `Retry-After` in seconds, and a body that says nothing about whether the account exists. The frontend must treat 429 as "wait and retry", never as a logout: `src/api/lib/axios.js` has a branch for it, and nginx's own `limit_req` on the same path answers 429 too.
 
 **GET /api/auth/oauth-init**
 - Query params: `provider` (google|github), `origin`
@@ -26,7 +27,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 - Disabled in `demo` profile
 - Account linking: a login is matched by provider identity (`providerType` + `providerId`), then by email (case-insensitive) — an existing account with the same email is reused, no duplicate user is created
 - Google requires a verified email (`email_verified = true`); a rejected login (unverified or non-whitelisted email) redirects to `{FRONTEND_URL}/under-construction`, not `/oauth-redirect`
-- Status: 302, 400
+- Status: 302, 400, 429 (the handshake start is throttled per client address)
 
 **GET /api/auth/me**
 - Response: `AuthDTO { id, username, email, role }`
