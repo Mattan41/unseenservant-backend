@@ -41,6 +41,40 @@ instead of for threads. CPU-bound work such as Jackson serialization of
 `VirtualThreadsIT` asserts the property, the connector's executor type, and that
 a request is actually served on a virtual thread.
 
+## Login
+
+`/api/auth/login` is the one unauthenticated endpoint that costs real work: a
+database lookup plus a BCrypt comparison - tens of milliseconds of CPU - for every
+attempt, on a box sized for a handful of users. Two things follow from that.
+
+**The comparison runs whether or not the account exists.** An unknown username is
+hashed against a random value computed at startup (`unknownUserHash`), so the two
+outcomes cost the same and the response cannot be used to find out which usernames
+are real. Both answer 401 - `BadCredentialsException` is handled by
+`GlobalExceptionHandler`, because the controller throws it rather than the filter
+chain, which has its own entry point.
+
+**`ratelimit/LoginAttemptLimiter` brakes it on two axes**, the client address and
+the username, because a username sits in a POST body and neither Cloudflare nor
+nginx can count it. It is called at the top of `AuthController.login`, before the
+lookup, so a throttled attempt never spends the hash it is protecting; over budget
+it throws `RateLimitExceededException`, answered as 429 with `Retry-After`.
+
+Counting is a bounded in-memory map of fixed windows, configured under
+`app.rate-limit.*` in `application.properties`: per-instance, no shared store, no
+extra dependency. Two backend instances would each allow the full budget - that is
+the deliberate trade at this scale, and it is why the per-address `limit_req` in
+the frontend's nginx stays underneath it. The size ceiling is what stops a flood
+of distinct keys turning that map into a leak: while every tracked key is still
+inside its window, the limiter fails closed instead of growing. Addresses come
+from `ratelimit/ClientIpResolver`, which documents its own trust chain - behind
+the tunnel that is `CF-Connecting-IP` - and the frontend's `docs/DEPLOYMENT.md`
+("Rate limiting") carries the reasoning for the whole stack.
+
+The throttle is off in the `test` profile (`app.rate-limit.enabled=false`), so a
+test that signs in repeatedly is not answered with a 429 by a counter it never
+asked about; `LoginRateLimitIT` turns it on for the behaviour it is about.
+
 ## Database migrations
 
 Flyway owns the schema. Migrations are discovered from the single location
@@ -162,10 +196,15 @@ org.kruskopf.backend/
 │   ├── JpaConfig.java
 │   ├── SecurityConfig.java
 │   └── WhitelistLoader.java
+├── ratelimit/                            # Login throttle
+│   ├── LoginAttemptLimiter.java          # Fixed-window counters, per address + per username
+│   ├── RateLimitProperties.java          # app.rate-limit.*
+│   └── ClientIpResolver.java             # CF-Connecting-IP, else the last X-Forwarded-For entry
 ├── exception/
 │   ├── GlobalExceptionHandler.java
 │   ├── ResourceNotFoundException.java
 │   ├── UnauthorizedAccessException.java
+│   ├── RateLimitExceededException.java   # 429 + Retry-After
 │   └── UniqueConstraintViolationException.java
 └── filestorage/
     ├── FileStorageService.java
@@ -205,7 +244,7 @@ Each domain is a self-contained package with:
 
 ### Error handling
 - `GlobalExceptionHandler` handles all exceptions via `@RestControllerAdvice`
-- Custom exceptions: `ResourceNotFoundException` (404), `UnauthorizedAccessException` (403), `InvalidRequestException` (400 — a well-formed request the domain refuses, e.g. self-demotion), `UniqueConstraintViolationException` (409), `ConcurrentUpdateException` (409)
+- Custom exceptions: `ResourceNotFoundException` (404), `UnauthorizedAccessException` (403), `InvalidRequestException` (400 — a well-formed request the domain refuses, e.g. self-demotion), `UniqueConstraintViolationException` (409), `ConcurrentUpdateException` (409), `RateLimitExceededException` (429 with `Retry-After` — see *Login throttle*)
 
 ### External HTTP calls
 When backend needs to call external APIs (e.g. Open5e for lazy-loading content), use Spring's `RestClient` or `WebClient` — not `RestTemplate`.
