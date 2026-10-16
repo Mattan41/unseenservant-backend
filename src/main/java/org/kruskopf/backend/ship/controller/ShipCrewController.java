@@ -5,6 +5,7 @@ import org.kruskopf.backend.ship.dto.ShipCrewMemberDTO;
 import org.kruskopf.backend.ship.service.ShipCrewService;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,9 +24,13 @@ import java.util.List;
  * Ship crew manifest for a campaign. Any participant may read the manifest; each
  * participant may edit only their own entry ({@code /me}). Entries are retained
  * when a participant leaves and re-activate when they rejoin.
+ *
+ * <p>Participation and own-entry rules live in {@code ShipCrewService}; this
+ * annotation is the coarse role gate.
  */
 @RestController
 @RequestMapping("/api/campaigns/{campaignId}/ship/crew")
+@PreAuthorize("hasRole('ROLE_USER')")
 public class ShipCrewController {
 
     private final ShipCrewService shipCrewService;

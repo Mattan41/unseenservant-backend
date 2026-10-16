@@ -176,20 +176,175 @@ Returns a list of `UserDTO`, excluding the currently logged-in user.
 ### PATCH /api/users/{id} — Update user profile
 
 **Auth:** Yes (ROLE_USER; must be self or ADMIN)  
-**Status:** 200, 400, 401, 403, 404
+**Status:** 200, 400, 401, 403, 404, 409
 
-**Request:** Partial update as a JSON object:
+**Request:** `UserProfileUpdateDTO` — the **display name only**:
 ```json
 {
   "displayName": "New display name"
 }
 ```
 
+**Rules:**
+
+- `displayName` is required, stored trimmed, and may be at most 50 characters
+  (`400` otherwise, with the constraint message in the body).
+- `userName` and `email` are declared in the DTO but **refused** with `400`: the
+  email is the OAuth account-linking key (`findOrCreateOAuthUser` matches by it)
+  and the email-whitelist key, so it is not self-service — it needs a verified
+  flow or an administrator — and the username is the form-login identity. A
+  request that carries either changes nothing.
+- `409` when another account already uses that display name (`display_name` is
+  unique).
+- Properties outside the DTO are ignored, as elsewhere in this API.
+
 **Response (200):** `UserDTO`
 
 ---
 
-## 3. Campaigns
+## 3. Admin
+
+`/api/admin/**` — requires **ROLE_ADMIN**, twice over: the prefix is matched in
+`SecurityConfig` and every endpoint repeats the rule with
+`@PreAuthorize("hasRole('ROLE_ADMIN')")`.
+
+---
+
+### GET /api/admin/users — List every account
+
+**Auth:** Yes (ROLE_ADMIN)  
+**Status:** 200, 401, 403
+
+**Response (200):** `[ UserDTO ]`
+
+---
+
+### PATCH /api/admin/users/{id}/role — Change an account's role
+
+**Auth:** Yes (ROLE_ADMIN)  
+**Status:** 200, 400, 401, 403, 404
+
+**Request:**
+```json
+{
+  "role": "USER"
+}
+```
+
+**Response (200):** `UserDTO`
+
+**Rules:**
+
+- `400` — `You cannot change your own role.`
+- `400` — `The last administrator cannot be demoted.` This branch is defence in
+  depth: the caller is itself an administrator, so a demotion always leaves one
+  behind, and the self-demotion rule above is the reachable protection. It stays
+  for the day an authority is cached or taken from the JWT claim.
+- `400` — the role is missing or unknown (the message names the allowed values).
+- `404` — no such account.
+- Authorities are rebuilt from the database on every request
+  (`JwtAuthenticationFilter` → `CustomUserDetails`), so the new role applies on
+  the account's next request — the account does not have to log in again.
+- An **active** `email_whitelist` row for the same address is set to the same
+  role, so a rebuilt database does not silently demote the account at its next
+  login.
+
+---
+
+### GET /api/admin/whitelist — List the email whitelist
+
+**Auth:** Yes (ROLE_ADMIN)  
+**Status:** 200, 401, 403
+
+**Response (200):**
+```json
+[
+  {
+    "id": 1,
+    "email": "someone@example.com",
+    "role": "USER",
+    "active": true
+  }
+]
+```
+
+Revoked rows are included (`active: false`) so a decision can be revisited.
+
+---
+
+### POST /api/admin/whitelist — Admit an address
+
+**Auth:** Yes (ROLE_ADMIN)  
+**Status:** 201, 400, 401, 403
+
+**Request:**
+```json
+{
+  "email": "Someone@Example.com",
+  "role": "USER"
+}
+```
+
+Stored lower-cased. The `email` column is unique and removal is a soft delete, so
+re-adding a revoked address **re-activates that row** instead of inserting a
+second one.
+
+**Response (201):** `WhitelistEntryDTO`
+
+---
+
+### PATCH /api/admin/whitelist/{id} — Re-role, revoke or re-admit
+
+**Auth:** Yes (ROLE_ADMIN)  
+**Status:** 200, 400, 401, 403, 404
+
+**Request:** `{ "role": "ADMIN" }`, `{ "active": false }`, or both. A body with
+neither is refused with `400` (*Nothing to update*).
+
+**Response (200):** `WhitelistEntryDTO`
+
+---
+
+### DELETE /api/admin/whitelist/{id} — Revoke an address
+
+**Auth:** Yes (ROLE_ADMIN)  
+**Status:** 204, 401, 403, 404
+
+Soft delete: the row remains with `active = false` but stops admitting logins.
+
+---
+
+### WhitelistEntryDTO
+
+```json
+{
+  "id": 1,
+  "email": "someone@example.com",
+  "role": "USER",
+  "active": true
+}
+```
+
+---
+
+### Whitelist role vs. account role
+
+Two different switches, and the Admin UI says so:
+
+- The whitelist is the **login gate**. `CustomOAuth2SuccessHandler` refuses an
+  OAuth login whose address has no active row, and reads the row's `role` to
+  decide what a *newly created* account is granted.
+- An account that already exists keeps its own role —
+  `UserService.findOrCreateOAuthUser` returns an email match untouched — so
+  editing a whitelist role changes nothing for someone who has already logged in.
+  That is what `PATCH /api/admin/users/{id}/role` is for.
+- Addresses are matched case-insensitively on the login path and stored
+  lower-cased on write (including `WhitelistLoader` seeding), so hand-typed casing
+  cannot lock anyone out.
+
+---
+
+## 4. Campaigns
 
 `/api/campaigns/**` — requires authentication.  
 [USES: User]
@@ -378,7 +533,7 @@ Valid `role` values: `GM` | `PLAYER`
 
 ---
 
-## 4. Player Characters
+## 5. Player Characters
 
 `/api/characters/**` — requires authentication.  
 [USES: Campaign, User]
@@ -616,7 +771,7 @@ Sets `campaignId = null` without deleting the character.
 
 ---
 
-## 5. Messages
+## 6. Messages
 
 `/api/messages/**` — requires authentication (via SecurityConfig).  
 [USES: Campaign, User]
@@ -676,7 +831,7 @@ Intended for per-campaign message boards. Messages are visible only to campaign 
 
 ---
 
-## 6. Spells
+## 7. Spells
 
 `/api/spells/**` and `/api/characters/{characterId}/spells` — requires authentication.  
 [USES: GameCharacter, Dnd5eCharacterData]

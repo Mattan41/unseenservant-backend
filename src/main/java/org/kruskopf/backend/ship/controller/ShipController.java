@@ -5,6 +5,7 @@ import org.kruskopf.backend.ship.dto.ShipInputDTO;
 import org.kruskopf.backend.ship.service.ShipService;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,9 +22,13 @@ import org.springframework.web.multipart.MultipartFile;
  * Offworlders ship for a campaign. Any campaign participant may read and edit;
  * there is no delete endpoint (the ship is retained even if the campaign's
  * primary system changes away from OFFWORLDERS).
+ *
+ * <p>Participation is checked in {@code ShipService}; this annotation is the
+ * coarse role gate.
  */
 @RestController
 @RequestMapping("/api/campaigns/{campaignId}/ship")
+@PreAuthorize("hasRole('ROLE_USER')")
 public class ShipController {
 
     private final ShipService shipService;

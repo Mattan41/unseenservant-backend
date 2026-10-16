@@ -14,6 +14,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/campaigns")
+// Every campaign endpoint is role-shaped at this level; the resource-shaped rules
+// (owner / GM / participant) live in CampaignService behind CampaignPermissionService.
+@PreAuthorize("hasRole('ROLE_USER')")
 public class CampaignController {
 
     private final CampaignService campaignService;
@@ -50,7 +53,6 @@ public class CampaignController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<List<CampaignResponseDTO>> getAllCampaignsForCurrentUser(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long userId = customUserDetails.user().getId();
         List<CampaignResponseDTO> campaigns = campaignService.getAllCampaignsForCurrentUser(userId);

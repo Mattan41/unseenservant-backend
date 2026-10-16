@@ -1,8 +1,11 @@
 package org.kruskopf.backend.user.controller;
 
+import jakarta.validation.Valid;
+import org.kruskopf.backend.exception.InvalidRequestException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.dto.UserDTO;
+import org.kruskopf.backend.user.dto.UserProfileUpdateDTO;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
 import org.kruskopf.backend.user.service.UserService;
@@ -13,7 +16,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -65,7 +67,7 @@ public class UserController {
     @PatchMapping("/{id}")
     public ResponseEntity<UserDTO> updateUser(
             @PathVariable Long id,
-            @RequestBody Map<String, Object> updates,
+            @Valid @RequestBody UserProfileUpdateDTO request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         boolean isAdmin = currentUser.user().getRole() == UserRole.ADMIN;
@@ -73,7 +75,15 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        User updatedUser = userService.partialUpdate(id, updates)
+        // Refused rather than ignored: both fields used to be writable through this
+        // endpoint, and the email in particular must not be self-service.
+        if (request.userName() != null || request.email() != null) {
+            throw new InvalidRequestException(
+                    "Only the display name can be changed here. An email change needs a verified flow, "
+                            + "and the username is the form-login identity.");
+        }
+
+        User updatedUser = userService.updateDisplayName(id, request.displayName())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         UserDTO userDTO = userService.toDTO(updatedUser);
         return ResponseEntity.ok(userDTO);

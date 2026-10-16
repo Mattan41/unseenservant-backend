@@ -67,8 +67,11 @@ public class SecurityConfig {
                     // matcher would only cover the bare path and leave every endpoint
                     // below it to anyRequest().denyAll().
                     auth.requestMatchers("/api/admin/**").hasRole(UserRole.ADMIN.name());
-                    auth.requestMatchers("/api/auth/**").permitAll();
+                    // The specific matcher must come before the broad one: Spring Security
+                    // takes the FIRST match, so "/api/auth/**" would otherwise make
+                    // /api/auth/me public and leave it to the controller's own check.
                     auth.requestMatchers("/api/auth/me").authenticated();
+                    auth.requestMatchers("/api/auth/**").permitAll();
                     auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**","/api/spells/**").authenticated();
                     auth.anyRequest().denyAll();
                 })
@@ -104,8 +107,9 @@ public class SecurityConfig {
                     // Administrator surface — see the non-demo chain above for why the
                     // pattern, and not the bare prefix, is the matcher that matters.
                     auth.requestMatchers("/api/admin/**").hasRole(UserRole.ADMIN.name());
-                    auth.requestMatchers("/api/auth/**").permitAll();
+                    // Same ordering rule as the non-demo chain: the specific matcher first.
                     auth.requestMatchers("/api/auth/me").authenticated();
+                    auth.requestMatchers("/api/auth/**").permitAll();
                     auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**","/api/spells/**").authenticated();
                     auth.anyRequest().denyAll();
                 })

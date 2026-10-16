@@ -5,6 +5,7 @@ import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
+import org.kruskopf.backend.exception.InvalidRequestException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.filestorage.StoredFileTransaction;
@@ -45,9 +46,19 @@ public class CampaignService {
         this.shipService = shipService;
     }
 
-// TODO: Move all participant methods to a dedicated CampaignParticipantService.
-//       Publish a ParticipantRemovedEvent and CampaignDeletedEvent via ApplicationEventPublisher
-//       to fully decouple PlayerCharacterService from the campaign domain.
+// TODO: Split the participant methods — updateParticipants (see the note on its
+    //       growing complexity below), updateParticipantNickname, updateParticipantRole and
+    //       transferOwnership, plus the getCampaignRole/getEffectiveNickname helpers — into a
+    //       CampaignParticipantService. They share mapToResponseDTO with the campaign methods,
+    //       so the mapping has to move out first: a CampaignMapper alongside the existing
+    //       ShipMapper/MessageMapper is the established pattern, and every mapToResponseDTO
+    //       call site (and CampaignServiceTest, which injects this service's collaborators)
+    //       has to move with it. Two follow-ups on top of the split:
+    //         • the character unlink on removal (gameCharacterService.removeAllCharactersFromCampaign)
+    //           keeps the service coupled to the character domain — publishing
+    //           ParticipantRemovedEvent/CampaignDeletedEvent via ApplicationEventPublisher is what
+    //           would decouple it, and that is its own change with its own transaction semantics;
+    //         • updateParticipants should itself be broken into addParticipants/removeParticipants.
 
     @Transactional
     public CampaignResponseDTO createCampaign(CampaignCreationDTO dto) {
@@ -296,7 +307,8 @@ public class CampaignService {
         try {
             role = CampaignRole.valueOf(roleString);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid role: " + roleString + ". Valid roles are PLAYER and GM.");
+            // A client error, not a server fault: the caller sent a role that does not exist.
+            throw new InvalidRequestException("Invalid role: " + roleString + ". Valid roles are PLAYER and GM.");
         }
 
         CampaignUser participant = campaign.getParticipants().stream()
@@ -325,7 +337,7 @@ public class CampaignService {
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + newOwnerId));
 
         if (newOwner.equals(campaign.getOwner())) {
-            throw new IllegalArgumentException("New owner must be different from the current owner");
+            throw new InvalidRequestException("New owner must be different from the current owner");
         }
 
         // Validate that new owner is a participant
@@ -333,7 +345,7 @@ public class CampaignService {
                 .anyMatch(p -> p.getUser().getId().equals(newOwnerId));
 
         if (!isParticipant) {
-            throw new IllegalArgumentException("New owner must be a participant in the campaign");
+            throw new InvalidRequestException("New owner must be a participant in the campaign");
         }
 
         // Transfer ownership

@@ -11,13 +11,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class UserService {
-
-    // TODO: use DTOs for more narrow updates, use Preauthorizate
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -84,34 +81,23 @@ public class UserService {
         return userRepository.findByUserName(userName).orElseThrow(() -> new ResourceNotFoundException("User not found: " + userName));
     }
 
-    // (Partial Update - PATCH) - update specific fields of a user
-    public Optional<User> partialUpdate(long id, Map<String, Object> updates) {
+    // (Display name update) — the self-service PATCH. Narrow by design: see
+    // UserProfileUpdateDTO for why the email and username are not updatable here.
+    public Optional<User> updateDisplayName(long id, String displayName) {
         Optional<User> existingUserOpt = userRepository.findById(id);
         if (existingUserOpt.isEmpty()) {
             return Optional.empty();
         }
 
         User user = existingUserOpt.get();
+        String normalized = displayName.trim();
 
-        // update the fields based on input
-        updates.forEach((key, value) -> {
-            switch (key) {
-                case "userName" -> user.setUserName((String) value);
-                case "email" -> user.setEmail((String) value);
-                case "displayName" -> {
-                    String newDisplayName = (String) value;
-                    if (userRepository.existsByDisplayNameAndIdNot(newDisplayName, user.getId())) {
-                        throw new UniqueConstraintViolationException("displayName", newDisplayName);
-                    }
-                    user.setDisplayName(newDisplayName);
-                }
+        if (userRepository.existsByDisplayNameAndIdNot(normalized, user.getId())) {
+            throw new UniqueConstraintViolationException("displayName", normalized);
+        }
 
-                default -> throw new IllegalArgumentException("Field " + key + " not supported for update");
-            }
-        });
-
-        User updatedUser = userRepository.save(user);
-        return Optional.of(updatedUser);
+        user.setDisplayName(normalized);
+        return Optional.of(userRepository.save(user));
     }
 
     // Method to delete a user by ID - we could also use soft delete with a boolean field, perhaps remove this method

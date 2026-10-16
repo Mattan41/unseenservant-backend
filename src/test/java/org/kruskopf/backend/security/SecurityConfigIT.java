@@ -21,7 +21,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>
  * NOTE: This test does NOT validate controller logic that depends on CustomUserDetails.
  * Controllers using @AuthenticationPrincipal CustomUserDetails are tested separately
- * in their own integration test classes (e.g., PlayerCharacterControllerIntegrationTest).
+ * in their own integration test classes (e.g. UserControllerIT, AdminControllerIT,
+ * MessageControllerIT). The blanket rule — no /api endpoint answers an anonymous
+ * caller — lives in EndpointAuthenticationIT.
  */
 @AutoConfigureMockMvc
 @DisplayName("Security Configuration Tests")
