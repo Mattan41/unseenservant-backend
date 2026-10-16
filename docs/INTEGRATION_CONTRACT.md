@@ -52,9 +52,68 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 
 **PATCH /api/users/{id}**
 - Requires: ROLE_USER, must be self or ADMIN
-- Request: partial JSON object, e.g. `{ "displayName": "..." }`
+- Request: `UserProfileUpdateDTO { displayName }` — the display name only; trimmed, max 50 chars
+- Refused with 400: `userName` and `email`. The email is the OAuth account-linking
+  key (`findOrCreateOAuthUser` matches by it) and the whitelist key, so it is not
+  self-service; the username is the form-login identity. A request carrying either
+  changes nothing.
+- Response: `UserDTO`
+- Status: 200, 400, 401, 403, 404, 409 (display name already in use)
+
+---
+
+## Admin
+
+Every endpoint below requires **ROLE_ADMIN**, twice over: the whole `/api/admin/**`
+prefix is matched in `SecurityConfig`, and each controller repeats the rule with
+`@PreAuthorize("hasRole('ROLE_ADMIN')")`.
+
+**GET /api/admin/users**
+- Response: `[ UserDTO ]` — every account
+- Status: 200, 401, 403
+
+**PATCH /api/admin/users/{id}/role**
+- Request: `{ role: "USER" | "ADMIN" }`
 - Response: `UserDTO`
 - Status: 200, 400, 401, 403, 404
+- Rules: 400 when the caller targets themselves ("You cannot change your own role.")
+  or when the target is the last administrator ("The last administrator cannot be
+  demoted."). Authorities are rebuilt from the database on every request
+  (`JwtAuthenticationFilter`), so the new role is effective on the account's next
+  request — no re-login needed. An **active** whitelist row for the same email is
+  set to the same role, so a rebuilt database does not silently demote the account
+  at its next login.
+
+**GET /api/admin/whitelist**
+- Response: `[ WhitelistEntryDTO { id, email, role, active } ]` — includes revoked rows
+- Status: 200, 401, 403
+
+**POST /api/admin/whitelist**
+- Request: `{ email, role }` — the address is stored lower-cased
+- Response: `WhitelistEntryDTO`
+- Status: 201, 400, 401, 403
+- Rules: re-adding an address whose row was revoked **re-activates that row**; the
+  `email` column is UNIQUE and removal is a soft delete, so an insert would fail.
+
+**PATCH /api/admin/whitelist/{id}**
+- Request: `{ role?, active? }` — a null field is left unchanged; 400 when neither is given
+- Response: `WhitelistEntryDTO`
+- Status: 200, 400, 401, 403, 404
+
+**DELETE /api/admin/whitelist/{id}**
+- Soft delete: the row remains with `active = false`, so a decision can be revisited
+- Status: 204, 401, 403, 404
+
+**Whitelist semantics — two different switches**
+
+- The whitelist is the **login gate**: an OAuth login whose email has no active row
+  is refused (`CustomOAuth2SuccessHandler`, redirecting to `/under-construction`).
+- Its `role` only decides what a **first** login is granted. An existing account is
+  returned untouched by `findOrCreateOAuthUser`, so changing a whitelist role has no
+  effect on an account that already exists — that is what `PATCH /api/admin/users/{id}/role`
+  is for. The Admin UI states this rather than pretending one control does both.
+- Lookups on the login path are case-insensitive, and addresses are stored lower-cased
+  on write (whitelist seeding included), so hand-typed casing cannot lock anyone out.
 
 ---
 

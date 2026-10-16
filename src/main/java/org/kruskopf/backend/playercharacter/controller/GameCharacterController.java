@@ -25,8 +25,6 @@ public class GameCharacterController {
         this.gameCharacterService = gameCharacterService;
     }
 
-    // add preauthorize to all endpoints
-
     @PostMapping
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<CharacterOutputDTO> createCharacter(

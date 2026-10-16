@@ -6,6 +6,7 @@ import org.kruskopf.backend.message.dto.MessageDTO;
 import org.kruskopf.backend.message.service.MessageService;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +14,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/messages")
+// Participant/sender rules live in MessageService; this is the coarse role gate.
+@PreAuthorize("hasRole('ROLE_USER')")
 public class MessageController {
 
     private final MessageService messageService;

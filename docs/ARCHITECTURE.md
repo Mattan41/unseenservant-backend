@@ -142,6 +142,14 @@ org.kruskopf.backend/
 │   ├── service/UserService.java
 │   ├── CustomUserDetails.java
 │   └── CustomUserDetailsService.java
+├── admin/                                # Administrator surface (ROLE_ADMIN only)
+│   ├── controller/AdminController.java   # /api/admin/** — accounts + email whitelist
+│   ├── dto/
+│   │   ├── WhitelistEntryDTO.java
+│   │   ├── WhitelistEntryRequest.java
+│   │   ├── WhitelistUpdateRequest.java
+│   │   └── RoleUpdateRequest.java
+│   └── service/AdminService.java         # Role changes + whitelist CRUD, with the guards
 ├── whitelist/
 │   ├── EmailWhitelist.java
 │   ├── EmailWhitelistRepository.java
@@ -185,12 +193,19 @@ Each domain is a self-contained package with:
 - OAuth2 success handler issues JWT after Google/GitHub login (`CustomOAuth2SuccessHandler`)
 - OAuth logins are matched by provider identity (`providerType` + `providerId`), then by email (case-insensitive) so an existing account is reused rather than duplicated
 - Google requires a verified email; a rejected login (unverified or non-whitelisted email) redirects to `{FRONTEND_URL}/under-construction`
-- Email whitelist controls who can register (`EmailWhitelistService`)
-- All `/api/**` endpoints require authentication unless explicitly permitted
+- Email whitelist controls who can register (`EmailWhitelistService`); it is the **login gate**, and its `role` only decides what a *first* login is granted — an existing account keeps its own role
+- All `/api/**` endpoints require authentication unless explicitly permitted (`SecurityConfig` matchers)
+- **Authorisation is two-layered:** role-shaped rules use `@PreAuthorize`
+  (`hasRole('ROLE_USER')` / `hasRole('ROLE_ADMIN')`, e.g. `AdminController`,
+  `UserController`, `GameCharacterController`, the spell controllers), while
+  **resource-shaped** rules ("is this user the campaign's owner / GM / a
+  participant?") live in the services behind `CampaignPermissionService` and
+  raise `UnauthorizedAccessException` (403). SpEL cannot express those without a
+  second database read, so they deliberately stay in the service layer.
 
 ### Error handling
 - `GlobalExceptionHandler` handles all exceptions via `@RestControllerAdvice`
-- Custom exceptions: `ResourceNotFoundException` (404), `UnauthorizedAccessException` (403), `UniqueConstraintViolationException` (409)
+- Custom exceptions: `ResourceNotFoundException` (404), `UnauthorizedAccessException` (403), `InvalidRequestException` (400 — a well-formed request the domain refuses, e.g. self-demotion), `UniqueConstraintViolationException` (409), `ConcurrentUpdateException` (409)
 
 ### External HTTP calls
 When backend needs to call external APIs (e.g. Open5e for lazy-loading content), use Spring's `RestClient` or `WebClient` — not `RestTemplate`.
@@ -209,7 +224,7 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | `ShipCrewMember` | id, shipId + userId (unique), notes, imageUrls (JSON), characters (JSON) | one crew entry per participant; keyed on the **User** (not CampaignUser) so it survives a participant leaving and re-activates on rejoin; `characters` is `[ { name, roleOnShip } ]` (free text) |
 | `Message` | id, content, timestamp | belongs to Campaign |
 | `Spell` | slug (PK), name, rawJsonData (TEXT) | many-to-many with Dnd5eCharacterData; stored in local DB from bulk Open5e import |
-| `EmailWhitelist` | email | standalone |
+| `EmailWhitelist` | id, email, role, active | standalone; **login gate** for OAuth — a revoked row is soft-deleted (`active = false`) so the decision can be revisited, and the address column is unique, so re-admitting reactivates that row. `role` applies to a *first* login only |
 
 ## Tests
 - Integration tests use Testcontainers (`AbstractIntegrationTest`)
