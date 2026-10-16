@@ -27,6 +27,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<String> handleInvalidRequestException(InvalidRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
     @ExceptionHandler(ConcurrentUpdateException.class)
     public ResponseEntity<String> handleConcurrentUpdateException(ConcurrentUpdateException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());

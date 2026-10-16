@@ -127,6 +127,28 @@ public class UserService {
         return UserDTO.fromUser(user);
     }
 
+    /** Every account, for the admin users table. */
+    public List<UserDTO> findAllUsers() {
+        return userRepository.findAll().stream()
+                .map(UserDTO::fromUser)
+                .toList();
+    }
+
+    /**
+     * Sets an account's role.
+     * <p>
+     * Deliberately separate from {@link #partialUpdate(long, Map)}: that path is
+     * the self-service PATCH and must never accept a role, while this one is only
+     * reachable through the admin surface, where {@code AdminService} applies the
+     * self-demotion and last-administrator guards.
+     */
+    public User updateRole(long id, UserRole role) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        user.setRole(role);
+        return userRepository.save(user);
+    }
+
     public UserDTO findUserDTOById(long id) {
         return userRepository.findById(id)
                 .map(this::toDTO) // convert User to UserDTO
