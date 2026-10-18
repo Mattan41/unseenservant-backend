@@ -19,7 +19,9 @@ import java.time.LocalDateTime;
  * Holds only fields that are meaningful for any tabletop RPG system. All
  * system-specific data is stored in a dedicated 1:1 entity selected by
  * {@link #systemType} (e.g. {@link Dnd5eCharacterData} for {@link GameSystem#DND5E}
- * or {@link OffworldersCharacterData} for {@link GameSystem#OFFWORLDERS}).
+ * or {@link OffworldersCharacterData} for {@link GameSystem#OFFWORLDERS}); when
+ * {@link #systemType} is {@code null} the character has no system and no data
+ * block is attached.
  */
 @Entity
 @EntityListeners(AuditingEntityListener.class)
@@ -41,9 +43,14 @@ public class GameCharacter {
     @Column(nullable = false)
     private String name;
 
+    /**
+     * Ruleset this character is played in, or {@code null} when it deliberately
+     * has none: a character may be created without a system, and then only the
+     * generic core fields exist — neither data block is attached.
+     */
     @Enumerated(EnumType.STRING)
-    @Column(name = "system_type", nullable = false)
-    private GameSystem systemType = GameSystem.DND5E;
+    @Column(name = "system_type")
+    private GameSystem systemType;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
@@ -89,7 +96,9 @@ public class GameCharacter {
         this.owner = owner;
         this.campaign = campaign;
         this.name = name;
-        this.systemType = systemType != null ? systemType : GameSystem.DND5E;
+        // No system is a valid choice, so it is stored as-is instead of being
+        // defaulted to a ruleset the player never picked.
+        this.systemType = systemType;
         this.createdAt = LocalDateTime.now();
     }
 

@@ -78,8 +78,9 @@ migrations is safe.
 | V14 | `V14__add_campaign_world_lore.sql` | SQL | Add `campaign.world_lore` (public world lore & background) |
 | V15 | `V15__add_ship_credits.sql` | SQL | Add `ship.credits` (shared crew credits balance) |
 | V16 | `V16__add_ship_crew.sql` | SQL | Add `ship_crew` (one crew entry per participant) |
+| V17 | `V17__allow_character_without_system.sql` | SQL | Make `game_character.system_type` nullable (a character may be created with no game system) and CHECK it to `NULL` or a registered system (`DND5E`, `OFFWORLDERS`) — extend the CHECK when `GameSystem` gains a constant |
 
-Versions are complete and strictly increasing (1–16, no gaps or duplicates).
+Versions are complete and strictly increasing (1–17, no gaps or duplicates).
 
 ## Rules
 
@@ -111,4 +112,4 @@ FROM flyway_schema_history
 ORDER BY installed_rank;
 ```
 
-should list V1–V16 with `success = 1`.
+should list V1–V17 with `success = 1`.

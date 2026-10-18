@@ -123,7 +123,7 @@ prefix is matched in `SecurityConfig`, and each controller repeats the rule with
 **POST /api/characters**
 - Requires: ROLE_USER
 - Request: `CharacterInputDTO { ownerId?, campaignId?, name, systemType, notes?, avatarUrl?, appearance?, backstory?, privateBackstory?, dnd5e?, offworlders? }`
-  - `systemType`: `DND5E` | `OFFWORLDERS`
+  - `systemType`: `DND5E` | `OFFWORLDERS`, optional — `null`/omitted creates a character with **no game system**: only the generic core fields (name, notes, avatarUrl, appearance, backstory, privateBackstory) exist and neither nested block is stored
   - `appearance` / `backstory` / `privateBackstory`: free-text fields on the core character (any system). `appearance` and `backstory` are visible to every campaign member; `privateBackstory` is visible to the owner and the campaign GM only. Writes are owner-only (PATCH already requires ownership; a GM has read access, not write).
   - `dnd5e`: `{ level (1–20), characterClass, race, hitPoints?, armorClass?, stats }` — only used when `systemType === 'DND5E'`
   - `offworlders`: `{ characterClass?, species?, xp?, health?, currentHealth?, healthModifier?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, weapons?, items? }` — only used when `systemType === 'OFFWORLDERS'`
@@ -157,13 +157,15 @@ prefix is matched in `SecurityConfig`, and each controller repeats the rule with
 - Requires: ROLE_USER
 - Response: `CharacterOutputDTO { id, ownerId, campaignId, name, systemType, notes, avatarUrl, appearance, backstory, privateBackstory, dnd5e, offworlders, createdAt, updatedAt }`
   - `privateBackstory` is `null` unless the requester is the character's owner or the campaign GM
+  - `systemType` is `null` when the character was created without a game system (see POST) — nothing is defaulted in its place
   - `dnd5e` is a nullable nested block `{ level, characterClass, race, hitPoints, armorClass, stats }`, present only when `systemType === 'DND5E'`
   - `offworlders` is a nullable nested block `{ characterClass, species, xp, health, currentHealth, healthModifier, armor, supply, supplyMax, credits, stats, skills, abilities, weapons, items }`, present only when `systemType === 'OFFWORLDERS'`
+  - both blocks are `null` on a system-less character
 - Status: 200, 401, 404
 
 **PATCH /api/characters/{id}**
 - Requires: ROLE_USER, must be owner
-- Request: `CharacterInputDTO` — partial, null-safe patch. Omitted/null fields are left unchanged. The nested `dnd5e` object is patch-applied field-by-field when `systemType === 'DND5E'`; likewise the nested `offworlders` object when `systemType === 'OFFWORLDERS'`.
+- Request: `CharacterInputDTO` — partial, null-safe patch. Omitted/null fields are left unchanged, `systemType` included (a null never clears or re-defaults the stored system). The nested `dnd5e` object is patch-applied field-by-field when `systemType === 'DND5E'`; likewise the nested `offworlders` object when `systemType === 'OFFWORLDERS'`.
 - Response: `CharacterOutputDTO`
 - Status: 200, 400, 401, 403, 404
 

@@ -12,14 +12,16 @@ import java.time.LocalDateTime;
  * System-agnostic output payload for a character.
  * <p>
  * The nested {@code dnd5e} / {@code offworlders} blocks are present only when
- * {@code systemType} matches that system; they are {@code null} otherwise.
+ * {@code systemType} matches that system; they are {@code null} otherwise, and
+ * they are both {@code null} when {@code systemType} is {@code null} (a character
+ * created without a game system).
  */
 public record CharacterOutputDTO(
         Long id,
         @JsonProperty("ownerId") Long ownerId,
         @Nullable Long campaignId,
         String name,
-        GameSystem systemType,
+        @Nullable GameSystem systemType,
         @Nullable String notes,
         String avatarUrl,
         @Nullable String appearance,

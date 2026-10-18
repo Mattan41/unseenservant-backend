@@ -122,6 +122,22 @@ public final class TestDataFactory {
     }
 
     /**
+     * Builds a transient {@link GameCharacter} that deliberately has no game
+     * system: {@code systemType} is null and neither system data block is
+     * attached, so only the generic core fields exist.
+     *
+     * @param owner the owning {@link User}
+     * @return a transient system-less {@link GameCharacter}
+     */
+    public static GameCharacter aSystemlessCharacter(User owner) {
+        GameCharacter character = new GameCharacter();
+        character.setOwner(owner);
+        character.setName("Test Drifter");
+        character.setNotes("Only the generic fields exist.");
+        return character;
+    }
+
+    /**
      * Builds a valid Offworlders {@link GameCharacter} with all mandatory fields
      * set. An {@link OffworldersCharacterData} block (with empty skill/ability
      * lists) is attached and {@code campaign} is left null.
