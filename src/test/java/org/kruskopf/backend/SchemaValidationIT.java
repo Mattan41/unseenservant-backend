@@ -2,13 +2,17 @@ package org.kruskopf.backend;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Boots the full application context with a Flyway-managed schema and Hibernate
@@ -39,6 +43,9 @@ class SchemaValidationIT {
             .withUsername("testuser")
             .withPassword("testpass");
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Test
     @DisplayName("Context starts with migrations applied and entities validated against the schema")
     void contextLoadsWithValidatedSchema() {
@@ -46,5 +53,26 @@ class SchemaValidationIT {
         // If Flyway fails to validate/apply migrations, or Hibernate finds the
         // schema does not match the entities, context startup fails and so does
         // this test.
+    }
+
+    /**
+     * A character may have no game system, which is stored as NULL — but the
+     * column may still only hold a system the code can render. V17 adds that
+     * CHECK; this pins it so it cannot quietly disappear in a later migration.
+     */
+    @Test
+    @DisplayName("system_type is constrained to NULL or a registered game system")
+    void systemTypeCheckConstraintIsPresent() {
+        String clause = jdbcTemplate.queryForObject(
+                "SELECT CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS "
+                        + "WHERE CONSTRAINT_SCHEMA = DATABASE() "
+                        + "AND CONSTRAINT_NAME = 'chk_character_system_type'",
+                String.class);
+
+        assertThat(clause.toLowerCase())
+                .contains("system_type")
+                .contains("is null")
+                .contains("dnd5e")
+                .contains("offworlders");
     }
 }

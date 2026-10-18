@@ -94,7 +94,10 @@ public class GameCharacterMapper {
     }
 
     public GameCharacter toEntity(CharacterInputDTO dto, User owner, Campaign campaign) {
-        GameSystem system = dto.systemType() != null ? dto.systemType() : GameSystem.DND5E;
+        // A character may be created without a game system: keep null rather than
+        // defaulting, so nothing but the generic core fields is stored and no
+        // ruleset block is attached.
+        GameSystem system = dto.systemType();
 
         GameCharacter character = new GameCharacter(owner, campaign, dto.name(), system);
         character.setNotes(dto.notes());

@@ -104,6 +104,25 @@ class GameCharacterMapperTest {
             assertThat(dto.dnd5e()).isNotNull();
             assertThat(dto.offworlders()).isNull();
         }
+
+        @Test
+        @DisplayName("Maps a character with no game system, leaving both blocks null")
+        void mapsSystemlessCharacter() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            ReflectionTestUtils.setField(owner, "id", 7L);
+            GameCharacter character = TestDataFactory.aSystemlessCharacter(owner);
+            ReflectionTestUtils.setField(character, "id", 42L);
+
+            // Act
+            CharacterOutputDTO dto = mapper.toOutputDTO(character);
+
+            // Assert
+            assertThat(dto.systemType()).isNull();
+            assertThat(dto.dnd5e()).isNull();
+            assertThat(dto.offworlders()).isNull();
+            assertThat(dto.name()).isEqualTo("Test Drifter");
+        }
     }
 
     @Nested
@@ -183,6 +202,37 @@ class GameCharacterMapperTest {
             assertThat(character.getOffworldersData().getHealth()).isEqualTo(12);
             assertThat(character.getOffworldersData().getSkills()).isEmpty();
             assertThat(character.getOffworldersData().getAbilities()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Creates a character with no game system when systemType is omitted")
+        void createsSystemlessCharacter() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            CharacterInputDTO dto = new CharacterInputDTO(
+                    null,
+                    null,
+                    "Drifter",
+                    null,
+                    "Just some notes",
+                    null,
+                    "A dusty coat",
+                    null,
+                    null,
+                    null,
+                    null);
+
+            // Act
+            GameCharacter character = mapper.toEntity(dto, owner, null);
+
+            // Assert
+            assertThat(character.getSystemType()).isNull();
+            assertThat(character.getDnd5eData()).isNull();
+            assertThat(character.getOffworldersData()).isNull();
+            // The generic core fields are stored as usual.
+            assertThat(character.getName()).isEqualTo("Drifter");
+            assertThat(character.getNotes()).isEqualTo("Just some notes");
+            assertThat(character.getAppearance()).isEqualTo("A dusty coat");
         }
 
         @Test
@@ -274,6 +324,40 @@ class GameCharacterMapperTest {
             // Assert
             assertThat(character.getName()).isEqualTo("Renamed");
             assertThat(character.getOffworldersData()).isNull();
+        }
+
+        @Test
+        @DisplayName("Leaves the system alone when the patch omits it (null means unchanged)")
+        void keepsSystemWhenOmitted() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            GameCharacter character = TestDataFactory.aCharacter(owner);
+            CharacterInputDTO dto = new CharacterInputDTO(
+                    null, null, "Renamed", null, null, null, null, null, null, null, null);
+
+            // Act
+            mapper.patchEntity(character, dto);
+
+            // Assert
+            assertThat(character.getName()).isEqualTo("Renamed");
+            assertThat(character.getSystemType()).isEqualTo(GameSystem.DND5E);
+        }
+
+        @Test
+        @DisplayName("Keeps a system-less character system-less")
+        void keepsSystemlessCharacterSystemless() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            GameCharacter character = TestDataFactory.aSystemlessCharacter(owner);
+            CharacterInputDTO dto = new CharacterInputDTO(
+                    null, null, null, null, "New notes", null, null, null, null, null, null);
+
+            // Act
+            mapper.patchEntity(character, dto);
+
+            // Assert
+            assertThat(character.getSystemType()).isNull();
+            assertThat(character.getNotes()).isEqualTo("New notes");
         }
     }
 }

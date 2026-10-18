@@ -4,18 +4,22 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.kruskopf.backend.dnd5e.dto.Dnd5eCharacterDataInputDTO;
 import org.kruskopf.backend.offworlders.dto.OffworldersCharacterDataInputDTO;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
+import org.springframework.lang.Nullable;
 
 /**
  * System-agnostic input payload for creating/updating a character.
  * <p>
  * System-specific data is carried in the optional {@code dnd5e} / {@code offworlders}
  * blocks and is only applied when {@code systemType} matches that system.
+ * {@code systemType} is optional too: a null on create stores a character with no
+ * game system (only the generic core fields exist and no block is attached), and
+ * on PATCH it means "leave the system unchanged".
  */
 public record CharacterInputDTO(
         Long ownerId,
         Long campaignId,
         String name,
-        GameSystem systemType,
+        @Nullable GameSystem systemType,
         String notes,
         String avatarUrl,
         String appearance,

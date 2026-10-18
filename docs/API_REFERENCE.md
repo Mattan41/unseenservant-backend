@@ -570,7 +570,7 @@ Valid `role` values: `GM` | `PLAYER`
 | Field | Type | Rules |
 |-------|------|-------|
 | `name` | string | — |
-| `systemType` | enum | `DND5E` \| `OFFWORLDERS`; defaults to `DND5E` |
+| `systemType` | enum | `DND5E` \| `OFFWORLDERS`. Optional: `null` (or omitted) creates a character with **no game system** — only the generic core fields are stored and neither nested block is attached |
 | `notes` | string | Optional |
 | `avatarUrl` | string | Optional |
 | `appearance` | string | Optional; free-text appearance, generic to every system |
@@ -582,6 +582,12 @@ Valid `role` values: `GM` | `PLAYER`
 | `offworlders` | object | Optional; applied only when `systemType === 'OFFWORLDERS'`. Shape: `{ characterClass?, species?, xp?, health?, currentHealth?, healthModifier?, armor?, supply?, supplyMax?, credits?, stats?, skills?, abilities?, weapons?, items? }`. `stats = { strength, agility, intelligence, willpower }` (each −1…+3); `skills` / `abilities` are entry arrays `[ { name, description } ]` mixing canonical options with free text (canonical descriptions live in the frontend catalog; custom entries carry their own `description`); `health` is the maximum HP (client-derived from the attributes + `healthModifier`) and `currentHealth` the running total (may exceed `health` for temporary HP); `armor` is the single worn armor value 0–3 (0 None / 1 Light / 2 Heavy / 3 Assault); `characterClass` is optional (may be empty); `supplyMax` is fixed at `3`; `weapons` is a typed array `[ { type: 'Light'|'Medium'|'Heavy', description } ]` (damage and `heavy` are derived from `type`, not stored); `items` is a free-text array `[ { name, description } ]` |
 
 > If `ownerId` is `null`, the logged-in user is automatically set as owner.
+
+> `systemType` is optional. Leaving it out (or sending `null`) creates a system-less
+> character — name, notes, avatarUrl, appearance, backstory and privateBackstory only,
+> with no `dnd5e`/`offworlders` row. Nothing is defaulted to `DND5E`; the character stays
+> generic until a system is chosen for it.
+
 
 **Response (201):**
 ```json
