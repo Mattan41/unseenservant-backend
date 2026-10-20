@@ -61,7 +61,14 @@ public class SecurityConfig {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/", "/oauth2/**").permitAll();
+                    // "/error" has to be permitted: when a permitted path has no
+                    // handler (a missing upload, an unknown URL) or a controller
+                    // fails, the container re-dispatches to /error and this filter
+                    // chain runs again on that dispatch. Without the matcher the
+                    // second pass answers 401 and the real status is masked — a
+                    // missing image looks like a rejected token. The demo chain
+                    // below lists it for the same reason.
+                    auth.requestMatchers("/", "/oauth2/**", "/error").permitAll();
                     auth.requestMatchers("/images/**").permitAll();
                     // Administrator surface. The pattern matters: an exact "/api/admin"
                     // matcher would only cover the bare path and leave every endpoint

@@ -7,9 +7,13 @@ import org.junit.jupiter.api.Test;
 import org.kruskopf.backend.AbstractIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,11 +34,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SecurityConfigIT extends AbstractIntegrationTest {
 
     private final MockMvc mockMvc;
+    private final TestRestTemplate restTemplate;
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
-    SecurityConfigIT(MockMvc mockMvc) {
+    SecurityConfigIT(MockMvc mockMvc, TestRestTemplate restTemplate) {
         this.mockMvc = mockMvc;
+        this.restTemplate = restTemplate;
     }
 
     @Nested
@@ -140,6 +146,67 @@ class SecurityConfigIT extends AbstractIntegrationTest {
             mockMvc.perform(get("/api/auth/status"))
                     .andDo(print())
                     .andExpect(status().isNotFound()); // 404 = passed security, no controller
+        }
+    }
+
+    /**
+     * The error page has to stay reachable anonymously.
+     * <p>
+     * A permitted path with nothing behind it — a missing upload, an unknown URL
+     * — makes the servlet container <em>re-dispatch</em> to `/error`, and that
+     * dispatch runs through this filter chain a second time. If `/error` is not
+     * permitted, the second pass answers 401 and the real status (404, or a 500
+     * from a controller) is masked: a missing image reads as a rejected token,
+     * and the browser silently falls back to its placeholder image instead of
+     * showing that the file is gone.
+     * <p>
+     * Asserted over real HTTP rather than MockMvc, which never performs the
+     * container's error dispatch and so reports the status the mapping produced —
+     * it cannot see this at all.
+     */
+    @Nested
+    @DisplayName("Error dispatch stays anonymous")
+    class ErrorDispatchStaysAnonymous {
+
+        @Test
+        @DisplayName("A missing image answers 404, not 401")
+        void missingImageAnswers404() {
+            ResponseEntity<String> response =
+                    restTemplate.getForEntity("/images/does-not-exist.png", String.class);
+
+            assertThat(response.getStatusCode())
+                    .as("a missing upload must not look like a rejected token")
+                    .isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("A permitted path with no handler answers 404, not 401")
+        void permittedPathWithoutHandlerAnswers404() {
+            ResponseEntity<String> response = restTemplate.getForEntity("/", String.class);
+
+            assertThat(response.getStatusCode())
+                    .as("the mock-MVC test above cannot see this: only the container's error dispatch can")
+                    .isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("An unknown path is still refused before any handler (denyAll)")
+        void unknownPathStaysRefused() {
+            ResponseEntity<String> response =
+                    restTemplate.getForEntity("/no-such-page", String.class);
+
+            assertThat(response.getStatusCode())
+                    .as("nothing unnamed is reachable; only permitted paths surface their own status")
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        @Test
+        @DisplayName("The /api gate is untouched: an anonymous caller still gets 401")
+        void apiGateStillRefusesAnonymousCallers() {
+            ResponseEntity<String> response =
+                    restTemplate.getForEntity("/api/campaigns", String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         }
     }
 
