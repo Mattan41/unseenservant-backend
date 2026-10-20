@@ -234,6 +234,14 @@ Each domain is a self-contained package with:
 - Google requires a verified email; a rejected login (unverified or non-whitelisted email) redirects to `{FRONTEND_URL}/under-construction`
 - Email whitelist controls who can register (`EmailWhitelistService`); it is the **login gate**, and its `role` only decides what a *first* login is granted — an existing account keeps its own role
 - All `/api/**` endpoints require authentication unless explicitly permitted (`SecurityConfig` matchers)
+- `/images/**` is served **without** a token on purpose: an `<img>` request cannot
+  carry the JWT, so uploads are public at unguessable (UUID-bearing) paths
+- `/error` is permitted as well. A permitted path with nothing behind it — a
+  missing upload, an unknown URL — or a failing controller makes the container
+  re-dispatch to `/error`, and the filter chain runs again on that dispatch.
+  Without the matcher the second pass answers 401 and the real status is masked:
+  a missing image looks like a rejected token, and the browser falls back to its
+  placeholder instead of showing that the file is gone
 - **Authorisation is two-layered:** role-shaped rules use `@PreAuthorize`
   (`hasRole('ROLE_USER')` / `hasRole('ROLE_ADMIN')`, e.g. `AdminController`,
   `UserController`, `GameCharacterController`, the spell controllers), while
