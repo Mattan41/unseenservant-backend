@@ -4,10 +4,11 @@ import org.apache.tomcat.util.threads.VirtualThreadExecutor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.context.WebServerApplicationContext;
-import org.springframework.boot.web.embedded.tomcat.TomcatWebServer;
+import org.springframework.boot.tomcat.TomcatWebServer;
+import org.springframework.boot.web.server.context.WebServerApplicationContext;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@link AbstractIntegrationTest}) rather than MockMvc, because MockMvc never
  * enters the servlet container and would prove nothing about thread handling.
  */
+@AutoConfigureTestRestTemplate
 @DisplayName("Virtual thread request handling")
 class VirtualThreadsIT extends AbstractIntegrationTest {
 

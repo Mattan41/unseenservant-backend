@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
-import org.springframework.retry.annotation.Retryable;
+import org.springframework.resilience.annotation.Retryable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
@@ -243,7 +243,15 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         return new UserAttributes(email, name, providerId.toString());
     }
 
-    @Retryable
+    /**
+     * Fetches the GitHub account's email addresses.
+     * <p>
+     * The caller is this class itself, so the retry annotation's interception does
+     * not apply to that call: for the retries to actually happen, this method has
+     * to be reached through a proxy (a separate bean, or an explicit
+     * {@code RetryTemplate}).
+     */
+    @Retryable(maxRetries = 2) // 2 retries, plus the initial call = 3 attempts
     public List<Email> getEmails(OAuth2AccessToken accessToken) {
         log.debug("Fetching email addresses from GitHub API");
         return restClient.get()

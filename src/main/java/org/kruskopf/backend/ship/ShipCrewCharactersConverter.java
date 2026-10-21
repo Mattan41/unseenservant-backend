@@ -1,10 +1,11 @@
 package org.kruskopf.backend.ship;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,7 @@ public class ShipCrewCharactersConverter implements AttributeConverter<List<Ship
     private static final TypeReference<List<ShipCrewCharacter>> LIST_OF_CHARACTERS = new TypeReference<>() {
     };
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     @Override
     public String convertToDatabaseColumn(List<ShipCrewCharacter> characters) {
@@ -28,7 +29,7 @@ public class ShipCrewCharactersConverter implements AttributeConverter<List<Ship
         }
         try {
             return objectMapper.writeValueAsString(characters);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to convert ship crew characters to JSON", e);
         }
     }
@@ -40,7 +41,7 @@ public class ShipCrewCharactersConverter implements AttributeConverter<List<Ship
         }
         try {
             return objectMapper.readValue(dbData, LIST_OF_CHARACTERS);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to convert JSON to ship crew characters", e);
         }
     }

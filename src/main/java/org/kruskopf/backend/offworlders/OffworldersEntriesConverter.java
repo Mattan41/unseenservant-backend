@@ -1,10 +1,11 @@
 package org.kruskopf.backend.offworlders;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,7 @@ public class OffworldersEntriesConverter implements AttributeConverter<List<Offw
     private static final TypeReference<List<OffworldersEntry>> LIST_OF_ENTRIES = new TypeReference<>() {
     };
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     @Override
     public String convertToDatabaseColumn(List<OffworldersEntry> entries) {
@@ -28,7 +29,7 @@ public class OffworldersEntriesConverter implements AttributeConverter<List<Offw
         }
         try {
             return objectMapper.writeValueAsString(entries);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to convert entries to JSON", e);
         }
     }
@@ -40,7 +41,7 @@ public class OffworldersEntriesConverter implements AttributeConverter<List<Offw
         }
         try {
             return objectMapper.readValue(dbData, LIST_OF_ENTRIES);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to convert JSON to entries", e);
         }
     }

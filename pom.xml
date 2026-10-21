@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.16</version>
+        <version>4.1.1</version>
         <relativePath/>
     </parent>
     <groupId>org.kruskopf</groupId>
@@ -33,9 +33,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+        <!-- Boot 4 renamed this starter; the old artifact still resolves but is
+             deprecated in favour of spring-boot-starter-webmvc. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -46,11 +48,9 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- Spring Retry (let Spring Boot handle version) -->
-        <dependency>
-            <groupId>org.springframework.retry</groupId>
-            <artifactId>spring-retry</artifactId>
-        </dependency>
+        <!-- Retry support moved into Spring Framework 7 (spring-context):
+             @EnableResilientMethods + @Retryable replace spring-retry, which
+             Spring Boot 4 no longer manages. See SecurityConfig. -->
 
         <!-- Runtime Dependencies -->
         <dependency>
@@ -62,6 +62,15 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-docker-compose</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- Boot 4 moved the H2 console auto-configuration out of
+             spring-boot-autoconfigure into this module; without it the demo
+             profile no longer serves /h2-console. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-h2console</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
@@ -94,9 +103,13 @@
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
+        <!-- Boot 4 moved FlywayAutoConfiguration into the spring-boot-flyway
+             module: flyway-core alone no longer runs the migrations (with them
+             squashed into one baseline, that would mean it never runs at all),
+             so the starter that brings the module has to be declared. -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -108,19 +121,35 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Boot 4: MockMvc auto-configuration and TestRestTemplate are no longer
+             part of spring-boot-starter-test; they moved to this starter. -->
         <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-test</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Boot 4: the security filter chain is made aware of @WithMockUser in
+             MockMvc by spring-boot-security-test, which spring-security-test alone
+             no longer brings; without it every MockMvc request is anonymous. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- TestRestTemplate's auto-configuration needs this Boot module too;
+             without it the context fails with NoClassDefFoundError
+             org.springframework.boot.restclient.RestTemplateBuilder. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-restclient</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Testcontainers 2 renamed its modules: junit-jupiter and mysql became
+             testcontainers-junit-jupiter and testcontainers-mysql, which is what
+             testcontainers-bom 2.0.5 manages. -->
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.restdocs</groupId>
-            <artifactId>spring-restdocs-mockmvc</artifactId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -130,7 +159,7 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>mysql</artifactId>
+            <artifactId>testcontainers-mysql</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

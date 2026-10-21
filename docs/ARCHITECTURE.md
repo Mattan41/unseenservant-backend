@@ -2,11 +2,14 @@
 
 ## Tech stack
 - Java 25
-- Spring Boot
+- Spring Boot 4.1 (Spring Framework 7, Spring Security 7)
 - Spring Security (JWT + OAuth2)
-- Spring Data JPA
-- MySQL
-- Testcontainers (integration tests)
+- Spring Data JPA · Hibernate 7
+- JSON through Jackson 3 (`tools.jackson`), both in the Boot-managed
+  `ObjectMapper` bean and in the JPA attribute converters
+- MySQL · Flyway, reached through `spring-boot-starter-flyway` (Boot 4 moved the
+  auto-configuration into a module of its own)
+- Testcontainers 2 (integration tests)
 
 ## Concurrency
 
@@ -278,5 +281,29 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 
 ## Tests
 - Integration tests use Testcontainers (`AbstractIntegrationTest`)
-- `TestContainersConfiguration` spins up MySQL container
-- Current coverage: auth, security config, basic smoke test
+- `TestContainersConfiguration` spins up the MySQL container
+  (`org.testcontainers.mysql.MySQLContainer`, module `testcontainers-mysql`)
+- MockMvc and TestRestTemplate come from `spring-boot-starter-webmvc-test`; Boot 4
+  needs `@AutoConfigureTestRestTemplate` on a test class before it can inject a
+  `TestRestTemplate` (it used to depend on the classpath alone)
+- `MessageControllerIT` pins the `/api` wire format the frontend parses
+  (`createdAt` as an ISO-8601 local date-time, null fields still written)
+
+Coverage, by area — unit tests (`*Test`, no Docker) and integration tests (`*IT`,
+full application against a Testcontainer):
+
+| Area | Unit | Integration |
+|------|------|-------------|
+| Auth, sessions, OAuth linking | `AuthControllerLoginTest`, `CustomUserDetailsTest` | `AuthControllerIT`, `LoginCredentialsIT`, `SecurityConfigIT`, `EndpointAuthenticationIT`, `UserServiceOAuthLoginIT` |
+| Login throttle | `LoginAttemptLimiterTest`, `ClientIpResolverTest` | `LoginRateLimitIT` |
+| Campaigns & permissions | `CampaignServiceTest`, `CampaignPermissionServiceTest` | `CampaignPermissionServiceIT` |
+| Characters | `GameCharacterMapperTest`, `GameCharacterServiceTest` | — (reached through the campaign and message ITs) |
+| Ships & crew | `ShipServiceTest`, `ShipCrewServiceTest` | `ShipOptimisticLockIT` |
+| Messages | `MessageMapperTest` | `MessageControllerIT` — also the JSON wire format the frontend parses |
+| Spells | `SpellServiceTest` | `SpellServiceIT` |
+| Admin & whitelist | `AdminServiceTest` | `AdminControllerIT` |
+| Files & images | `FileStorageServiceTest`, `StoredFileTransactionTest` | `ImageCorsIT` |
+| Schema & runtime | — | `SchemaValidationIT` (Flyway baseline + Hibernate `validate`), `BackendApplicationIT`, `VirtualThreadsIT` |
+
+`./mvnw test` runs the unit column alone; `./mvnw verify` runs both, which is what
+CI does on every pull request.

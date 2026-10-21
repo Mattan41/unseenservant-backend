@@ -4,7 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,7 +33,7 @@ class BackendApplicationIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("MySQL Test container should be running")
     void mysqlContainerIsRunning() {
-        MySQLContainer<?> container = applicationContext.getBean(MySQLContainer.class);
+        MySQLContainer container = applicationContext.getBean(MySQLContainer.class);
         assertThat(container).isNotNull();
         assertThat(container.isRunning()).isTrue();
     }
