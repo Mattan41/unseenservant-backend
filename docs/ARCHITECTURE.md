@@ -77,11 +77,14 @@ asked about; `LoginRateLimitIT` turns it on for the behaviour it is about.
 
 ## Database migrations
 
-Flyway owns the schema. Migrations are discovered from the single location
-`classpath:db/migration`, split by file type between
-`src/main/resources/db/migration` (SQL) and `src/main/java/db/migration` (Java
-migrations). See [`MIGRATIONS.md`](./MIGRATIONS.md) for why some are Java, the
-environment matrix, the full version sequence, and the rules for adding new ones.
+Flyway owns the schema, discovered from the single location
+`classpath:db/migration`. That folder holds one SQL baseline
+(`V1__baseline_schema.sql`) plus any migrations added after it: the former `V1`–`V17`
+chain — including the Java migrations that used to live under
+`src/main/java/db/migration` — is squashed into the baseline. See
+[`MIGRATIONS.md`](./MIGRATIONS.md) for how the squash was made, how an existing
+database is baselined rather than migrated, the environment matrix, and the rules
+for adding new migrations.
 
 ## Package structure
 
@@ -262,9 +265,9 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | Entity | Key fields | Relations |
 |--------|-----------|-----------|
 | `User` | id, email, role, providerType | has many GameCharacters, CampaignUsers |
-| `GameCharacter` | id, name, systemType (nullable), notes, avatarUrl, appearance, backstory, privateBackstory | generic core character; belongs to User, optionally linked to Campaign; 1:1 with Dnd5eCharacterData when `systemType = DND5E`, 1:1 with OffworldersCharacterData when `systemType = OFFWORLDERS`, and neither when `systemType is null` (a character may be created without a game system — `system_type` is nullable and CHECK-constrained to `NULL` or a registered system since V17; extend `chk_character_system_type` when `GameSystem` gains a constant). `appearance`/`backstory` are public to the campaign; `privateBackstory` is only returned to the owner or the campaign GM |
+| `GameCharacter` | id, name, systemType (nullable), notes, avatarUrl, appearance, backstory, privateBackstory | generic core character; belongs to User, optionally linked to Campaign; 1:1 with Dnd5eCharacterData when `systemType = DND5E`, 1:1 with OffworldersCharacterData when `systemType = OFFWORLDERS`, and neither when `systemType is null` (a character may be created without a game system — `system_type` is nullable and CHECK-constrained to `NULL` or a registered system in the baseline schema; extend `chk_character_system_type` when `GameSystem` gains a constant). `appearance`/`backstory` are public to the campaign; `privateBackstory` is only returned to the owner or the campaign GM |
 | `Dnd5eCharacterData` | characterId (shared PK), level, characterClass, race, hitPoints, armorClass, stats (JSON) | D&D 5e data; 1:1 with GameCharacter; many-to-many with Spell via `character_spell` |
-| `OffworldersCharacterData` | characterId (shared PK), characterClass, species, xp, health, currentHealth, healthModifier, armor, supply, supplyMax, credits, stats (JSON), skills (JSON), abilities (JSON), weapons (JSON), items (JSON) | Offworlders data; 1:1 with GameCharacter. `skills`/`abilities` are JSON arrays of `{ name, description }` entries; `weapons` is a typed array `{ type, description }`; `items` is a free-text array `{ name, description }` (appearance moved to the generic GameCharacter in V10) |
+| `OffworldersCharacterData` | characterId (shared PK), characterClass, species, xp, health, currentHealth, healthModifier, armor, supply, supplyMax, credits, stats (JSON), skills (JSON), abilities (JSON), weapons (JSON), items (JSON) | Offworlders data; 1:1 with GameCharacter. `skills`/`abilities` are JSON arrays of `{ name, description }` entries; `weapons` is a typed array `{ type, description }`; `items` is a free-text array `{ name, description }` (appearance lives on the generic GameCharacter) |
 | `Campaign` | id, name, imageUrl | has many CampaignUsers |
 | `CampaignUser` | campaignId + userId (composite PK), role | join table Campaign ↔ User |
 | `Ship` | id, campaignId (unique), version, name, hull, hullMax, armor, damage, driveFuel, maxDriveFuel, credits, upgrades (JSON), notes, imageUrl, imageUrls (JSON) | Offworlders ship; 1:1 with Campaign; optimistic concurrency via JPA `@Version` on `version`, which Hibernate enforces with `UPDATE ... WHERE version = ?` (a stale flush becomes a 409 via `ObjectOptimisticLockingFailureException`). `ShipService` additionally compares the version token the client sent against the freshly loaded row and throws `ConcurrentUpdateException` (also 409) before doing any work — that check alone cannot see a writer that commits between the load and the flush |

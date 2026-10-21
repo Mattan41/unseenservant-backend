@@ -10,8 +10,8 @@ package org.kruskopf.backend.playercharacter.entity;
  * A character may also have <em>no</em> system at all — that is {@code null} and
  * deliberately not a member of this enum (see {@code Campaign#primarySystem} for
  * the same convention). When adding a constant here, extend the
- * {@code chk_character_system_type} CHECK in
- * {@code V17__allow_character_without_system.sql} as well.
+ * {@code chk_character_system_type} CHECK in {@code V1__baseline_schema.sql} as
+ * well — or in the next migration if the baseline has already run somewhere.
  */
 public enum GameSystem {
     DND5E,

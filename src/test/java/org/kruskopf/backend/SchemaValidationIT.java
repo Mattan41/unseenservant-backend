@@ -57,8 +57,8 @@ class SchemaValidationIT {
 
     /**
      * A character may have no game system, which is stored as NULL — but the
-     * column may still only hold a system the code can render. V17 adds that
-     * CHECK; this pins it so it cannot quietly disappear in a later migration.
+     * column may still only hold a system the code can render. The baseline adds
+     * that CHECK; this pins it so it cannot quietly disappear in a later migration.
      */
     @Test
     @DisplayName("system_type is constrained to NULL or a registered game system")

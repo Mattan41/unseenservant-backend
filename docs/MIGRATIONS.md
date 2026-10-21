@@ -1,39 +1,44 @@
 # Database Migrations (Flyway)
 
-Flyway manages the schema and data migrations for this backend. This note records
-how the migrations are organised, why some of them are Java, and the rules to
+Flyway manages the schema for this backend. This note records how the migrations
+are organised, how the squash to a single baseline was done, and the rules to
 follow when adding new ones.
 
-## One logical location, two physical folders
+## The baseline
 
-Flyway is configured with the single location `classpath:db/migration` (Spring
-Boot's default; stated explicitly as `spring.flyway.locations=classpath:db/migration`
-in the `test` profile). It loads **both** kinds of migration from that one place:
+`src/main/resources/db/migration/V1__baseline_schema.sql` **is** the schema: the
+production schema as of the 2026-10-20 backup, taken with
+`mysqldump --no-data` and squashed from every migration that came before it
+(V1–V17, including the former Java `V5`/`V6`/`V8`). It is deliberately the only
+migration in the repository.
 
-| Kind | Physical location | Discovered as |
-|------|-------------------|---------------|
-| SQL  | `src/main/resources/db/migration/Vn__*.sql` | classpath resource `db/migration/Vn__*.sql` |
-| Java | `src/main/java/db/migration/Vn__*.java` (package `db.migration`) | class `db.migration.Vn__...` on the classpath |
+It replaced the old chain for two reasons. The three Java migrations had to be
+edited for the Spring Boot 4 / Jackson 3 upgrade, and editing a migration that has
+already run is exactly what the checksum rule forbids — the choice stood between
+surgery on frozen files and a clean slate. And the chain described a history no
+live database needs replayed: every one of them has the resulting schema already.
 
-Both compile/copy into `target/classes/db/migration/`, so Flyway sees them as one
-ordered list. Seeing two folders in the IDE is only a consequence of file type —
-a Java migration cannot be a `.sql` resource, so its source must live in a Java
-source root.
+The former files are not lost. They are in the git history before this change:
 
-## Why some migrations are Java
+```sh
+git show 75de5f7:src/main/resources/db/migration/V2__split_character_system_data.sql
+git show 75de5f7:src/main/java/db/migration/V5__replace_offworlders_gear_with_items.java
+git show 75de5f7:docs/MIGRATIONS.md          # the full V1–V17 table
+```
 
-V5, V6 and V8 parse and rewrite JSON stored in `TEXT` columns (reading an array
-and rewriting each element's shape). Doing that in SQL is database-specific, so
-those migrations subclass `BaseJavaMigration`; that also keeps the transform logic
-pure and unit-testable (`OffworldersGearMigrationTest`, `OffworldersEntryMigrationTest`,
-`OffworldersWeaponsMigrationTest`).
+Two properties of the baseline file are deliberate:
 
-V5 and V6 are already merged to `main`, so their Flyway checksums are **frozen**
-and they can never be rewritten as SQL.
+* **Tables are ordered so every foreign key points at a table created above it**
+  (`users`, `email_whitelist`, `spell`, then the children in dependency order).
+  The file therefore runs with foreign key checking *on*, so a wrong order fails
+  loudly instead of hiding behind `SET FOREIGN_KEY_CHECKS = 0`.
+* **No data and no environment specifics** — no `INSERT`, no
+  `AUTO_INCREMENT = <n>` table options, no `DEFINER`, no `CREATE DATABASE`. A
+  baseline that carries a counter from one database into another is a trap, and
+  re-dumping the file is how one gets in.
 
-**Only MySQL 8 ever runs Flyway** (see the environment matrix below), so SQL
-migrations may use MySQL 8 syntax. Going forward: **SQL by default**, and Java only
-for genuine JSON/data surgery that SQL cannot express cleanly.
+The `V<version>__<description>` prefix is kept so the file is an ordinary Flyway
+migration: a fresh database runs it and then continues with V2, V3, …
 
 ## Environments
 
@@ -58,58 +63,80 @@ Because the `demo` profile disables Flyway and builds the schema from the JPA
 entities, H2 never executes migrations. That is why MySQL-specific SQL in
 migrations is safe.
 
-## Migration sequence
+## Existing databases: baselined, not migrated
 
-| Version | File | Kind | Purpose |
-|---------|------|------|---------|
-| V1 | `V1__.sql` | SQL | Initial schema |
-| V2 | `V2__split_character_system_data.sql` | SQL | Split 5e data into `dnd5e_character_data` |
-| V3 | `V3__add_offworlders_character_data.sql` | SQL | Add `offworlders_character_data` |
-| V4 | `V4__add_offworlders_credits_and_gear.sql` | SQL | Credits + legacy `gear` block |
-| V5 | `V5__replace_offworlders_gear_with_items.java` | Java | `gear` → free-form `items` array |
-| V6 | `V6__offworlders_skills_abilities_as_entries.java` | Java | skills/abilities strings → `{ name, description }` |
-| V7 | `V7__offworlders_health_tracking.sql` | SQL | `current_health`, `health_modifier` |
-| V8 | `V8__split_offworlders_weapons_and_items.java` | Java | 1.5 `items` → typed `weapons` + free-text `items`, `armor` folded |
-| V9 | `V9__add_character_backstory.sql` | SQL | Add `backstory` + `private_backstory` to `game_character` |
-| V10 | `V10__promote_offworlders_look_to_generic_appearance.sql` | SQL | Move Offworlders `look` → generic `game_character.appearance` |
-| V11 | `V11__add_campaign_primary_system_and_ship.sql` | SQL | Add `campaign.primary_system` and the 1:1 `ship` table |
-| V12 | `V12__add_campaign_private_description.sql` | SQL | Add `campaign.private_description` (owner/GM only) |
-| V13 | `V13__add_ship_images.sql` | SQL | Add `ship.image_url` (profile image) + `ship.image_urls` (gallery) |
-| V14 | `V14__add_campaign_world_lore.sql` | SQL | Add `campaign.world_lore` (public world lore & background) |
-| V15 | `V15__add_ship_credits.sql` | SQL | Add `ship.credits` (shared crew credits balance) |
-| V16 | `V16__add_ship_crew.sql` | SQL | Add `ship_crew` (one crew entry per participant) |
-| V17 | `V17__allow_character_without_system.sql` | SQL | Make `game_character.system_type` nullable (a character may be created with no game system) and CHECK it to `NULL` or a registered system (`DND5E`, `OFFWORLDERS`) — extend the CHECK when `GameSystem` gains a constant |
+A database that already has this schema — staging, production, or a developer's
+database restored from a backup — must **not** run the baseline file: its tables
+already exist. It is *marked* as baselined instead, and from then on only
+migrations after V1 run.
 
-Versions are complete and strictly increasing (1–17, no gaps or duplicates).
+Flyway does that itself through `baseline-on-migrate`, which the `prod` profile
+already sets (`spring.flyway.baseline-on-migrate=true`). When Flyway finds a
+non-empty schema and no `flyway_schema_history` table, it records the baseline
+version as applied and skips everything up to and including `V1`.
+
+The one manual step is removing the old history, because it lists migrations that
+no longer exist in the repository:
+
+```sql
+-- on the target database, with the application stopped
+DROP TABLE flyway_schema_history;
+```
+
+Then start the application. It recreates `flyway_schema_history` with a single
+`<< Baseline >>` row and logs that no migration was necessary; the data is
+untouched.
+
+| Environment | What to do |
+|---|---|
+| `demo` (H2) | nothing — Flyway is disabled, Hibernate builds the schema |
+| fresh `develop` / test container | nothing — V1 runs and builds the schema |
+| `develop` restored from a backup | drop `flyway_schema_history`, then start the app |
+| a developer's reused test container | drop and recreate `testdb` **once** after this change: a `create-drop` run leaves `flyway_schema_history` behind with the old checksums and no tables, so every integration test fails with `Migration checksum mismatch for migration version 1` until it is reset |
+| staging | pull the latest backup, drop `flyway_schema_history`, start the app, read the log |
+| production | the same as staging, in the same step as the release: drop the table, deploy, then verify a login, a campaign and an image |
+
+Verify with the query at the end of this note: it must show a single row, version
+`1`, description `<< Baseline >>`.
 
 ## Rules
 
 1. **Never edit a migration that has run.** Flyway stores a checksum in
    `flyway_schema_history`; changing an applied file makes `flyway validate` fail
-   on every existing database. Add a new version instead. (V5/V6 are on `main` and
-   are therefore frozen.)
-2. **A new migration is immutable once merged.** Decide on SQL vs Java *before*
-   the first commit — V8 was still changeable only because it was uncommitted.
-3. **Naming:** `V<version>__<snake_case_description>.sql|.java`, versions strictly
-   increasing with no gaps.
-4. **Check the next free version before creating a file.** Versions are shared
-   across the SQL and Java migrations, and a duplicate makes Flyway abort at
-   startup with `Found more than one migration with version N` — the app never
-   boots. List the whole folder (don't filter the output) and take
-   `highest + 1`; if two branches are in flight, take `highest + 2` rather than
-   reusing a number.
-5. **SQL by default.** Use a Java migration only when a JSON/data transform
-   genuinely requires it.
+   on every database that has it. Add a new version instead. Once staging or
+   production has baselined against `V1__baseline_schema.sql`, that file is in
+   the same position the old V5/V6 were: frozen.
+2. **SQL only, unless SQL genuinely cannot express it.** The Java migrations
+   existed to reshape legacy JSON (`gear` → `items`, string arrays → entry
+   objects, `items` → typed `weapons`) that no longer occurs anywhere; that shape
+   of migration is also what SonarQube objected to. If a transform really needs
+   Java, say why in the pull request instead of reaching for
+   `BaseJavaMigration` by habit.
+3. **Naming:** `V<version>__<snake_case_description>.sql`, versions strictly
+   increasing with no gaps. The next migration after this change is `V2`.
+4. **Check the next free version before creating a file.** A duplicate makes
+   Flyway abort at startup with `Found more than one migration with version N` —
+   the app never boots. If two branches are in flight, skip a number rather than
+   reusing one.
+5. **Order is part of the file.** A table's parents have to be created before the
+   table itself: `SchemaValidationIT` runs the whole chain against a fresh MySQL
+   container, so a broken order or a `CREATE TABLE` that assumes something the
+   file has not done yet fails there rather than in production.
 6. **Keep the `demo` profile working.** It does not run Flyway, so any new table or
    column is created by Hibernate from the entity; update `demo-data.sql` if a seed
    needs the new data.
 
-## Prod sanity check
+## Sanity check
 
 ```sql
-SELECT version, description, type, success
+SELECT installed_rank, version, description, type, success
 FROM flyway_schema_history
 ORDER BY installed_rank;
 ```
 
-should list V1–V17 with `success = 1`.
+* On a **fresh** database: one row, version `1`, type `SQL`, `success = 1`.
+* On a **baselined** database: one row, version `1`, description
+  `<< Baseline >>`, type `BASELINE`, `success = 1`.
+
+Anything else means the history was not reset (an old row for a migration that no
+longer exists blocks startup), or that two files claim the same version.
