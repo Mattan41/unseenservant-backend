@@ -57,7 +57,7 @@ public class SecurityConfig {
 
     @Bean
     @Profile("!demo")
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> {
@@ -101,7 +101,7 @@ public class SecurityConfig {
 
     @Bean
     @Profile("demo")
-    public SecurityFilterChain demoSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain demoSecurityFilterChain(HttpSecurity http) {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .headers(headers -> headers

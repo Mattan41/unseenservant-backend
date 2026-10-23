@@ -142,7 +142,7 @@ public class SpellService {
         return data;
     }
 
-    private Map<String, Object> deserializeSpellJson(Spell spell) throws Exception {
+    private Map<String, Object> deserializeSpellJson(Spell spell) {
         return objectMapper.readValue(spell.getRawJsonData(), new TypeReference<>() {});
     }
 
