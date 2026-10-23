@@ -122,6 +122,22 @@ org.kruskopf.backend/
 │   └── service/
 │       ├── CampaignPermissionService.java 
 │       └── CampaignService.java
+├── journal/                              # Private per-participant campaign journals
+│   ├── controller/JournalController.java
+│   ├── dto/
+│   │   ├── JournalDTO.java
+│   │   ├── JournalPageDTO.java
+│   │   ├── JournalPageCreateDTO.java
+│   │   ├── JournalPageUpdateDTO.java
+│   │   └── JournalPageSaveDTO.java
+│   ├── entity/
+│   │   ├── Journal.java                 # One book per (campaign, user)
+│   │   └── JournalPage.java             # A numbered page; @Version optimistic lock
+│   ├── repository/
+│   │   ├── JournalRepository.java
+│   │   └── JournalPageRepository.java
+│   ├── JournalMapper.java
+│   └── service/JournalService.java
 ├── playercharacter/                     # System-agnostic character feature
 │   ├── controller/GameCharacterController.java
 │   ├── dto/
@@ -295,6 +311,8 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | `Ship` | id, campaignId (unique), version, name, hull, hullMax, armor, damage, driveFuel, maxDriveFuel, credits, upgrades (JSON), notes, imageUrl, imageUrls (JSON) | Offworlders ship; 1:1 with Campaign; optimistic concurrency via JPA `@Version` on `version`, which Hibernate enforces with `UPDATE ... WHERE version = ?` (a stale flush becomes a 409 via `ObjectOptimisticLockingFailureException`). `ShipService` additionally compares the version token the client sent against the freshly loaded row and throws `ConcurrentUpdateException` (also 409) before doing any work — that check alone cannot see a writer that commits between the load and the flush |
 | `ShipCrewMember` | id, shipId + userId (unique), notes, imageUrls (JSON), characters (JSON) | one crew entry per participant; keyed on the **User** (not CampaignUser) so it survives a participant leaving and re-activates on rejoin; `characters` is `[ { name, roleOnShip } ]` (free text) |
 | `Message` | id, content, timestamp | belongs to Campaign |
+| `Journal` | id, campaignId + userId (unique) | a participant's private journal in one campaign; belongs to Campaign and User, has many JournalPages. FKs are `ON DELETE CASCADE`, so deleting a campaign or a user takes the journals with it — removing a participant does **not**, so the rows survive a rejoin. Only its owner can read or write it: not another participant, not the campaign owner and not a GM |
+| `JournalPage` | id, journalId, content (LONGTEXT markdown), position (1-based), version | one numbered page. `position` is the page's place in the book and what the client shows: a page inserted after page P shifts every later `position` by one (one bulk UPDATE) and a deleted page shifts them back, while `id` stays stable. The trailing blank page is virtual and never stored. `version` gives the same two-layer optimistic concurrency as the ship (`ConcurrentUpdateException` 409, plus `UPDATE ... WHERE version = ?` on flush) |
 | `Spell` | slug (PK), name, rawJsonData (TEXT) | many-to-many with Dnd5eCharacterData; stored in local DB from bulk Open5e import |
 | `EmailWhitelist` | id, email, role, active | standalone; **login gate** for OAuth — a revoked row is soft-deleted (`active = false`) so the decision can be revisited, and the address column is unique, so re-admitting reactivates that row. `role` applies to a *first* login only |
 
@@ -319,6 +337,7 @@ full application against a Testcontainer):
 | Characters | `GameCharacterMapperTest`, `GameCharacterServiceTest` | — (reached through the campaign and message ITs) |
 | Ships & crew | `ShipServiceTest`, `ShipCrewServiceTest` | `ShipOptimisticLockIT` |
 | Messages | `MessageMapperTest` | `MessageControllerIT` — also the JSON wire format the frontend parses |
+| Journals | `JournalServiceTest` | `JournalControllerIT` (ownership, page ordering, the virtual last page, the limits, concurrent first write), `JournalOptimisticLockIT` |
 | Spells | `SpellServiceTest` | `SpellServiceIT` |
 | Admin & whitelist | `AdminServiceTest` | `AdminControllerIT` |
 | Files & images | `FileStorageServiceTest`, `StoredFileTransactionTest` | `ImageCorsIT` |

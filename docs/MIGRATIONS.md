@@ -118,7 +118,9 @@ Verify with the query at the end of this note: it must show a single row, versio
    Java, say why in the pull request instead of reaching for
    `BaseJavaMigration` by habit.
 3. **Naming:** `V<version>__<snake_case_description>.sql`, versions strictly
-   increasing with no gaps. The next migration after this change is `V2`.
+   increasing with no gaps. `V2__journal_pages.sql` (the private
+   per-participant journal: `journal` + `journal_page`) is the current tip, so the
+   next migration is `V3`.
 4. **Check the next free version before creating a file.** A duplicate makes
    Flyway abort at startup with `Found more than one migration with version N` —
    the app never boots. If two branches are in flight, skip a number rather than

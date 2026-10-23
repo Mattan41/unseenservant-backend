@@ -111,7 +111,7 @@ public class SecurityConfig {
                     // /api/auth/me public and leave it to the controller's own check.
                     auth.requestMatchers("/api/auth/me").authenticated();
                     auth.requestMatchers("/api/auth/**").permitAll();
-                    auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**","/api/spells/**").authenticated();
+                    auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**","/api/spells/**","/api/journals/**").authenticated();
                     auth.anyRequest().denyAll();
                 })
                 .exceptionHandling(exceptionHandling ->
@@ -151,7 +151,7 @@ public class SecurityConfig {
                     // Same ordering rule as the non-demo chain: the specific matcher first.
                     auth.requestMatchers("/api/auth/me").authenticated();
                     auth.requestMatchers("/api/auth/**").permitAll();
-                    auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**","/api/spells/**").authenticated();
+                    auth.requestMatchers("/api/users/**", "/api/campaigns/**", "/api/characters/**", "/api/messages/**","/api/spells/**","/api/journals/**").authenticated();
                     auth.anyRequest().denyAll();
                 })
                 .exceptionHandling(exceptionHandling ->
