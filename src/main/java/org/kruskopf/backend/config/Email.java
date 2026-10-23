@@ -1,8 +1,9 @@
 package org.kruskopf.backend.config;
 
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 
@@ -10,7 +11,7 @@ public record Email(String email, boolean primary, boolean verified, String visi
 
     public static List<Email> fromJson(String json) {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper objectMapper = JsonMapper.builder().build();
             return objectMapper.readValue(json, new TypeReference<List<Email>>() {
             });
         } catch (Exception e) {

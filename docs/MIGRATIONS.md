@@ -59,6 +59,11 @@ places and they must be bumped together, or CI and local development drift apart
 | `test` | MySQL 8.4 LTS Testcontainer (`TestContainersConfiguration`, `mysql:8.4.11`) | enabled | Flyway |
 | `demo` | H2 in-memory | **disabled** (`spring.flyway.enabled=false`) | Hibernate `ddl-auto=create-drop` + `demo-data.sql` |
 
+Flyway reaches the application through `spring-boot-starter-flyway` (plus
+`flyway-mysql`). Spring Boot 4 moved the auto-configuration into a module of its
+own, so `flyway-core` alone no longer starts it — and without it a fresh database
+would be left with no tables at all, baseline included.
+
 Because the `demo` profile disables Flyway and builds the schema from the JPA
 entities, H2 never executes migrations. That is why MySQL-specific SQL in
 migrations is safe.

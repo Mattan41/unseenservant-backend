@@ -1,6 +1,5 @@
 package org.kruskopf.backend.message.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -19,10 +18,11 @@ import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -61,6 +61,14 @@ class MessageControllerIT extends AbstractIntegrationTest {
         this.messageRepository = messageRepository;
         this.jwtService = jwtService;
     }
+
+    /**
+     * The wire format the frontend feeds to {@code new Date(...)} — pinned here
+     * because the Jackson 3 move could have changed the date defaults, and
+     * docs/INTEGRATION_CONTRACT.md documents an ISO-8601 local date-time.
+     */
+    private static final String ISO_LOCAL_DATE_TIME =
+            "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?";
 
     private User participant1;
     private User participant2;
@@ -119,7 +127,9 @@ class MessageControllerIT extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$[0].campaignId").value(campaign.getId()))
                     .andExpect(jsonPath("$[0].userId").value(participant1.getId()))
                     .andExpect(jsonPath("$[0].messageBody").value("Test message from participant1"))
-                    .andExpect(jsonPath("$[0].createdAt").isNotEmpty());
+                    .andExpect(jsonPath("$[0].createdAt").value(matchesPattern(ISO_LOCAL_DATE_TIME)))
+                    // A null field is still written, as the contract's examples show.
+                    .andExpect(jsonPath("$[0]", hasKey("updatedAt")));
         }
 
         @Test

@@ -1,10 +1,11 @@
 package org.kruskopf.backend.ship;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +21,7 @@ public class ShipStringListConverter implements AttributeConverter<List<String>,
     private static final TypeReference<List<String>> LIST_OF_STRINGS = new TypeReference<>() {
     };
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     @Override
     public String convertToDatabaseColumn(List<String> values) {
@@ -29,7 +30,7 @@ public class ShipStringListConverter implements AttributeConverter<List<String>,
         }
         try {
             return objectMapper.writeValueAsString(values);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to convert ship string list to JSON", e);
         }
     }
@@ -41,7 +42,7 @@ public class ShipStringListConverter implements AttributeConverter<List<String>,
         }
         try {
             return objectMapper.readValue(dbData, LIST_OF_STRINGS);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to convert JSON to ship string list", e);
         }
     }

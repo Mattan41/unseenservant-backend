@@ -84,6 +84,9 @@ The demo profile automatically preloads test users and sample data. Login creden
 | admin | admin@admin.se | password | Admin |
 
 H2 console is available at `http://localhost:8080/h2-console` for database inspection.
+Spring Boot 4 keeps that console in a module of its own, so the
+`spring-boot-h2console` dependency in `pom.xml` is what serves this page in the
+demo profile.
 
 ## Environment Variables
 
@@ -112,9 +115,18 @@ over from an empty database.
 ## Running Tests
 
 ```sh
-./mvnw test
-
+./mvnw test      # unit tests — no Docker needed
+./mvnw verify    # unit + integration tests (what CI runs on a pull request)
 ```
+
+`./mvnw test` runs only the unit tests: surefire includes `*Test` and excludes
+`*IT`. The integration tests (`*IT`, run by failsafe on `verify`) boot the whole
+application against a MySQL 8.4.11 Testcontainer, so they need a running Docker
+daemon. That is the only prerequisite — no service container and no repository
+secret — which is why CI can run the whole suite on a pull request.
+
+[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) (section "Tests") lists what each
+test class protects.
 
 ## Deployment
 
@@ -158,5 +170,3 @@ infrastructure repository (`Mattan41/projects-notes`,
 Neither host publishes 3306 (MySQL) or 5005 (JDWP). The JDWP agent is only ever
 enabled through the explicit `docker-compose.debug.yml` override, which binds it
 to `127.0.0.1` and is reached over an SSH tunnel.
-
-```

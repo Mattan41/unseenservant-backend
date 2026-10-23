@@ -1,7 +1,5 @@
 package org.kruskopf.backend.spell.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
@@ -17,6 +15,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -142,7 +142,7 @@ public class SpellService {
         return data;
     }
 
-    private Map<String, Object> deserializeSpellJson(Spell spell) throws Exception {
+    private Map<String, Object> deserializeSpellJson(Spell spell) {
         return objectMapper.readValue(spell.getRawJsonData(), new TypeReference<>() {});
     }
 

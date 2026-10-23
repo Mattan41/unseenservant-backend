@@ -4,7 +4,9 @@ WORKDIR /app
 COPY pom.xml .
 RUN --mount=type=cache,target=/root/.m2 mvn -B -e dependency:go-offline
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn clean package -DskipTests
+# maven.test.skip, not -DskipTests: since Spring Boot 4.1 the plugin only reacts
+# to maven.test.skip when deciding whether to AOT-process the test classes.
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -Dmaven.test.skip=true
 
 FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
