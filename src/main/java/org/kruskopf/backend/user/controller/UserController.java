@@ -21,6 +21,8 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class UserController {
 
+    private static final String USER_NOT_FOUND = "User not found with id: ";
+
     public final UserService userService;
 
     public UserController(UserService userService) {
@@ -44,7 +46,7 @@ public class UserController {
         // Thrown, not returned empty: the advice turns either into a 404, and only
         // a thrown one carries a detail the client can show.
         User user = userService.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
 
         UserDTO userDTO = userService.toDTO(user);
         return ResponseEntity.ok(userDTO);
@@ -54,7 +56,7 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserDTO> getUser(@PathVariable Long id) {
         User user = userService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + id));
 
         UserDTO userDTO = userService.toDTO(user);
         return ResponseEntity.ok(userDTO);
@@ -81,7 +83,7 @@ public class UserController {
         }
 
         User updatedUser = userService.updateDisplayName(id, request.displayName())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + id));
         UserDTO userDTO = userService.toDTO(updatedUser);
         return ResponseEntity.ok(userDTO);
     }
