@@ -21,6 +21,7 @@ To view and interact with the user interface, you will need the frontend applica
 - Campaign management with participant roles (GM/Player)
 - Character import and tracking
 - File uploads for character portraits
+- Private per-participant campaign journals (markdown pages, 10,000 characters each, at most 500 pages)
 
 ## Getting Started
 
@@ -101,6 +102,8 @@ demo profile.
 | `USER_WHITELIST` | No | Comma-separated emails with user access. Same first-run-only rule |
 | `FILE_UPLOAD_DIR` | No | Directory for character portrait uploads (default: `./uploads/character-images`) |
 | `APP_UPLOAD_MAX_FILE_SIZE` | No | Max size per uploaded image, enforced by `FileStorageService` (default: `5MB`) |
+| `APP_JOURNAL_MAX_PAGE_LENGTH` | No | Max characters per journal page, enforced by `JournalService` (default: `10000`) |
+| `APP_JOURNAL_MAX_PAGES` | No | Max stored pages per journal, enforced by `JournalService` (default: `500`) |
 | `SPRING_DATASOURCE_URL` | Yes (prod) | Database connection URL |
 | `SPRING_DATASOURCE_USERNAME` | Yes (prod) | Database user |
 | `SPRING_DATASOURCE_PASSWORD` | Yes (prod) | Database password |

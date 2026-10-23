@@ -384,6 +384,64 @@ Intended as per-campaign message boards. Messages are visible only to campaign p
 
 ---
 
+## Journals
+
+Each campaign participant has one private journal: a book of numbered markdown
+pages.
+
+**Only its owner can read or write it.** Another participant, the campaign owner
+and a GM are all refused. That is enforced in the backend on every call
+(`JournalService`) — no endpoint takes another user's journal id, and a page id
+that belongs to somebody else answers with exactly the same 404 as an unknown id,
+so nothing about another participant's writing is even discoverable. A caller who
+is not a participant of the campaign gets 403.
+
+A journal always shows one blank page after the last stored one
+(`lastPageNumber = pageCount + 1`). That trailing page is **virtual**: nothing is
+stored for it, so opening a journal creates no rows. Writing on it creates a page;
+clearing a stored last page deletes it again (together with any further blank
+pages at the end — a blank page in the middle is kept), so a journal never has
+more than one trailing blank page.
+
+The `journal` row itself is created by the first write, never by a read, so
+existing participants need no data fixing.
+
+**GET /api/journals/campaign/{campaignId}**
+- Requires: campaign participant (the caller's own journal only)
+- Response: `JournalDTO { id, campaignId, userId, pageCount, pages }`
+- Pure read — nothing is created. Nothing written yet answers
+  `{ "id": null, "campaignId": …, "userId": …, "pageCount": 0, "pages": [] }`
+- Status: 200, 401, 403, 404
+
+**POST /api/journals/campaign/{campaignId}/pages**
+- Requires: campaign participant
+- Request: `{ afterPageId, content }`
+  - `afterPageId`: Long or `null` — `null` appends the page at the end
+  - `content`: string (max `app.journal.max-page-length`, default 10000 characters); may be blank, which keeps an empty page where it was inserted
+- The page is inserted and the book renumbers: inserted after page 3, the old page 4 becomes page 5, and so on
+- Appending a **blank** page is a no-op — the trailing blank page is already virtual — and the journal is returned unchanged
+- Response: `JournalDTO` (the whole journal after the change)
+- Status: 201, 400, 401, 403, 404
+- Note: past `app.journal.max-pages` (default 500) stored pages the answer is 400
+
+**PATCH /api/journals/pages/{pageId}**
+- Requires: the page's owner (a campaign participant)
+- Request: `{ content, version }`
+  - `content`: string (max `app.journal.max-page-length`, default 10000 characters)
+  - `version`: the `version` of the page as it was loaded (optimistic locking; required — a missing one is 400, a stale one 409)
+- Clearing the last stored page deletes it (and any further blank pages at the end); a blank page in the middle stays as an empty page
+- Response: `JournalPageSaveDTO { page, pageCount }` — `page` is the saved `JournalPageDTO`, or `null` when writing the page removed it
+- Status: 200, 400, 401, 403, 404, 409
+- Note: a page that belongs to another user answers 404 (same body as an unknown id); a stale `version` answers 409
+
+**DELETE /api/journals/pages/{pageId}**
+- Requires: the page's owner (a campaign participant)
+- Deletes the page; the pages after it close the gap and keep their order
+- Response: `JournalDTO` (the whole journal after the change)
+- Status: 200, 401, 403, 404
+
+---
+
 ## Spells
 
 > Spells are stored in the local DB from bulk Open5e import. Shared spell cache — removing a spell from a character does not delete the spell record.
@@ -607,6 +665,61 @@ for its 401/403, so one parser covers every status.
   "updatedAt": "2026-05-29T10:00:00"
 }
 ```
+
+### JournalDTO
+
+```json
+{
+  "id": 4,
+  "campaignId": 1,
+  "userId": 7,
+  "pageCount": 2,
+  "pages": [
+    {
+      "id": 31,
+      "pageNumber": 1,
+      "content": "# Session 1\n\nWe met **Old Man Winters** at the docks.",
+      "version": 0,
+      "createdAt": "2026-05-29T10:00:00",
+      "updatedAt": "2026-05-29T10:00:00"
+    },
+    {
+      "id": 32,
+      "pageNumber": 2,
+      "content": "",
+      "version": 3,
+      "createdAt": "2026-05-29T10:05:00",
+      "updatedAt": "2026-05-29T10:12:00"
+    }
+  ]
+}
+```
+
+A participant who has not written anything yet — the read creates nothing:
+
+```json
+{ "id": null, "campaignId": 1, "userId": 7, "pageCount": 0, "pages": [] }
+```
+
+### JournalPageSaveDTO
+
+```json
+{
+  "page": {
+    "id": 32,
+    "pageNumber": 2,
+    "content": "Rewritten",
+    "version": 4,
+    "createdAt": "2026-05-29T10:05:00",
+    "updatedAt": "2026-05-29T10:20:00"
+  },
+  "pageCount": 2
+}
+```
+
+`page` is `null` when the page was blank and last, so writing it removed it
+(together with any further blank pages at the end); `pageCount` then describes the
+smaller book.
 
 ### CharacterSpellResponseDTO
 ```json
