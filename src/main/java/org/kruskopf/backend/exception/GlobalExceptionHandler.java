@@ -2,6 +2,7 @@ package org.kruskopf.backend.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -12,12 +13,14 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.util.unit.DataSize;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.net.URI;
@@ -57,6 +60,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     /** Sent for a 500: what went wrong is ours to log, not the caller's to read. */
     private static final String UNEXPECTED_DETAIL = "Something went wrong on the server.";
 
+    /**
+     * The application's own upload limit. Read from the same property the
+     * service enforces so an upload refused by the container names the limit the
+     * caller actually hit, not the container's.
+     */
+    @Value("${app.upload.max-file-size:5MB}")
+    private DataSize maxFileSize;
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleResourceNotFoundException(ResourceNotFoundException ex) {
         return response(HttpStatus.NOT_FOUND, ex.getMessage());
@@ -82,6 +93,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         // under the name RFC 9110 gives it. The framework's own upload handler
         // uses it too, so both layers report the same title.
         return response(HttpStatus.CONTENT_TOO_LARGE, ex.getMessage());
+    }
+
+    /**
+     * An upload past the multipart limit never reaches FileStorageService, so the
+     * framework answers it. Overridden so it says the same thing as
+     * FileUploadTooLargeException: same 413, same wording, the application limit.
+     */
+    @Override
+    protected ResponseEntity<Object> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException ex, HttpHeaders headers,
+            HttpStatusCode status, WebRequest request) {
+        ProblemDetail problem = problem(HttpStatus.CONTENT_TOO_LARGE,
+                "File size exceeds maximum limit of " + maxFileSize.toMegabytes() + "MB");
+        return handleExceptionInternal(ex, problem, headers, HttpStatus.CONTENT_TOO_LARGE, request);
     }
 
     @ExceptionHandler(InvalidRequestException.class)
