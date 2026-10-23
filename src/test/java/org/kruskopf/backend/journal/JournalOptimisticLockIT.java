@@ -123,13 +123,17 @@ class JournalOptimisticLockIT extends AbstractIntegrationTest {
     @DisplayName("a stale client version is rejected before any work is done")
     void staleClientVersionIsRejected() {
         JournalPageDTO page = firstPage("The first entry");
-        journalService.updatePage(page.id(), user.getId(), "First rewrite", page.version());
+        // Captured once: the lambda below has to hold a single invocation, and a
+        // later read of the same page does not change the token that was loaded.
+        Long pageId = page.id();
+        long userId = user.getId();
+        Long version = page.version();
+        journalService.updatePage(pageId, userId, "First rewrite", version);
 
-        assertThatThrownBy(() -> journalService.updatePage(
-                page.id(), user.getId(), "Second rewrite", page.version()))
+        assertThatThrownBy(() -> journalService.updatePage(pageId, userId, "Second rewrite", version))
                 .isInstanceOf(ConcurrentUpdateException.class);
 
-        assertThat(journalPageRepository.findById(page.id()).orElseThrow().getContent())
+        assertThat(journalPageRepository.findById(pageId).orElseThrow().getContent())
                 .as("the rejected write must not have landed")
                 .isEqualTo("First rewrite");
     }
@@ -137,20 +141,9 @@ class JournalOptimisticLockIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("a flush against a row that changed underneath is rejected by the version column")
     void staleFlushIsRejectedByTheVersionColumn() {
-        JournalPageDTO page = firstPage("The first entry");
-        Long pageId = page.id();
+        Long pageId = firstPage("The first entry").id();
 
-        assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
-            JournalPage managed = journalPageRepository.findById(pageId).orElseThrow();
-            managed.setContent("competing rewrite"); // dirty, so Hibernate issues the UPDATE
-
-            // A competing writer bumps the row first. This is the case the
-            // service-level check cannot see: it runs before this flush.
-            jdbcTemplate.update("UPDATE journal_page SET version = version + 1 WHERE id = ?", pageId);
-
-            // UPDATE journal_page SET ... , version = 1 WHERE id = ? AND version = 0 -> 0 rows.
-            journalPageRepository.saveAndFlush(managed);
-        }))
+        assertThatThrownBy(() -> bumpVersionAndFlushStaleCopy(pageId))
                 .as("Hibernate must reject the stale flush with the exception the "
                         + "controller advice maps to 409")
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
@@ -158,6 +151,23 @@ class JournalOptimisticLockIT extends AbstractIntegrationTest {
         assertThat(journalPageRepository.findById(pageId).orElseThrow().getContent())
                 .as("the stale write must not have landed")
                 .isEqualTo("The first entry");
+    }
+
+    /**
+     * Inside one transaction: dirty the page, then let another connection bump its
+     * version before the flush. That is the race the service-level token check
+     * cannot see, because it runs before the flush.
+     */
+    private void bumpVersionAndFlushStaleCopy(Long pageId) {
+        transactionTemplate.executeWithoutResult(status -> {
+            JournalPage managed = journalPageRepository.findById(pageId).orElseThrow();
+            managed.setContent("competing rewrite"); // dirty, so Hibernate issues the UPDATE
+
+            jdbcTemplate.update("UPDATE journal_page SET version = version + 1 WHERE id = ?", pageId);
+
+            // UPDATE journal_page SET ... , version = 1 WHERE id = ? AND version = 0 -> 0 rows.
+            journalPageRepository.saveAndFlush(managed);
+        });
     }
 
     /** The first page of the fixture journal, as the client would load it. */

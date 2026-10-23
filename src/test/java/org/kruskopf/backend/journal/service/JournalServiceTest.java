@@ -33,7 +33,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -130,7 +129,7 @@ class JournalServiceTest {
     /** The read the service performs before the ownership rules are exercised. */
     private void givenParticipant() {
         when(campaignRepository.existsById(CAMPAIGN_ID)).thenReturn(true);
-        when(campaignPermissionService.isParticipant(eq(CAMPAIGN_ID), eq(USER_ID))).thenReturn(true);
+        when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
     }
 
     private void givenExistingJournal(JournalPage... pages) {
@@ -307,9 +306,9 @@ class JournalServiceTest {
     @DisplayName("a page longer than the configured limit is refused")
     void refusesAnOverLongPage() {
         givenParticipant();
+        String tooLong = "a".repeat(MAX_PAGE_LENGTH + 1);
 
-        assertThatThrownBy(() -> service.createPage(
-                CAMPAIGN_ID, USER_ID, null, "a".repeat(MAX_PAGE_LENGTH + 1)))
+        assertThatThrownBy(() -> service.createPage(CAMPAIGN_ID, USER_ID, null, tooLong))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining(String.valueOf(MAX_PAGE_LENGTH));
         verify(journalPageRepository, never()).saveAndFlush(any());
@@ -319,10 +318,10 @@ class JournalServiceTest {
     @DisplayName("writing an over-long page is refused")
     void refusesAnOverLongRewrite() {
         givenParticipant();
+        String tooLong = "a".repeat(MAX_PAGE_LENGTH + 1);
         when(journalPageRepository.findById(31L)).thenReturn(Optional.of(page(31L, journal, 1, "one")));
 
-        assertThatThrownBy(() -> service.updatePage(
-                31L, USER_ID, "a".repeat(MAX_PAGE_LENGTH + 1), null))
+        assertThatThrownBy(() -> service.updatePage(31L, USER_ID, tooLong, null))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining(String.valueOf(MAX_PAGE_LENGTH));
         verify(journalPageRepository, never()).saveAndFlush(any());
@@ -370,7 +369,7 @@ class JournalServiceTest {
     @DisplayName("a caller who is not a participant is refused")
     void nonParticipantIsRefused() {
         when(campaignRepository.existsById(CAMPAIGN_ID)).thenReturn(true);
-        when(campaignPermissionService.isParticipant(eq(CAMPAIGN_ID), eq(USER_ID))).thenReturn(false);
+        when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(false);
 
         assertThatThrownBy(() -> service.getJournal(CAMPAIGN_ID, USER_ID))
                 .isInstanceOf(UnauthorizedAccessException.class);

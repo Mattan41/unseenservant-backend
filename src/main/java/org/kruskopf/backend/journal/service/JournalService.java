@@ -122,7 +122,7 @@ public class JournalService {
         try {
             return transactionTemplate.execute(status ->
                     createPageInTransaction(campaignId, userId, afterPageId, content));
-        } catch (DataIntegrityViolationException ex) {
+        } catch (DataIntegrityViolationException _) {
             // Two first writes raced on the unique key (campaign_id, user_id).
             // MySQL reports the duplicate only once the winner has committed, so
             // this retry runs in a fresh transaction that can see its row.
