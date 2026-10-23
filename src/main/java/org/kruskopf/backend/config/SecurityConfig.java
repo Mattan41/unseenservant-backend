@@ -1,6 +1,7 @@
 
 package org.kruskopf.backend.config;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.auth.JwtAuthenticationFilter;
 import org.kruskopf.backend.component.CustomOAuth2SuccessHandler;
@@ -24,11 +25,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import tools.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -40,14 +47,39 @@ public class SecurityConfig {
 
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ObjectMapper objectMapper;
 
     @Value("${ALLOWED_ORIGINS}")
     private String[] allowedOrigins;
 
     public SecurityConfig(CustomOAuth2SuccessHandler customOAuth2SuccessHandler,
-                          JwtAuthenticationFilter jwtAuthenticationFilter) {
+                          JwtAuthenticationFilter jwtAuthenticationFilter,
+                          ObjectMapper objectMapper) {
         this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.objectMapper = objectMapper;
+    }
+
+    /**
+     * The 401 and 403 the filter chain answers with — refused before any
+     * controller runs, so {@code GlobalExceptionHandler} never sees them. They are
+     * written here instead, in the same shape it uses: an RFC 9457 body whose
+     * {@code detail} is the sentence a client can show.
+     * <p>
+     * Done directly on the response rather than by throwing, because there is no
+     * Advice at this point in the chain; {@code response.sendError} was the
+     * alternative and it delegates to the container's HTML error page.
+     */
+    private void writeProblem(HttpServletRequest request, HttpServletResponse response,
+                              HttpStatus status, String detail) throws IOException {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setType(URI.create("about:blank"));
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        response.setStatus(status.value());
+        response.setContentType("application/problem+json");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        objectMapper.writeValue(response.getOutputStream(), problem);
     }
 
     @Bean
@@ -85,9 +117,11 @@ public class SecurityConfig {
                 .exceptionHandling(exceptionHandling ->
                         exceptionHandling
                                 .authenticationEntryPoint((request, response, authException) ->
-                                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                                        writeProblem(request, response, HttpStatus.UNAUTHORIZED,
+                                                "Authentication is required."))
                                 .accessDeniedHandler((request, response, accessDeniedException) ->
-                                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied")))
+                                        writeProblem(request, response, HttpStatus.FORBIDDEN,
+                                                "Access denied.")))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -123,9 +157,11 @@ public class SecurityConfig {
                 .exceptionHandling(exceptionHandling ->
                         exceptionHandling
                                 .authenticationEntryPoint((request, response, authException) ->
-                                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                                        writeProblem(request, response, HttpStatus.UNAUTHORIZED,
+                                                "Authentication is required."))
                                 .accessDeniedHandler((request, response, accessDeniedException) ->
-                                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied")))
+                                        writeProblem(request, response, HttpStatus.FORBIDDEN,
+                                                "Access denied.")))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(AbstractHttpConfigurer::disable)

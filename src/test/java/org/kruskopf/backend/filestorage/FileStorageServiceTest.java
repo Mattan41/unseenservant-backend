@@ -2,6 +2,7 @@ package org.kruskopf.backend.filestorage;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.kruskopf.backend.exception.FileUploadTooLargeException;
 import org.kruskopf.backend.exception.InvalidFileFormatException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.unit.DataSize;
@@ -82,7 +83,10 @@ class FileStorageServiceTest {
 
         FileStorageService fileStorageService = newService();
 
-        InvalidFileFormatException exception = assertThrows(InvalidFileFormatException.class,
+        // Its own type, not InvalidFileFormatException: too large is answered 413
+        // so it matches the container's answer past the multipart limit, while a
+        // wrong or empty file stays a 400.
+        FileUploadTooLargeException exception = assertThrows(FileUploadTooLargeException.class,
                 () -> fileStorageService.storeFile(file, "character", "IMAGE"));
 
         assertEquals("File size exceeds maximum limit of 5MB", exception.getMessage());

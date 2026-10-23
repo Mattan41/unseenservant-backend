@@ -10,14 +10,32 @@
 
 ## Error Format
 
-All errors are returned in this format (via `GlobalExceptionHandler`):
+Every error body is an RFC 9457 `ProblemDetail` (`application/problem+json`),
+whether it comes from `GlobalExceptionHandler`, from the framework's own handlers
+(malformed body, unknown path, upload past the multipart limit) or from the
+security filter chain's 401/403:
 
 ```json
 {
+  "type": "about:blank",
+  "title": "Not Found",
   "status": 404,
-  "message": "Character not found",
-  "timestamp": "2026-05-29T12:00:00Z",
-  "path": "/api/characters/999"
+  "detail": "Character not found with id: 999",
+  "instance": "/api/characters/999"
+}
+```
+
+Read `detail` for the sentence to show. Validation and unique-constraint failures
+add `field` (and `value` where it helps) as extension properties:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "A display name may be at most 50 characters",
+  "instance": "/api/users/7",
+  "field": "displayName"
 }
 ```
 
@@ -26,12 +44,14 @@ All errors are returned in this format (via `GlobalExceptionHandler`):
 | `200` | OK |
 | `201` | Created |
 | `204` | No Content (DELETE) |
-| `400` | Bad Request / validation error |
+| `400` | Bad Request / validation error / malformed body or parameter |
 | `401` | Unauthorized |
 | `403` | Forbidden (not owner / wrong role) |
 | `404` | Not Found |
-| `409` | Conflict (unique constraint) |
-| `500` | Server Error |
+| `409` | Conflict (unique constraint, concurrent update) |
+| `413` | Content Too Large (upload past the 5MB or 8MB limit) |
+| `429` | Too Many Requests (login throttle; `Retry-After` header) |
+| `500` | Server Error (generic `detail`; the cause is logged) |
 
 ---
 
@@ -458,7 +478,7 @@ Valid `role` values: `GM` | `PLAYER`
 ### POST /api/campaigns/{id}/image — Upload campaign image
 
 **Auth:** Yes  
-**Status:** 200, 400, 401, 403
+**Status:** 200, 400, 401, 403, 413
 
 **Request:** `multipart/form-data`, field name: `file`.
 
@@ -733,7 +753,7 @@ The endpoint is system-agnostic. When `systemType` is `OFFWORLDERS`, send (and r
 ### POST /api/characters/{id}/image — Upload character image
 
 **Auth:** Yes (ROLE_USER, must be owner)  
-**Status:** 200, 400, 401, 403
+**Status:** 200, 400, 401, 403, 413
 
 **Request:** `multipart/form-data`, field name: `file`.
 

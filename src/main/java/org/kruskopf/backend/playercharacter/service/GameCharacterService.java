@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -133,7 +134,9 @@ public class GameCharacterService {
             GameCharacter savedCharacter = gameCharacterRepository.save(character);
             return gameCharacterMapper.toOutputDTO(savedCharacter, true);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to store file", e);
+            // UncheckedIOException is the JDK's own "this IOException escaped"
+            // wrapper: same 500 as before, but the type says what went wrong.
+            throw new UncheckedIOException("Failed to store file", e);
         }
     }
 

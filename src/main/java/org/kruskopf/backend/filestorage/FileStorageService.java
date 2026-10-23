@@ -1,5 +1,6 @@
 package org.kruskopf.backend.filestorage;
 
+import org.kruskopf.backend.exception.FileUploadTooLargeException;
 import org.kruskopf.backend.exception.InvalidFileFormatException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,16 +93,20 @@ public class FileStorageService {
      * Performs generic validations applicable to all uploaded files.
      *
      * @param file The multipart file to validate
-     * @throws InvalidFileFormatException If the file is empty or exceeds the configured size limit
+     * @throws InvalidFileFormatException  If the file is empty
+     * @throws FileUploadTooLargeException If the file exceeds the configured size limit
      */
     private void validateGenericFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new InvalidFileFormatException("Cannot upload empty file");
         }
 
-        // Enforce the configured maximum file size limit (app.upload.max-file-size)
+        // Enforce the configured maximum file size limit (app.upload.max-file-size).
+        // Too large is 413, not 400: it is the same answer the container gives for an
+        // upload past spring.servlet.multipart.max-file-size, so the client sees one
+        // outcome instead of one per layer.
         if (file.getSize() > maxFileSize.toBytes()) {
-            throw new InvalidFileFormatException(
+            throw new FileUploadTooLargeException(
                     "File size exceeds maximum limit of " + maxFileSize.toMegabytes() + "MB");
         }
     }

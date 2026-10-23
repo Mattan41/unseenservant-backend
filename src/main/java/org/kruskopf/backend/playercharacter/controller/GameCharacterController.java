@@ -90,11 +90,10 @@ public class GameCharacterController {
     public ResponseEntity<CharacterOutputDTO> getCharacterById(@PathVariable Long id,
                                                                @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long userId = customUserDetails.user().getId();
-        try {
-            return ResponseEntity.ok(gameCharacterService.getCharacterById(id, userId));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        // The service already throws ResourceNotFoundException for an unknown or
+        // foreign character; catching it only to return an empty 404 threw the
+        // detail away. Letting it through gives the client the sentence.
+        return ResponseEntity.ok(gameCharacterService.getCharacterById(id, userId));
     }
 
     @PatchMapping("/{characterId}")

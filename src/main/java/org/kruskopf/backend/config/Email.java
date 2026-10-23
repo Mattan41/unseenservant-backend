@@ -15,7 +15,7 @@ public record Email(String email, boolean primary, boolean verified, String visi
             return objectMapper.readValue(json, new TypeReference<List<Email>>() {
             });
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse JSON: " + e.getMessage(), e);
+            throw new IllegalStateException("Failed to parse JSON: " + e.getMessage(), e);
         }
     }
 }

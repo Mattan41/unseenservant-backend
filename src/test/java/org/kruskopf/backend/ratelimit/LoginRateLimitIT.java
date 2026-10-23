@@ -19,8 +19,8 @@ import org.testcontainers.mysql.MySQLContainer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -75,7 +75,7 @@ class LoginRateLimitIT {
                 .andExpect(header().exists("Retry-After"))
                 // The same body comes back whatever was attempted, so the
                 // response cannot be read as a signal about the account.
-                .andExpect(content().string(startsWith("Too many attempts. Please try again in")));
+                .andExpect(jsonPath("$.detail", startsWith("Too many attempts. Please try again in")));
     }
 
     @Test

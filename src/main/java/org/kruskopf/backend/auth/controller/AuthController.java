@@ -5,13 +5,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.kruskopf.backend.auth.JwtService;
 import org.kruskopf.backend.auth.dto.AuthDTO;
 import org.kruskopf.backend.auth.dto.LoginRequest;
+import org.kruskopf.backend.exception.InvalidRequestException;
 import org.kruskopf.backend.ratelimit.ClientIpResolver;
 import org.kruskopf.backend.ratelimit.LoginAttemptLimiter;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -98,8 +98,9 @@ public class AuthController {
         loginAttemptLimiter.checkOAuthInit(ClientIpResolver.resolve(request));
 
         if (!Set.of("google", "github").contains(provider)) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid provider");
-            return;
+            // Thrown rather than sent: the advice owns the body, so a 400 here
+            // reads like every other 400 instead of the container's error page.
+            throw new InvalidRequestException("Invalid provider");
         }
 
         if (Arrays.asList(allowedOrigins).contains(origin)) {
@@ -119,7 +120,10 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<AuthDTO> getCurrentUser(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            // The security chain requires authentication on this path, so this is a
+            // backstop; thrown rather than returned empty so the 401 carries the
+            // same body as every other one.
+            throw new BadCredentialsException("Authentication is required.");
         }
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
