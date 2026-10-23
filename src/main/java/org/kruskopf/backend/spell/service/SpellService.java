@@ -163,7 +163,9 @@ public class SpellService {
             Map<String, Object> spellData = deserializeSpellJson(spell);
             return new CharacterSpellResponseDTO(characterId, spell.getSlug(), spell.getName(), spellData);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to deserialize spell data for slug '" + spell.getSlug() + "'", e);
+            // Same choice as the JPA attribute converters: a JSON round-trip that
+            // cannot be read back is a broken state, not a client error.
+            throw new IllegalStateException("Failed to deserialize spell data for slug '" + spell.getSlug() + "'", e);
         }
     }
 }
