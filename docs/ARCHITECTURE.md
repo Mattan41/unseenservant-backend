@@ -257,8 +257,27 @@ Each domain is a self-contained package with:
   second database read, so they deliberately stay in the service layer.
 
 ### Error handling
-- `GlobalExceptionHandler` handles all exceptions via `@RestControllerAdvice`
-- Custom exceptions: `ResourceNotFoundException` (404), `UnauthorizedAccessException` (403), `InvalidRequestException` (400 — a well-formed request the domain refuses, e.g. self-demotion), `UniqueConstraintViolationException` (409), `ConcurrentUpdateException` (409), `RateLimitExceededException` (429 with `Retry-After` — see *Login throttle*)
+- **One body for every failure:** an RFC 9457 `ProblemDetail` (`type`, `title`,
+  `status`, `detail`, `instance`), served as `application/problem+json`. The client
+  reads `detail`; `field` and `value` appear as extension properties when the caller
+  can act on them. See docs/INTEGRATION_CONTRACT.md, "Error Response Format".
+- `GlobalExceptionHandler` is the single place an MVC failure becomes a body. It
+  extends `ResponseEntityExceptionHandler`, so the framework's own failures —
+  malformed request body, wrong parameter type, unsupported media type, unknown
+  path, upload past the multipart limit — answer in the same shape. A catch-all
+  returns a generic 500 and logs the cause; nothing builds an error response
+  anywhere else in the MVC layer.
+- Custom exceptions: `ResourceNotFoundException` (404),
+  `UnauthorizedAccessException` (403), `InvalidFileFormatException` (400 — empty or
+  wrong kind of file), `FileUploadTooLargeException` (413 — past
+  `app.upload.max-file-size`; the same status the container gives past its own
+  multipart limit), `InvalidRequestException` (400 — a well-formed request the
+  domain refuses, e.g. self-demotion), `UniqueConstraintViolationException` (409),
+  `ConcurrentUpdateException` (409), `RateLimitExceededException` (429 with
+  `Retry-After` — see *Login throttle*).
+- The security filter chain runs outside the dispatcher and cannot reach the
+  advice: `SecurityConfig` writes its 401 and 403 in the same shape, so a client
+  needs one parser for every status.
 
 ### External HTTP calls
 When backend needs to call external APIs (e.g. Open5e for lazy-loading content), use Spring's `RestClient` or `WebClient` — not `RestTemplate`.

@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -58,13 +57,13 @@ class LoginCredentialsIT extends AbstractIntegrationTest {
     void refusesBothTheSameWay() throws Exception {
         mockMvc.perform(login("nobody@test.com", PASSWORD))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Invalid username or password"));
+                .andExpect(jsonPath("$.detail", is("Invalid username or password")));
 
         saveUser();
 
         mockMvc.perform(login(USERNAME, "wrong-password"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Invalid username or password"));
+                .andExpect(jsonPath("$.detail", is("Invalid username or password")));
     }
 
     @Test

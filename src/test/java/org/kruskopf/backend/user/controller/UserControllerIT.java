@@ -136,7 +136,8 @@ class UserControllerIT extends AbstractIntegrationTest {
         void rejectsATooLongDisplayName() throws Exception {
             patchMe(memberToken, Map.of("displayName", "x".repeat(51)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.message", is("A display name may be at most 50 characters")));
+                    .andExpect(jsonPath("$.detail", is("A display name may be at most 50 characters")))
+                    .andExpect(jsonPath("$.field", is("displayName")));
         }
 
         @Test

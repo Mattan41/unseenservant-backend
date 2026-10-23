@@ -3,13 +3,13 @@ package org.kruskopf.backend.user.controller;
 import jakarta.validation.Valid;
 import org.kruskopf.backend.exception.InvalidRequestException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
+import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.dto.UserProfileUpdateDTO;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
 import org.kruskopf.backend.user.service.UserService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -41,11 +41,10 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getLoggedInUser(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
         Long userId = customUserDetails.user().getId();
-        User user = userService.findById(userId).orElse(null);
-
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+        // Thrown, not returned empty: the advice turns either into a 404, and only
+        // a thrown one carries a detail the client can show.
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         UserDTO userDTO = userService.toDTO(user);
         return ResponseEntity.ok(userDTO);
@@ -54,11 +53,9 @@ public class UserController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<UserDTO> getUser(@PathVariable Long id) {
-        User user = userService.findById(id).orElse(null);
+        User user = userService.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
         UserDTO userDTO = userService.toDTO(user);
         return ResponseEntity.ok(userDTO);
     }
@@ -72,7 +69,7 @@ public class UserController {
 
         boolean isAdmin = currentUser.user().getRole() == UserRole.ADMIN;
         if (!currentUser.user().getId().equals(id) && !isAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            throw new UnauthorizedAccessException("Only the owner of a profile or an administrator may edit it.");
         }
 
         // Refused rather than ignored: both fields used to be writable through this

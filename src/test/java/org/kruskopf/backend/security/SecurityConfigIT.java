@@ -15,8 +15,10 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -54,7 +56,12 @@ class SecurityConfigIT extends AbstractIntegrationTest {
         void unauthenticatedCannotAccessCampaigns() throws Exception {
             mockMvc.perform(get("/api/campaigns"))
                     .andDo(print())
-                    .andExpect(status().isUnauthorized());
+                    .andExpect(status().isUnauthorized())
+                    // The filter chain runs outside the dispatcher, so its 401 is
+                    // written by SecurityConfig — in the same ProblemDetail shape
+                    // the advice uses, detail included.
+                    .andExpect(jsonPath("$.status", is(401)))
+                    .andExpect(jsonPath("$.detail", is("Authentication is required.")));
         }
 
         @Test
@@ -118,7 +125,9 @@ class SecurityConfigIT extends AbstractIntegrationTest {
         void userCannotAccessAdminEndpoints() throws Exception {
             mockMvc.perform(get("/api/admin"))
                     .andDo(print())
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.status", is(403)))
+                    .andExpect(jsonPath("$.detail", is("Access denied.")));
         }
     }
 

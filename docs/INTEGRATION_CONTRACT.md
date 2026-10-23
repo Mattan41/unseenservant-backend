@@ -435,25 +435,50 @@ Intended as per-campaign message boards. Messages are visible only to campaign p
 
 ## Error Response Format
 
+Every error body is an RFC 9457 `ProblemDetail`, served as
+`application/problem+json`. The sentence to show the user is **`detail`**; there
+is no `message` member. A client should read `detail` and, when present, `field`.
+
 ```json
 {
+  "type": "about:blank",
+  "title": "Not Found",
   "status": 404,
-  "message": "Character not found",
-  "timestamp": "2026-05-29T12:00:00Z",
-  "path": "/api/characters/999"
+  "detail": "Character not found with id: 999",
+  "instance": "/api/characters/999"
 }
 ```
+
+A validation failure names the offending input in an extension property:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "A display name may be at most 50 characters",
+  "instance": "/api/users/7",
+  "field": "displayName"
+}
+```
+
+A unique-constraint conflict carries `field` and `value` the same way. The same
+shape comes back for framework failures (malformed JSON, wrong parameter type,
+unknown path, upload past the multipart limit) and from the security filter chain
+for its 401/403, so one parser covers every status.
 
 **Common status codes:**
 - `200` — Success
 - `201` — Created
 - `204` — No Content (successful DELETE)
-- `400` — Bad Request (validation error)
+- `400` — Bad Request (validation error, malformed body or parameter)
 - `401` — Unauthorized (missing/invalid JWT)
 - `403` — Forbidden (not owner/insufficient permissions)
 - `404` — Not Found
-- `409` — Conflict (unique constraint violation)
-- `500` — Server Error
+- `409` — Conflict (unique constraint violation, concurrent update)
+- `413` — Content Too Large (upload past the 5MB application limit or the 8MB multipart limit)
+- `429` — Too Many Requests (login throttle; carries `Retry-After`)
+- `500` — Server Error (a generic `detail`; the cause is logged, not returned)
 
 ---
 
