@@ -2,12 +2,8 @@ package org.kruskopf.backend.planner.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -16,14 +12,8 @@ import jakarta.persistence.Version;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.kruskopf.backend.campaign.entity.Campaign;
+import org.kruskopf.backend.entity.AuditedEntity;
 import org.kruskopf.backend.user.entity.User;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.LocalDateTime;
 
 /**
  * One plan: the question a group is answering in the planner, held together with
@@ -51,15 +41,10 @@ import java.time.LocalDateTime;
  * true without any bookkeeping.
  */
 @Entity
-@EntityListeners(AuditingEntityListener.class)
 @Table(name = "planner_plan", indexes = {
         @Index(name = "idx_planner_plan_campaign_status", columnList = "campaign_id,status")
 })
-public class PlannerPlan {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class PlannerPlan extends AuditedEntity {
 
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -98,18 +83,6 @@ public class PlannerPlan {
     @Column(nullable = false)
     private long version = 0;
 
-    @CreatedBy
-    private String createdBy;
-
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    @LastModifiedBy
-    private String lastModifiedBy;
-
     public PlannerPlan() {
     }
 
@@ -118,15 +91,6 @@ public class PlannerPlan {
         this.createdByUser = createdByUser;
         this.title = title;
         this.description = description == null ? "" : description;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    /** For tests only: ids are assigned by the database. */
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public Campaign getCampaign() {
@@ -186,35 +150,4 @@ public class PlannerPlan {
         this.version = version;
     }
 
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public void setLastModifiedBy(String lastModifiedBy) {
-        this.lastModifiedBy = lastModifiedBy;
-    }
 }

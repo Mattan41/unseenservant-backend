@@ -210,6 +210,9 @@ org.kruskopf.backend/
 │   ├── EmailWhitelist.java
 │   ├── EmailWhitelistRepository.java
 │   └── EmailWhitelistService.java
+├── entity/                               # Shared JPA base classes; no feature of their own
+│   ├── BaseEntity.java                   # @MappedSuperclass: id + createdAt / updatedAt
+│   └── AuditedEntity.java                # extends BaseEntity: + createdBy / lastModifiedBy
 ├── component/
 │   └── CustomOAuth2SuccessHandler.java
 ├── config/
@@ -242,6 +245,11 @@ Each domain is a self-contained package with:
 - `service/` — business logic
 - `controller/` — REST endpoints
 - `dto/` — request/response objects
+
+Not everything lives in a feature package. The JPA base classes the entities share live in the
+root `entity/` — `BaseEntity` (generated `id`, `createdAt` / `updatedAt`) and its `AuditedEntity`
+subclass (the two `by` usernames), see "Existing entities" below — and code every feature uses
+lives in `config/`, `exception/` and `filestorage/`.
 
 ### Naming
 - Controllers: `@RestController`, `@RequestMapping("/api/feature")`
@@ -299,6 +307,26 @@ Each domain is a self-contained package with:
 When backend needs to call external APIs (e.g. Open5e for lazy-loading content), use Spring's `RestClient` or `WebClient` — not `RestTemplate`.
 
 ## Existing entities (summary)
+
+The generated `id` and the audit columns are **not** repeated in each entity. `entity/BaseEntity`
+declares `id`, `createdAt` and `updatedAt`; `entity/AuditedEntity` extends it with the usernames
+`createdBy` / `lastModifiedBy`, which `AuditorAwareImpl` fills in for every entity Spring Data
+writes. Both are `@MappedSuperclass`, so neither gets a table of its own and each entity maps the
+inherited fields onto its own table exactly as it did when they were written out per entity.
+
+The split in two is what makes the hierarchy schema-neutral: `AuditedEntity` exists because the
+`by` columns are *not* universal, so an entity whose table has no `created_by` /
+`last_modified_by` extends `BaseEntity` and inherits none — nobody gains a column, so no
+migration.
+
+Four entities stay outside the hierarchy, each for its own reason:
+
+- `CampaignUser` — `@EmbeddedId`; its key is the pair of foreign keys, not a generated number.
+- `Spell` — the primary key is the Open5e `slug` (a string), not a generated number.
+- `Dnd5eCharacterData` / `OffworldersCharacterData` — the shared primary key *is* the character's,
+  and the audit trail belongs to the character.
+- `EmailWhitelist` — it does have a generated id, but its table has no `created_at` /
+  `updated_at`, so extending the base would buy unused columns at the price of a migration.
 
 | Entity | Key fields | Relations |
 |--------|-----------|-----------|

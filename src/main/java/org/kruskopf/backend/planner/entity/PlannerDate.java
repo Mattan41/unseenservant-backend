@@ -2,10 +2,6 @@ package org.kruskopf.backend.planner.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -13,15 +9,10 @@ import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.kruskopf.backend.entity.AuditedEntity;
 import org.kruskopf.backend.user.entity.User;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 /**
@@ -39,15 +30,10 @@ import java.time.LocalTime;
  * ({@code ON DELETE SET NULL}) — decided with the date gone, rather than broken.
  */
 @Entity
-@EntityListeners(AuditingEntityListener.class)
 @Table(name = "planner_date", uniqueConstraints = {
         @UniqueConstraint(name = "uq_planner_date_plan_date", columnNames = {"plan_id", "date"})
 })
-public class PlannerDate {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class PlannerDate extends AuditedEntity {
 
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -77,18 +63,6 @@ public class PlannerDate {
     @Column(nullable = false)
     private long version = 0;
 
-    @CreatedBy
-    private String createdBy;
-
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    @LastModifiedBy
-    private String lastModifiedBy;
-
     public PlannerDate() {
     }
 
@@ -96,15 +70,6 @@ public class PlannerDate {
         this.plan = plan;
         this.createdByUser = createdByUser;
         this.date = date;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    /** For tests only: ids are assigned by the database. */
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public PlannerPlan getPlan() {
@@ -164,35 +129,4 @@ public class PlannerDate {
         this.version = version;
     }
 
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public void setLastModifiedBy(String lastModifiedBy) {
-        this.lastModifiedBy = lastModifiedBy;
-    }
 }

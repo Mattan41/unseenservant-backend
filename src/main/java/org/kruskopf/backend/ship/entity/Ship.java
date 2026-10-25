@@ -3,25 +3,17 @@ package org.kruskopf.backend.ship.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import org.kruskopf.backend.campaign.entity.Campaign;
+import org.kruskopf.backend.entity.BaseEntity;
 import org.kruskopf.backend.ship.ShipStringListConverter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,18 +34,13 @@ import java.util.List;
  */
 @Entity
 @Table(name = "ship")
-@EntityListeners(AuditingEntityListener.class)
-public class Ship {
+public class Ship extends BaseEntity {
 
     public static final int DEFAULT_HULL = 15;
     public static final int DEFAULT_ARMOR = 0;
     public static final String DEFAULT_DAMAGE = "1D6";
     public static final int DEFAULT_MAX_DRIVE_FUEL = 4;
     public static final int DEFAULT_CREDITS = 0;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -114,15 +101,6 @@ public class Ship {
     @Convert(converter = ShipStringListConverter.class)
     private List<String> imageUrls = new ArrayList<>();
 
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    @LastModifiedBy
-    private String lastModifiedBy;
-
     public Ship() {
     }
 
@@ -131,10 +109,6 @@ public class Ship {
      */
     public static Ship createDefault() {
         return new Ship();
-    }
-
-    public Long getId() {
-        return id;
     }
 
     public Campaign getCampaign() {
@@ -250,27 +224,4 @@ public class Ship {
         this.imageUrls = imageUrls;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public void setLastModifiedBy(String lastModifiedBy) {
-        this.lastModifiedBy = lastModifiedBy;
-    }
 }

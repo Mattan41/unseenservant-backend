@@ -3,13 +3,9 @@ package org.kruskopf.backend.playercharacter.entity;
 import jakarta.persistence.*;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
+import org.kruskopf.backend.entity.AuditedEntity;
 import org.kruskopf.backend.offworlders.entity.OffworldersCharacterData;
 import org.kruskopf.backend.user.entity.User;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -24,13 +20,8 @@ import java.time.LocalDateTime;
  * block is attached.
  */
 @Entity
-@EntityListeners(AuditingEntityListener.class)
 @Table(name = "game_character", indexes = {@Index(name = "idx_character_owner_id", columnList = "owner_id")})
-public class GameCharacter {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class GameCharacter extends AuditedEntity {
 
     @ManyToOne
     @JoinColumn(name = "owner_id", nullable = false)
@@ -76,18 +67,6 @@ public class GameCharacter {
     @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private OffworldersCharacterData offworldersData;
 
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    @CreatedBy
-    private String createdBy;
-
-    @LastModifiedBy
-    private String lastModifiedBy;
-
     // Constructors
     public GameCharacter() {
     }
@@ -99,7 +78,9 @@ public class GameCharacter {
         // No system is a valid choice, so it is stored as-is instead of being
         // defaulted to a ruleset the player never picked.
         this.systemType = systemType;
-        this.createdAt = LocalDateTime.now();
+        // Stamped here as well as by the audit listener, so a character has its
+        // creation time the moment it is built, before anything is persisted.
+        setCreatedAt(LocalDateTime.now());
     }
 
     /**
@@ -123,9 +104,6 @@ public class GameCharacter {
     }
 
     // Getters and Setters
-    public Long getId() {
-        return id;
-    }
 
     public User getOwner() {
         return owner;
@@ -215,31 +193,4 @@ public class GameCharacter {
         this.offworldersData = offworldersData;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public void setLastModifiedBy(String lastModifiedBy) {
-        this.lastModifiedBy = lastModifiedBy;
-    }
 }

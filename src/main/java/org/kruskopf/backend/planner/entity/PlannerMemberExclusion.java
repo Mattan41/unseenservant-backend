@@ -2,24 +2,14 @@ package org.kruskopf.backend.planner.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.kruskopf.backend.entity.AuditedEntity;
 import org.kruskopf.backend.user.entity.User;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.LocalDateTime;
 
 /**
  * A member who is not in a {@link PlannerPlan}, and why.
@@ -40,15 +30,10 @@ import java.time.LocalDateTime;
  * deletion of their answers, so rejoining restores them.
  */
 @Entity
-@EntityListeners(AuditingEntityListener.class)
 @Table(name = "planner_member_exclusion", uniqueConstraints = {
         @UniqueConstraint(name = "uq_planner_exclusion_plan_user", columnNames = {"plan_id", "user_id"})
 })
-public class PlannerMemberExclusion {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class PlannerMemberExclusion extends AuditedEntity {
 
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -68,18 +53,6 @@ public class PlannerMemberExclusion {
     @Column(name = "removed_by_owner", nullable = false)
     private boolean removedByOwner;
 
-    @CreatedBy
-    private String createdBy;
-
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    @LastModifiedBy
-    private String lastModifiedBy;
-
     public PlannerMemberExclusion() {
     }
 
@@ -88,15 +61,6 @@ public class PlannerMemberExclusion {
         this.user = user;
         this.removedBy = removedBy;
         this.removedByOwner = removedByOwner;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    /** For tests only: ids are assigned by the database. */
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public PlannerPlan getPlan() {
@@ -131,35 +95,4 @@ public class PlannerMemberExclusion {
         this.removedByOwner = removedByOwner;
     }
 
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public void setLastModifiedBy(String lastModifiedBy) {
-        this.lastModifiedBy = lastModifiedBy;
-    }
 }

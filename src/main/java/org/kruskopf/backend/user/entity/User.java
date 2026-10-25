@@ -1,28 +1,20 @@
 package org.kruskopf.backend.user.entity;
 
 import jakarta.persistence.*;
+import org.kruskopf.backend.entity.BaseEntity;
 import org.kruskopf.backend.message.entity.Message;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@EntityListeners(AuditingEntityListener.class)
 @Table(name = "users", indexes = {
         @Index(name = "idx_user_email", columnList = "email"),
         @Index(name = "idx_user_username", columnList = "userName"),
         @Index(name = "idx_user_provider_id", columnList = "provider_id")
 })
-public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class User extends BaseEntity {
 
     @Column(name = "provider_id", unique = true, nullable = false)
     private String providerId;
@@ -48,18 +40,11 @@ public class User {
 
     private String password;
 
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GameCharacter> playerCharacters = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Message> messages = new ArrayList<>();
-
 
     public User() {
     }
@@ -76,14 +61,6 @@ public class User {
     }
     // getters and setters
     // todo: remove setters that are unesesary and could be a security risk
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Long getId() {
-        return id;
-    }
 
     public String getProviderId() {
         return providerId;
@@ -147,22 +124,6 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     public List<GameCharacter> getCharacters() {

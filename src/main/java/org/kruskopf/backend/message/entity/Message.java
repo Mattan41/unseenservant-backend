@@ -2,26 +2,16 @@ package org.kruskopf.backend.message.entity;
 
 import jakarta.persistence.*;
 import org.kruskopf.backend.campaign.entity.Campaign;
+import org.kruskopf.backend.entity.BaseEntity;
 import org.kruskopf.backend.user.entity.User;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.LocalDateTime;
 
 @Entity
-@EntityListeners(AuditingEntityListener.class)
 @Table(name = "messages", indexes = {
         @Index(name = "idx_message_campaign_id", columnList = "campaign_id"),
         @Index(name = "idx_message_user_id", columnList = "user_id"),
         @Index(name = "idx_message_created_at", columnList = "createdAt")
 })
-public class Message {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Message extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "campaign_id")
@@ -34,16 +24,6 @@ public class Message {
     @Column(name = "message_body", columnDefinition = "LONGTEXT")
     private String messageBody;
 
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    @LastModifiedBy
-    private String lastModifiedBy;
-
-
     // Constructors
     public Message() {
     }
@@ -55,10 +35,6 @@ public class Message {
     }
 
     // Getters and Setters
-
-    public Long getId() {
-        return id;
-    }
 
     public Campaign getCampaign() {
         return campaign;
@@ -84,27 +60,4 @@ public class Message {
         this.messageBody = messageBody;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public void setLastModifiedBy(String lastModifiedBy) {
-        this.lastModifiedBy = lastModifiedBy;
-    }
 }

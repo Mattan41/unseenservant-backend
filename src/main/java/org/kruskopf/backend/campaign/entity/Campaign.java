@@ -1,26 +1,16 @@
 package org.kruskopf.backend.campaign.entity;
 
 import jakarta.persistence.*;
+import org.kruskopf.backend.entity.AuditedEntity;
 import org.kruskopf.backend.message.entity.Message;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
 import org.kruskopf.backend.user.entity.User;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@EntityListeners(AuditingEntityListener.class)
-public class Campaign {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Campaign extends AuditedEntity {
 
     private String name;
 
@@ -53,18 +43,6 @@ public class Campaign {
     @Column(name = "primary_system")
     private GameSystem primarySystem;
 
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    @CreatedBy
-    private String createdBy;
-
-    @LastModifiedBy
-    private String lastModifiedBy;
-
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CampaignUser> participants = new ArrayList<>();
 
@@ -81,10 +59,6 @@ public class Campaign {
     public Campaign(String name, String description) {
         this.name = name;
         this.description = description;
-    }
-
-    public Long getId() {
-        return id;
     }
 
     public String getName() {
@@ -133,38 +107,6 @@ public class Campaign {
 
     public void setPrimarySystem(GameSystem primarySystem) {
         this.primarySystem = primarySystem;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public void setLastModifiedBy(String lastModifiedBy) {
-        this.lastModifiedBy = lastModifiedBy;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     public List<CampaignUser> getParticipants() {
