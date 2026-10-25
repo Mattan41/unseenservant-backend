@@ -3,7 +3,6 @@ package org.kruskopf.backend.planner.repository;
 import org.kruskopf.backend.planner.entity.PlannerDate;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 

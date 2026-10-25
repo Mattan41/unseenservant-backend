@@ -314,6 +314,14 @@ declares `id`, `createdAt` and `updatedAt`; `entity/AuditedEntity` extends it wi
 writes. Both are `@MappedSuperclass`, so neither gets a table of its own and each entity maps the
 inherited fields onto its own table exactly as it did when they were written out per entity.
 
+`AuditingEntityListener` is the **only** writer of `createdAt` / `updatedAt`: it fills them on
+persist (`@PrePersist` / `@PreUpdate`), so an entity must not stamp them itself — a stamp in a
+constructor is overwritten before the row is written, and only a transient instance ever sees it.
+The clock behind them is `JpaConfig`'s `DateTimeProvider` bean, which returns UTC. The columns are
+MySQL `datetime`, which store no zone, so without that bean the wall clock would be whatever zone
+the host JVM happened to run in — UTC in the production container, CET on a developer's machine —
+and the same instant would be recorded two hours apart on the two.
+
 The split in two is what makes the hierarchy schema-neutral: `AuditedEntity` exists because the
 `by` columns are *not* universal, so an entity whose table has no `created_by` /
 `last_modified_by` extends `BaseEntity` and inherits none — nobody gains a column, so no
@@ -357,7 +365,9 @@ Four entities stay outside the hierarchy, each for its own reason:
   needs `@AutoConfigureTestRestTemplate` on a test class before it can inject a
   `TestRestTemplate` (it used to depend on the classpath alone)
 - `MessageControllerIT` pins the `/api` wire format the frontend parses
-  (`createdAt` as an ISO-8601 local date-time, null fields still written)
+  (`createdAt` as an ISO-8601 local date-time in UTC, null fields still written), and is
+  also where JPA auditing is proven end to end: it asserts the stored value really is the
+  UTC clock, which fails on a non-UTC machine if the provider stops being wired in
 
 Coverage, by area — unit tests (`*Test`, no Docker) and integration tests (`*IT`,
 full application against a Testcontainer):

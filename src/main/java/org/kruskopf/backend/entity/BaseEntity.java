@@ -23,7 +23,10 @@ import java.time.LocalDateTime;
  * have meant a migration.
  * <p>
  * {@code @EntityListeners} is declared here and applies to every subclass (a mapped
- * superclass's listeners are inherited), so the timestamps keep being filled in.
+ * superclass's listeners are inherited), so the timestamps keep being filled in. The
+ * listener is the only writer of {@link #createdAt} and {@link #updatedAt}: an entity
+ * must not stamp them, and what a transient instance holds is not what its row will
+ * hold. Both are filled from {@code JpaConfig}'s {@code DateTimeProvider}, which is UTC.
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)

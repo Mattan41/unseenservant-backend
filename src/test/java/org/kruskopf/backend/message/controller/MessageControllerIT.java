@@ -24,6 +24,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -329,6 +333,10 @@ class MessageControllerIT extends AbstractIntegrationTest {
             // Verify in database that createdAt was set
             Message savedMessage = messageRepository.findAll().getLast();
             assertThat(savedMessage.getCreatedAt()).isNotNull();
+            // ... and that it is the UTC wall clock (JpaConfig's DateTimeProvider), not
+            // the JVM's default zone: where the two differ, they are hours apart.
+            assertThat(Duration.between(savedMessage.getCreatedAt(), LocalDateTime.now(ZoneOffset.UTC)).abs())
+                    .isLessThan(Duration.ofMinutes(2));
             // Note: updatedAt cannot be meaningfully exercised yet since there's no update/edit endpoint for messages.
             // This is a placeholder for when/if message editing is added.
         }

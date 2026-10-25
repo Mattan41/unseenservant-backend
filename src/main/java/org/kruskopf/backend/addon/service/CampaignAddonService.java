@@ -55,8 +55,7 @@ public class CampaignAddonService {
      */
     @Transactional(readOnly = true)
     public List<String> enabledAddonKeys(Long campaignId) {
-        return enabledAddonKeysFor(List.of(campaignId))
-                .getOrDefault(campaignId, List.of());
+        return readEnabledAddonKeys(campaignId);
     }
 
     /**
@@ -68,18 +67,7 @@ public class CampaignAddonService {
      */
     @Transactional(readOnly = true)
     public Map<Long, List<String>> enabledAddonKeysFor(Collection<Long> campaignIds) {
-        if (campaignIds == null || campaignIds.isEmpty()) {
-            return Map.of();
-        }
-
-        Map<Long, List<String>> byCampaign = new HashMap<>();
-        for (CampaignAddon addon : addonRepository.findByCampaignIdIn(campaignIds)) {
-            byCampaign
-                    .computeIfAbsent(addon.getCampaign().getId(), id -> new ArrayList<>())
-                    .add(addon.getAddonKey().key());
-        }
-        byCampaign.values().forEach(keys -> keys.sort(String::compareTo));
-        return byCampaign;
+        return readEnabledAddonKeysFor(campaignIds);
     }
 
     /** Whether one add-on is on for a campaign. Used to gate its own endpoints. */
@@ -106,7 +94,7 @@ public class CampaignAddonService {
             addonRepository.saveAndFlush(new CampaignAddon(requireCampaign(campaignId), addonKey));
         }
 
-        return enabledAddonKeys(campaignId);
+        return readEnabledAddonKeys(campaignId);
     }
 
     /**
@@ -128,7 +116,34 @@ public class CampaignAddonService {
         Optional<CampaignAddon> existing = addonRepository.findByCampaignIdAndAddonKey(campaignId, addonKey);
         existing.ifPresent(addonRepository::delete);
 
-        return enabledAddonKeys(campaignId);
+        return readEnabledAddonKeys(campaignId);
+    }
+
+    /**
+     * The read behind the public entry points, kept non-transactional on purpose:
+     * called from within a write transaction it simply joins that transaction, and
+     * called from an entry point it runs under that entry point's read-only one.
+     * A private helper carries no {@code @Transactional}, so no self-invocation of
+     * an annotated method can occur.
+     */
+    private List<String> readEnabledAddonKeys(Long campaignId) {
+        return readEnabledAddonKeysFor(List.of(campaignId))
+                .getOrDefault(campaignId, List.of());
+    }
+
+    private Map<Long, List<String>> readEnabledAddonKeysFor(Collection<Long> campaignIds) {
+        if (campaignIds == null || campaignIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, List<String>> byCampaign = new HashMap<>();
+        for (CampaignAddon addon : addonRepository.findByCampaignIdIn(campaignIds)) {
+            byCampaign
+                    .computeIfAbsent(addon.getCampaign().getId(), id -> new ArrayList<>())
+                    .add(addon.getAddonKey().key());
+        }
+        byCampaign.values().forEach(keys -> keys.sort(String::compareTo));
+        return byCampaign;
     }
 
     private AddonKey requireKnownKey(String rawKey) {

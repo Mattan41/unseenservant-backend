@@ -7,8 +7,6 @@ import org.kruskopf.backend.entity.AuditedEntity;
 import org.kruskopf.backend.offworlders.entity.OffworldersCharacterData;
 import org.kruskopf.backend.user.entity.User;
 
-import java.time.LocalDateTime;
-
 /**
  * System-agnostic core character entity.
  * <p>
@@ -78,9 +76,9 @@ public class GameCharacter extends AuditedEntity {
         // No system is a valid choice, so it is stored as-is instead of being
         // defaulted to a ruleset the player never picked.
         this.systemType = systemType;
-        // Stamped here as well as by the audit listener, so a character has its
-        // creation time the moment it is built, before anything is persisted.
-        setCreatedAt(LocalDateTime.now());
+        // createdAt / updatedAt are deliberately left to the audit listener, which
+        // is their only writer: it fills them on persist, so a stamp here would be
+        // overwritten anyway. See BaseEntity.
     }
 
     /**

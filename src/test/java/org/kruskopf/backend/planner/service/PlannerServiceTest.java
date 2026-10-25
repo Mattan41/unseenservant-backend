@@ -179,8 +179,9 @@ class PlannerServiceTest {
         givenAddonEnabled();
         when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(false);
 
-        assertThatThrownBy(() -> service.createPlan(CAMPAIGN_ID,
-                new PlannerPlanCreateDTO("Session 12", null), USER_ID))
+        PlannerPlanCreateDTO request = new PlannerPlanCreateDTO("Session 12", null);
+
+        assertThatThrownBy(() -> service.createPlan(CAMPAIGN_ID, request, USER_ID))
                 .isInstanceOf(UnauthorizedAccessException.class);
         verify(planRepository, never()).saveAndFlush(any());
     }
@@ -191,8 +192,9 @@ class PlannerServiceTest {
         when(campaignRepository.findById(CAMPAIGN_ID)).thenReturn(Optional.of(campaign));
         when(campaignAddonService.isEnabled(CAMPAIGN_ID, AddonKey.PLANNER)).thenReturn(false);
 
-        assertThatThrownBy(() -> service.createPlan(CAMPAIGN_ID,
-                new PlannerPlanCreateDTO("Session 12", null), USER_ID))
+        PlannerPlanCreateDTO request = new PlannerPlanCreateDTO("Session 12", null);
+
+        assertThatThrownBy(() -> service.createPlan(CAMPAIGN_ID, request, USER_ID))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("not enabled for this campaign");
     }
@@ -206,13 +208,14 @@ class PlannerServiceTest {
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         givenSavingWorks();
 
-        assertThatThrownBy(() -> service.createPlan(CAMPAIGN_ID,
-                new PlannerPlanCreateDTO("   ", null), USER_ID))
+        PlannerPlanCreateDTO blankTitle = new PlannerPlanCreateDTO("   ", null);
+        PlannerPlanCreateDTO untrimmedTitle = new PlannerPlanCreateDTO("  Session 12  ", null);
+
+        assertThatThrownBy(() -> service.createPlan(CAMPAIGN_ID, blankTitle, USER_ID))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("needs a title");
 
-        PlannerPlanDTO created = service.createPlan(CAMPAIGN_ID,
-                new PlannerPlanCreateDTO("  Session 12  ", null), USER_ID);
+        PlannerPlanDTO created = service.createPlan(CAMPAIGN_ID, untrimmedTitle, USER_ID);
 
         assertThat(created.title()).isEqualTo("Session 12");
         assertThat(created.status()).isEqualTo("OPEN");
@@ -245,11 +248,12 @@ class PlannerServiceTest {
         plan.setVersion(3);
         givenSavingWorks();
 
-        assertThatThrownBy(() -> service.updatePlan(PLAN_ID,
-                new PlannerPlanUpdateDTO("New title", null, 2L), USER_ID))
+        PlannerPlanUpdateDTO staleVersion = new PlannerPlanUpdateDTO("New title", null, 2L);
+        PlannerPlanUpdateDTO missingVersion = new PlannerPlanUpdateDTO("New title", null, null);
+
+        assertThatThrownBy(() -> service.updatePlan(PLAN_ID, staleVersion, USER_ID))
                 .isInstanceOf(ConcurrentUpdateException.class);
-        assertThatThrownBy(() -> service.updatePlan(PLAN_ID,
-                new PlannerPlanUpdateDTO("New title", null, null), USER_ID))
+        assertThatThrownBy(() -> service.updatePlan(PLAN_ID, missingVersion, USER_ID))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("version is required");
 
@@ -264,8 +268,9 @@ class PlannerServiceTest {
         plan.setStatus(PlannerPlanStatus.DECIDED);
         plan.setDecidedDate(dates.get(0));
 
-        assertThatThrownBy(() -> service.addDate(PLAN_ID,
-                new PlannerDateCreateDTO(LocalDate.of(2026, 3, 21), null, null, null), USER_ID))
+        PlannerDateCreateDTO newDate = new PlannerDateCreateDTO(LocalDate.of(2026, 3, 21), null, null, null);
+
+        assertThatThrownBy(() -> service.addDate(PLAN_ID, newDate, USER_ID))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("Reopen it");
         verify(dateRepository, never()).saveAndFlush(any(PlannerDate.class));
@@ -284,12 +289,13 @@ class PlannerServiceTest {
         givenOpenPlan();
         givenSavingWorks();
 
-        assertThatThrownBy(() -> service.updateStatus(PLAN_ID,
-                new PlannerStatusUpdateDTO("DECIDED", null, 0L), USER_ID))
+        PlannerStatusUpdateDTO noDate = new PlannerStatusUpdateDTO("DECIDED", null, 0L);
+        PlannerStatusUpdateDTO foreignDate = new PlannerStatusUpdateDTO("DECIDED", 999L, 0L);
+
+        assertThatThrownBy(() -> service.updateStatus(PLAN_ID, noDate, USER_ID))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("one of its own dates");
-        assertThatThrownBy(() -> service.updateStatus(PLAN_ID,
-                new PlannerStatusUpdateDTO("DECIDED", 999L, 0L), USER_ID))
+        assertThatThrownBy(() -> service.updateStatus(PLAN_ID, foreignDate, USER_ID))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("is not a date of this plan");
 
@@ -307,8 +313,9 @@ class PlannerServiceTest {
     void theSameDayCannotBeOfferedTwice() {
         givenOpenPlan();
 
-        assertThatThrownBy(() -> service.addDate(PLAN_ID,
-                new PlannerDateCreateDTO(A_DAY, null, null, null), USER_ID))
+        PlannerDateCreateDTO duplicateDay = new PlannerDateCreateDTO(A_DAY, null, null, null);
+
+        assertThatThrownBy(() -> service.addDate(PLAN_ID, duplicateDay, USER_ID))
                 .isInstanceOf(UniqueConstraintViolationException.class);
 
         verify(dateRepository, never()).saveAndFlush(any(PlannerDate.class));
@@ -333,12 +340,15 @@ class PlannerServiceTest {
         givenOpenPlan();
         LocalDate anotherDay = LocalDate.of(2026, 3, 21);
 
-        assertThatThrownBy(() -> service.addDate(PLAN_ID,
-                new PlannerDateCreateDTO(anotherDay, null, LocalTime.of(22, 0), null), USER_ID))
+        PlannerDateCreateDTO endWithoutStart =
+                new PlannerDateCreateDTO(anotherDay, null, LocalTime.of(22, 0), null);
+        PlannerDateCreateDTO endBeforeStart =
+                new PlannerDateCreateDTO(anotherDay, LocalTime.of(22, 0), LocalTime.of(18, 0), null);
+
+        assertThatThrownBy(() -> service.addDate(PLAN_ID, endWithoutStart, USER_ID))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("end time needs a start time");
-        assertThatThrownBy(() -> service.addDate(PLAN_ID,
-                new PlannerDateCreateDTO(anotherDay, LocalTime.of(22, 0), LocalTime.of(18, 0), null), USER_ID))
+        assertThatThrownBy(() -> service.addDate(PLAN_ID, endBeforeStart, USER_ID))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("has to be after the start time");
     }

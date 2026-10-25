@@ -9,6 +9,10 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 - **Explicit responses:** All endpoints return DTOs (never raw entities)
 - **Error consistency:** Use standard HTTP status codes + custom exception types
 - **Authentication:** All `/api/**` endpoints require JWT (except `/api/auth/login` and `/api/auth/oauth-init`)
+- **Timestamps:** every `createdAt` / `updatedAt` is a **UTC** wall clock in ISO-8601 local form
+  (no offset, e.g. `2026-05-29T09:00:00`), written by JPA auditing (`JpaConfig`). A client that
+  renders it in the reader's zone has to treat the value as UTC — `new Date("2026-05-29T09:00:00")`
+  parses it as *local*, so append `Z` (or parse the parts explicitly) before formatting.
 
 ---
 
