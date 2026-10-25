@@ -2,10 +2,6 @@ package org.kruskopf.backend.journal.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -13,12 +9,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import org.kruskopf.backend.entity.BaseEntity;
 
 /**
  * One numbered page of a {@link Journal}, holding markdown source.
@@ -35,15 +27,10 @@ import java.time.LocalDateTime;
  * the load and the flush.
  */
 @Entity
-@EntityListeners(AuditingEntityListener.class)
 @Table(name = "journal_page", indexes = {
         @Index(name = "idx_journal_page_journal_position", columnList = "journal_id,position")
 })
-public class JournalPage {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class JournalPage extends BaseEntity {
 
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -67,15 +54,6 @@ public class JournalPage {
     @Column(nullable = false)
     private long version = 0;
 
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    @LastModifiedBy
-    private String lastModifiedBy;
-
     public JournalPage() {
     }
 
@@ -83,15 +61,6 @@ public class JournalPage {
         this.journal = journal;
         this.position = position;
         this.content = content == null ? "" : content;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    /** For tests only: ids are assigned by the database. */
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public Journal getJournal() {
@@ -127,27 +96,4 @@ public class JournalPage {
         this.version = version;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public void setLastModifiedBy(String lastModifiedBy) {
-        this.lastModifiedBy = lastModifiedBy;
-    }
 }

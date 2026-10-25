@@ -210,6 +210,9 @@ org.kruskopf.backend/
 │   ├── EmailWhitelist.java
 │   ├── EmailWhitelistRepository.java
 │   └── EmailWhitelistService.java
+├── entity/                               # Shared JPA base classes; no feature of their own
+│   ├── BaseEntity.java                   # @MappedSuperclass: id + createdAt / updatedAt
+│   └── AuditedEntity.java                # extends BaseEntity: + createdBy / lastModifiedBy
 ├── component/
 │   └── CustomOAuth2SuccessHandler.java
 ├── config/
@@ -242,6 +245,11 @@ Each domain is a self-contained package with:
 - `service/` — business logic
 - `controller/` — REST endpoints
 - `dto/` — request/response objects
+
+Not everything lives in a feature package. The JPA base classes the entities share live in the
+root `entity/` — `BaseEntity` (generated `id`, `createdAt` / `updatedAt`) and its `AuditedEntity`
+subclass (the two `by` usernames), see "Existing entities" below — and code every feature uses
+lives in `config/`, `exception/` and `filestorage/`.
 
 ### Naming
 - Controllers: `@RestController`, `@RequestMapping("/api/feature")`
@@ -300,6 +308,34 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 
 ## Existing entities (summary)
 
+The generated `id` and the audit columns are **not** repeated in each entity. `entity/BaseEntity`
+declares `id`, `createdAt` and `updatedAt`; `entity/AuditedEntity` extends it with the usernames
+`createdBy` / `lastModifiedBy`, which `AuditorAwareImpl` fills in for every entity Spring Data
+writes. Both are `@MappedSuperclass`, so neither gets a table of its own and each entity maps the
+inherited fields onto its own table exactly as it did when they were written out per entity.
+
+`AuditingEntityListener` is the **only** writer of `createdAt` / `updatedAt`: it fills them on
+persist (`@PrePersist` / `@PreUpdate`), so an entity must not stamp them itself — a stamp in a
+constructor is overwritten before the row is written, and only a transient instance ever sees it.
+The clock behind them is `JpaConfig`'s `DateTimeProvider` bean, which returns UTC. The columns are
+MySQL `datetime`, which store no zone, so without that bean the wall clock would be whatever zone
+the host JVM happened to run in — UTC in the production container, CET on a developer's machine —
+and the same instant would be recorded two hours apart on the two.
+
+The split in two is what makes the hierarchy schema-neutral: `AuditedEntity` exists because the
+`by` columns are *not* universal, so an entity whose table has no `created_by` /
+`last_modified_by` extends `BaseEntity` and inherits none — nobody gains a column, so no
+migration.
+
+Four entities stay outside the hierarchy, each for its own reason:
+
+- `CampaignUser` — `@EmbeddedId`; its key is the pair of foreign keys, not a generated number.
+- `Spell` — the primary key is the Open5e `slug` (a string), not a generated number.
+- `Dnd5eCharacterData` / `OffworldersCharacterData` — the shared primary key *is* the character's,
+  and the audit trail belongs to the character.
+- `EmailWhitelist` — it does have a generated id, but its table has no `created_at` /
+  `updated_at`, so extending the base would buy unused columns at the price of a migration.
+
 | Entity | Key fields | Relations |
 |--------|-----------|-----------|
 | `User` | id, email, role, providerType | has many GameCharacters, CampaignUsers |
@@ -314,6 +350,11 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
 | `Journal` | id, campaignId + userId (unique) | a participant's private journal in one campaign; belongs to Campaign and User, has many JournalPages. FKs are `ON DELETE CASCADE`, so deleting a campaign or a user takes the journals with it — removing a participant does **not**, so the rows survive a rejoin. Only its owner can read or write it: not another participant, not the campaign owner and not a GM |
 | `JournalPage` | id, journalId, content (LONGTEXT markdown), position (1-based), version | one numbered page. `position` is the page's place in the book and what the client shows: a page inserted after page P shifts every later `position` by one (one bulk UPDATE) and a deleted page shifts them back, while `id` stays stable. The trailing blank page is virtual and never stored. `version` gives the same two-layer optimistic concurrency as the ship (`ConcurrentUpdateException` 409, plus `UPDATE ... WHERE version = ?` on flush) |
 | `Spell` | slug (PK), name, rawJsonData (TEXT) | many-to-many with Dnd5eCharacterData; stored in local DB from bulk Open5e import |
+| `CampaignAddon` | id, campaign_id + addon_key (unique), created_by | **the optional-capability switch**: one row per add-on a campaign owner has turned on, keyed by a stable string (`PLANNER`, exposed as the API key `planner`). The row's presence *is* the state, so the next add-on costs a registry entry and no migration. Every campaign answer carries the enabled keys as `addons`, which is what the client's navigation filters on. No planner data lives here — switching the planner off and on again returns the plans |
+| `PlannerPlan` | id, campaign_id, title, description (LONGTEXT markdown), status (`OPEN`/`DECIDED`), decided_date_id, created_by_user_id, version | one plan in the planner: the question a group is answering ("when do we play next?"). Any participant may start one. `decided_date_id` must be one of the plan's own dates and is cleared on reopen, so status and date cannot disagree. Optimistic concurrency as on the ship and journal pages |
+| `PlannerDate` | id, plan_id + plan_date (unique), start_time/end_time (optional), note, created_by_user_id, version | one candidate date. One row per day, which is what keeps a day's answers that day's answers. `ON DELETE SET NULL` on the plan's decision: a plan that had decided on a deleted date stays decided but loses the date |
+| `PlannerAttendance` | id, plan_date_id + user_id (unique), state (`YES`/`NO`/`MAYBE`) | one member's answer to one date. **No row means "not answered yet"**, which counts against a date — that is what makes the green marker mean "everybody still in said yes". Deliberately without a version token: it is the caller's own answer |
+| `PlannerMemberExclusion` | id, plan_id + user_id (unique), removed_by, removed_by_owner | a member who is out of a plan. The roster is the campaign's participants minus these rows, so everybody is in a plan without any bookkeeping. `removed_by_owner` is the member's own move versus the owner's: a member undoes their own by rejoining, while a removal by the owner is undone by the owner putting them back. Answers survive, so either way the return restores them |
 | `EmailWhitelist` | id, email, role, active | standalone; **login gate** for OAuth — a revoked row is soft-deleted (`active = false`) so the decision can be revisited, and the address column is unique, so re-admitting reactivates that row. `role` applies to a *first* login only |
 
 ## Tests
@@ -324,7 +365,9 @@ When backend needs to call external APIs (e.g. Open5e for lazy-loading content),
   needs `@AutoConfigureTestRestTemplate` on a test class before it can inject a
   `TestRestTemplate` (it used to depend on the classpath alone)
 - `MessageControllerIT` pins the `/api` wire format the frontend parses
-  (`createdAt` as an ISO-8601 local date-time, null fields still written)
+  (`createdAt` as an ISO-8601 local date-time in UTC, null fields still written), and is
+  also where JPA auditing is proven end to end: it asserts the stored value really is the
+  UTC clock, which fails on a non-UTC machine if the provider stops being wired in
 
 Coverage, by area — unit tests (`*Test`, no Docker) and integration tests (`*IT`,
 full application against a Testcontainer):
@@ -338,6 +381,7 @@ full application against a Testcontainer):
 | Ships & crew | `ShipServiceTest`, `ShipCrewServiceTest` | `ShipOptimisticLockIT` |
 | Messages | `MessageMapperTest` | `MessageControllerIT` — also the JSON wire format the frontend parses |
 | Journals | `JournalServiceTest` | `JournalControllerIT` (ownership, page ordering, the virtual last page, the limits, concurrent first write), `JournalOptimisticLockIT` |
+| Campaign add-ons & planner | `PlannerServiceTest` | `PlannerControllerIT` (owner-only add-on switch, the add-on gating the endpoints, participant-only access, dates and their 409s, one answer per member, deciding and reopening, both kinds of roster removal and the owner putting a member back) |
 | Spells | `SpellServiceTest` | `SpellServiceIT` |
 | Admin & whitelist | `AdminServiceTest` | `AdminControllerIT` |
 | Files & images | `FileStorageServiceTest`, `StoredFileTransactionTest` | `ImageCorsIT` |

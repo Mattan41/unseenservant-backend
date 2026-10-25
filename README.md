@@ -22,6 +22,13 @@ To view and interact with the user interface, you will need the frontend applica
 - Character import and tracking
 - File uploads for character portraits
 - Private per-participant campaign journals (markdown pages, 10,000 characters each, at most 500 pages)
+- Campaign add-ons — optional capabilities a campaign owner switches on. The first
+  one is the **planner**: any participant starts a plan, everybody offers the days
+  they could meet and marks whether they can attend, and a plan shows at a glance
+  which day works (green only when everybody still in the plan can come, then
+  orange / yellow / red). A plan is either open or decided, and reopening it makes
+  it editable again; the campaign owner can take a participant out of a plan, or put
+  them back
 
 ## Getting Started
 
@@ -104,6 +111,11 @@ demo profile.
 | `APP_UPLOAD_MAX_FILE_SIZE` | No | Max size per uploaded image, enforced by `FileStorageService` (default: `5MB`) |
 | `APP_JOURNAL_MAX_PAGE_LENGTH` | No | Max characters per journal page, enforced by `JournalService` (default: `10000`) |
 | `APP_JOURNAL_MAX_PAGES` | No | Max stored pages per journal, enforced by `JournalService` (default: `500`) |
+| `APP_PLANNER_MAX_TITLE_LENGTH` | No | Max characters in a plan title, enforced by `PlannerService` (default: `200`) |
+| `APP_PLANNER_MAX_DESCRIPTION_LENGTH` | No | Max characters in a plan description (default: `10000`) |
+| `APP_PLANNER_MAX_NOTE_LENGTH` | No | Max characters in a candidate date's note (default: `500`) |
+| `APP_PLANNER_MAX_PLANS_PER_CAMPAIGN` | No | Max plans one campaign may hold (default: `100`) |
+| `APP_PLANNER_MAX_DATES_PER_PLAN` | No | Max candidate dates one plan may hold (default: `50`) |
 | `SPRING_DATASOURCE_URL` | Yes (prod) | Database connection URL |
 | `SPRING_DATASOURCE_USERNAME` | Yes (prod) | Database user |
 | `SPRING_DATASOURCE_PASSWORD` | Yes (prod) | Database password |

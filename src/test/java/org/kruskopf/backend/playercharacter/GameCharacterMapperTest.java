@@ -205,6 +205,23 @@ class GameCharacterMapperTest {
         }
 
         @Test
+        @DisplayName("Leaves createdAt and updatedAt to the audit listener")
+        void leavesTimestampsToTheAuditListener() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            CharacterInputDTO dto = new CharacterInputDTO(
+                    null, null, "Nova", GameSystem.DND5E, null, null, null, null, null, null, null);
+
+            // Act
+            GameCharacter character = mapper.toEntity(dto, owner, null);
+
+            // Assert: nothing stamps them - JPA auditing fills both on persist, and a
+            // stamp here would be overwritten there anyway.
+            assertThat(character.getCreatedAt()).isNull();
+            assertThat(character.getUpdatedAt()).isNull();
+        }
+
+        @Test
         @DisplayName("Creates a character with no game system when systemType is omitted")
         void createsSystemlessCharacter() {
             // Arrange
