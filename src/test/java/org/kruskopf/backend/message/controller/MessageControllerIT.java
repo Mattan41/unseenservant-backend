@@ -24,8 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -320,6 +319,7 @@ class MessageControllerIT extends AbstractIntegrationTest {
         void createdAtIsAutomaticallyPopulated() throws Exception {
             String token = getJwtToken(participant1);
             MessageCreationDTO dto = new MessageCreationDTO(campaign.getId(), "Test message for auditing");
+            Instant before = Instant.now();
 
             mockMvc.perform(post("/api/messages")
                             .header("Authorization", "Bearer " + token)
@@ -330,13 +330,18 @@ class MessageControllerIT extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.createdAt").isNotEmpty());
 
+            Instant after = Instant.now();
+
             // Verify in database that createdAt was set
             Message savedMessage = messageRepository.findAll().getLast();
             assertThat(savedMessage.getCreatedAt()).isNotNull();
-            // ... and that it is the UTC wall clock (JpaConfig's DateTimeProvider), not
-            // the JVM's default zone: where the two differ, they are hours apart.
-            assertThat(Duration.between(savedMessage.getCreatedAt(), LocalDateTime.now(ZoneOffset.UTC)).abs())
-                    .isLessThan(Duration.ofMinutes(2));
+            // ... and that it is the UTC wall clock (JpaConfig's DateTimeProvider): read
+            // as UTC, the stored value is the instant of the request. Read in the JVM's
+            // zone it would be hours away wherever that zone is not UTC - the regression
+            // this catches on a developer's machine, and the one a UTC runner cannot
+            // tell apart from a correct value.
+            assertThat(savedMessage.getCreatedAt().toInstant(ZoneOffset.UTC))
+                    .isBetween(before.minusSeconds(5), after.plusSeconds(5));
             // Note: updatedAt cannot be meaningfully exercised yet since there's no update/edit endpoint for messages.
             // This is a placeholder for when/if message editing is added.
         }
