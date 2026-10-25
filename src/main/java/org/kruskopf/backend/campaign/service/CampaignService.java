@@ -1,5 +1,6 @@
 package org.kruskopf.backend.campaign.service;
 
+import org.kruskopf.backend.addon.service.CampaignAddonService;
 import org.kruskopf.backend.campaign.dto.*;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -36,14 +38,16 @@ public class CampaignService {
     private final GameCharacterService gameCharacterService;
     private final StoredFileTransaction storedFileTransaction;
     private final ShipService shipService;
+    private final CampaignAddonService campaignAddonService;
 
-    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, GameCharacterService gameCharacterService, StoredFileTransaction storedFileTransaction, ShipService shipService) {
+    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, GameCharacterService gameCharacterService, StoredFileTransaction storedFileTransaction, ShipService shipService, CampaignAddonService campaignAddonService) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
         this.campaignPermissionService = campaignPermissionService;
         this.gameCharacterService = gameCharacterService;
         this.storedFileTransaction = storedFileTransaction;
         this.shipService = shipService;
+        this.campaignAddonService = campaignAddonService;
     }
 
 // TODO: Split the participant methods — updateParticipants (see the note on its
@@ -110,15 +114,21 @@ public class CampaignService {
 
     @Transactional(readOnly = true)
     public List<CampaignResponseDTO> getAllCampaigns() {
-        return campaignRepository.findAll().stream()
-                .map(campaign -> mapToResponseDTO(campaign, -1L))
+        List<Campaign> campaigns = campaignRepository.findAll();
+        Map<Long, List<String>> addonsByCampaign = campaignAddonService.enabledAddonKeysFor(idsOf(campaigns));
+        return campaigns.stream()
+                .map(campaign -> mapToResponseDTO(campaign, -1L,
+                        addonsByCampaign.getOrDefault(campaign.getId(), List.of())))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<CampaignResponseDTO> getAllCampaignsForCurrentUser(long userId) {
-        return campaignRepository.findAllByParticipantsUserId(userId).stream()
-                .map(campaign -> mapToResponseDTO(campaign, userId))
+        List<Campaign> campaigns = campaignRepository.findAllByParticipantsUserId(userId);
+        Map<Long, List<String>> addonsByCampaign = campaignAddonService.enabledAddonKeysFor(idsOf(campaigns));
+        return campaigns.stream()
+                .map(campaign -> mapToResponseDTO(campaign, userId,
+                        addonsByCampaign.getOrDefault(campaign.getId(), List.of())))
                 .toList();
     }
 
@@ -416,11 +426,24 @@ public class CampaignService {
     }
 
     /**
+     * Maps one campaign, looking its enabled add-ons up on the way. The list
+     * endpoints use the overload below instead, so a page of campaigns costs one
+     * add-on query rather than one each.
+     */
+    private CampaignResponseDTO mapToResponseDTO(Campaign campaign, long viewerId) {
+        return mapToResponseDTO(campaign, viewerId, campaignAddonService.enabledAddonKeys(campaign.getId()));
+    }
+
+    /**
      * Maps a campaign. The private description (GM notes) is only included when
      * the viewer is a campaign GM; everyone else — including a non-GM campaign
      * owner — receives null. World lore is public, so it is always included.
+     * <p>
+     * {@code addons} are the optional capabilities the campaign owner has switched
+     * on, which is what the client's navigation filters on. They are public to
+     * every participant (they describe the campaign's shape, not its secrets).
      */
-    private CampaignResponseDTO mapToResponseDTO(Campaign campaign, long viewerId) {
+    private CampaignResponseDTO mapToResponseDTO(Campaign campaign, long viewerId, List<String> addons) {
         boolean includePrivate = campaign.getParticipants().stream().anyMatch(participant ->
                 participant.getUser().getId().equals(viewerId)
                         && participant.getRole() == CampaignRole.GM);
@@ -439,8 +462,14 @@ public class CampaignService {
                                 participant.getUser().getId(),
                                 participant.getNickname(),
                                 participant.getRole().name()))
-                        .toList()
+                        .toList(),
+                addons == null ? List.of() : addons
         );
+    }
+
+    /** The ids of a page of campaigns, for one batched add-on lookup. */
+    private static List<Long> idsOf(List<Campaign> campaigns) {
+        return campaigns.stream().map(Campaign::getId).toList();
     }
 
     private String getEffectiveDisplayName(User user) {

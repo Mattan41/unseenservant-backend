@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.kruskopf.backend.addon.service.CampaignAddonService;
 import org.kruskopf.backend.campaign.dto.CampaignResponseDTO;
 import org.kruskopf.backend.campaign.dto.CampaignUpdateDTO;
 import org.kruskopf.backend.campaign.entity.Campaign;
@@ -55,6 +56,9 @@ class CampaignServiceTest {
 
     @Mock
     private ShipService shipService;
+
+    @Mock
+    private CampaignAddonService campaignAddonService;
 
     @InjectMocks
     private CampaignService campaignService;

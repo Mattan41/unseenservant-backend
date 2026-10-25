@@ -1003,7 +1003,6 @@ Removes the spell from the character's spell list. The `Spell` record itself is 
 ---
 
 ## 6. Journals
-
 `/api/journals/**` — the caller's own private journal in a campaign. **Auth:** Yes (ROLE_USER).
 
 One journal per participant per campaign, a book of numbered markdown pages. Only
@@ -1118,6 +1117,164 @@ Deletes the page; the pages after it close the gap and keep their order.
 
 ---
 
+## 8. Campaign add-ons
+
+`/api/campaigns/{id}/addons` — the optional capabilities a campaign has switched
+on. **Auth:** Yes (ROLE_USER). Reading which ones are on needs nothing extra
+(every campaign answer already carries `addons`); switching one on or off is
+**owner only**, on the ownership axis beside roster and roles.
+
+The row's presence *is* the state, so both writes are idempotent — enabling what is
+on, or disabling what is off, changes nothing and is not an error. An unknown key is
+refused (400): the backend's `AddonKey` enum is the registry. Switching an add-on
+off leaves its data alone, so switching it back on returns it.
+
+Guest Demo has no backend at all and never reaches these endpoints; the `demo`
+profile seeds the planner as already added in `demo-data.sql`, so the switch can be
+exercised there.
+
+### GET /api/campaigns/{id}/addons — which add-ons are on
+
+- **Auth:** ROLE_USER, and the caller must be able to see the campaign (participant or owner) — otherwise 403
+- **Response:** `["planner"]` — the enabled keys as the API spells them; `[]` when the campaign has none
+- **Status Codes:** 200, 401, 403, 404
+
+### POST /api/campaigns/{id}/addons/{addonKey} — switch one on
+
+- **Auth:** ROLE_USER, campaign **owner** only — a participant who is not the owner gets 403
+- **Path:** `addonKey` is case-insensitive (`planner`)
+- **Response:** `CampaignResponseDTO` — the whole campaign, so a client rebuilds its navigation from one answer
+- **Status Codes:** 200, 400 (unknown key), 401, 403, 404
+
+### DELETE /api/campaigns/{id}/addons/{addonKey} — switch one off
+
+- **Auth:** ROLE_USER, campaign **owner** only
+- **Response:** `CampaignResponseDTO`
+- **Status Codes:** 200, 400, 401, 403, 404
+
+---
+
+## 9. Planner
+
+`/api/planner/**` — the planner, which is the first add-on. **Auth:** Yes
+(ROLE_USER), and the add-on must be enabled for the campaign: while it is off, every
+planner endpoint answers 400 (the campaign has no such feature right now).
+
+Any **participant** may do almost everything here — start a plan, offer dates,
+answer, decide, reopen — because finding a date is not an administrative act. Three
+things are restricted:
+
+| Action | Who |
+|---|---|
+| Remove **somebody else** from a plan's roster | the campaign **owner** |
+| Delete a plan | its **creator** or the campaign **owner** |
+| Correct or withdraw a date | the member who offered it, the plan's creator, or the campaign owner |
+
+Every mutation answers with the whole `PlannerPlanDTO`, so a client never has to
+guess what a change did to the rest of the plan. `version` on the plan and on each
+date is an optimistic-concurrency token: a stale one is refused with 409 rather than
+overwriting somebody else's change.
+
+**The roster is implicit.** It is the campaign's participants minus the plan's
+exclusion rows, so everybody is in a plan the moment it exists and a new participant
+joins automatically. A member leaving (or being removed) creates one exclusion row;
+their answers are kept, so rejoining restores them.
+
+**An unanswered date counts against it.** A member with no answer has no attendance
+row at all, and a date's share is *yes answers ÷ roster size* — which is what makes
+the green marker mean "everybody still in the plan can come". The colour itself is
+computed on the client (`plannerUtils.js`); the API sends the answers and the roster.
+
+**A decided plan stops moving.** `DECIDED` refuses new dates, answers and roster
+changes until somebody reopens it (`OPEN`, which clears the chosen date).
+
+Limits, each named in the 400 it produces: `app.planner.max-title-length` (200),
+`app.planner.max-description-length` (10000), `app.planner.max-note-length` (500),
+`app.planner.max-plans-per-campaign` (100), `app.planner.max-dates-per-plan` (50).
+
+### GET /api/planner/campaign/{campaignId}/plans — a campaign's plans
+
+- **Auth:** ROLE_USER + participant + the add-on enabled
+- **Response:** `[ PlannerPlanDTO ]` — open plans first, then the decided ones, newest first
+- **Status Codes:** 200, 400 (add-on off), 401, 403, 404
+
+### POST /api/planner/campaign/{campaignId}/plans — start a plan
+
+- **Request:** `PlannerPlanCreateDTO { title, description }` — the title is required, trimmed, at most 200 characters
+- **Response:** `PlannerPlanDTO`. Status Codes: 201, 400, 401, 403, 404
+
+### GET /api/planner/plans/{planId} — one plan, whole
+
+- **Response:** `PlannerPlanDTO` with its dates, everybody's answers and the roster
+- **Status Codes:** 200, 400, 401, 403, 404
+
+### PATCH /api/planner/plans/{planId} — the title and description
+
+- **Request:** `PlannerPlanUpdateDTO { title, description, version }` — `version` required (stale → 409)
+- **Response:** `PlannerPlanDTO`. Status Codes: 200, 400, 401, 403, 404, 409
+
+### PATCH /api/planner/plans/{planId}/status — decide or reopen
+
+- **Request:** `PlannerStatusUpdateDTO { status, decidedDateId, version }`
+- `DECIDED` requires `decidedDateId` to name one of the plan's own dates, and is only possible while the plan is open (400 otherwise); `OPEN` clears the chosen date
+- **Response:** `PlannerPlanDTO`. Status Codes: 200, 400, 401, 403, 404, 409
+
+### DELETE /api/planner/plans/{planId} — delete a plan
+
+- **Auth:** its creator or the campaign owner — otherwise 403
+- **Response:** 204. Its dates and their answers go with it. Status Codes: 204, 400, 401, 403, 404
+
+### POST /api/planner/plans/{planId}/dates — offer a date
+
+- **Request:** `PlannerDateCreateDTO { date, startTime, endTime, note }` — the day is required; `endTime` without `startTime` is refused, and so is an end that is not after the start
+- **Response:** `PlannerPlanDTO`. Status Codes: 201, 400, 401, 403, 404, 409 (that day is already offered)
+
+### PATCH /api/planner/dates/{dateId} — correct a date
+
+- **Request:** `PlannerDateUpdateDTO { date, startTime, endTime, note, version }`
+- **Response:** `PlannerPlanDTO`. Status Codes: 200, 400, 401, 403, 404, 409
+
+### DELETE /api/planner/dates/{dateId} — withdraw a date
+
+- **Response:** `PlannerPlanDTO` — a plan that had decided on this date keeps its decision but loses the date
+- **Status Codes:** 200, 400, 401, 403, 404
+
+### PUT /api/planner/dates/{dateId}/attendance — answer a date
+
+- **Request:** `PlannerAttendanceUpdateDTO { state }` — `YES`, `NO` or `MAYBE` (case-insensitive)
+- One answer per member per date: a second call changes it in place. A member who left the plan gets 403
+- **Response:** `PlannerPlanDTO`. Status Codes: 200, 400, 401, 403, 404
+
+### DELETE /api/planner/dates/{dateId}/attendance — withdraw an answer
+
+- **Response:** `PlannerPlanDTO` — the member is back to "not answered"
+- **Status Codes:** 200, 400, 401, 403, 404
+
+### PUT /api/planner/plans/{planId}/members/me — rejoin
+
+- Refused with 403 when the campaign owner is the one who removed the caller; otherwise their exclusion row is cleared
+- **Response:** `PlannerPlanDTO`. Status Codes: 200, 400, 401, 403, 404
+
+### DELETE /api/planner/plans/{planId}/members/me — leave
+
+- Creates the caller's exclusion row; their answers stay
+- **Response:** `PlannerPlanDTO`. Status Codes: 200, 400, 401, 403, 404
+
+### DELETE /api/planner/plans/{planId}/members/{memberId} — remove another member
+
+- **Auth:** campaign **owner** only
+- Removing themselves is a member leaving, so it stays undoable by them
+- **Response:** `PlannerPlanDTO`. Status Codes: 200, 400, 401, 403, 404
+
+### PUT /api/planner/plans/{planId}/members/{memberId} — put another member back
+
+- **Auth:** campaign **owner** only — the other half of their removal, and the only way back for somebody the owner took out (that member's own `/members/me` rejoin is refused, see above)
+- Idempotent, like leaving and rejoining: a member who is not out is left exactly as they are, not refused
+- Their answers were never touched, so they count towards the dates again at once
+- **Response:** `PlannerPlanDTO`. Status Codes: 200, 400, 401, 403, 404
+
+---
+
 ## Appendix — Common Data Structures
 
 ### AuthDTO
@@ -1140,9 +1297,63 @@ Deletes the page; the pages after it close the gap and keep their order.
   "ownerId": 7,
   "participants": [
     { "id": 1, "nickname": "The Hero", "role": "PLAYER" }
+  ],
+  "addons": ["planner"]
+}
+```
+
+`addons` lists the optional capabilities the campaign's owner has switched on, by
+their API keys. Always present, `[]` when the campaign has none — it is what the
+client's navigation filters its sections on (see section 8).
+
+### PlannerPlanDTO
+```json
+{
+  "id": 4,
+  "campaignId": 1,
+  "title": "Session 12 — when do we play next?",
+  "description": "Pick a day and I will book the table.",
+  "status": "OPEN",
+  "decidedDateId": null,
+  "createdByUserId": 7,
+  "version": 3,
+  "createdAt": "2026-11-01T19:02:11",
+  "updatedAt": "2026-11-04T08:15:00",
+  "dates": [
+    {
+      "id": 9,
+      "date": "2026-11-07",
+      "startTime": "18:00:00",
+      "endTime": "22:00:00",
+      "note": "Saturday evening at my place.",
+      "createdByUserId": 7,
+      "version": 0,
+      "attendances": [
+        { "userId": 7, "state": "YES" },
+        { "userId": 8, "state": "MAYBE" }
+      ]
+    }
+  ],
+  "members": [
+    { "userId": 7, "nickname": "The Hero", "role": "GM", "excluded": false, "removedByOwner": false },
+    { "userId": 9, "nickname": "The Rogue", "role": "PLAYER", "excluded": true, "removedByOwner": false }
   ]
 }
 ```
+
+Two deliberate omissions. There is no counts or percentage field: a client derives
+them from `attendances` and `members` (a member with no entry has not answered), so
+the threshold exists in exactly one place. And `members` lists **every** campaign
+participant — those who left are flagged instead of removed, so a client can show
+"left this plan" with a way back in.
+
+The requests are small records:
+`PlannerPlanCreateDTO { title, description }`,
+`PlannerPlanUpdateDTO { title, description, version }`,
+`PlannerStatusUpdateDTO { status, decidedDateId, version }`,
+`PlannerDateCreateDTO { date, startTime, endTime, note }`,
+`PlannerDateUpdateDTO { date, startTime, endTime, note, version }` and
+`PlannerAttendanceUpdateDTO { state }`.
 
 ### CharacterOutputDTO
 ```json

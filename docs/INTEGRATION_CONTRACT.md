@@ -741,6 +741,59 @@ smaller book.
 
 ---
 
+## Campaign add-ons
+
+Optional capabilities a campaign owner switches on. The first one is the **planner**.
+A campaign carries the enabled keys in every answer (`CampaignResponseDTO.addons`),
+which is what a client filters its navigation on.
+
+**GET /api/campaigns/{id}/addons**
+- Requires: ROLE_USER, and the campaign must be visible to the caller (participant or owner)
+- Response: `["planner"]` — the enabled keys as the API spells them; `[]` when there are none
+- Status: 200, 401, 403, 404
+
+**POST /api/campaigns/{id}/addons/{addonKey}** / **DELETE /api/campaigns/{id}/addons/{addonKey}**
+- Requires: ROLE_USER, campaign **owner** only — a non-owner participant gets 403
+- `addonKey` is case-insensitive. Both are idempotent (enabling what is on, disabling what is off, is a no-op), an unknown key answers 400, and the add-on's own data is kept, so switching one back on returns it
+- Response: `CampaignResponseDTO`
+- Status: 200, 400, 401, 403, 404
+
+**Guest Demo** has no backend at all and never reaches these endpoints: a demo
+campaign carries its add-ons in `demoData.js`, and the Add-ons block in Campaign
+Settings renders read-only for a guest session. The **`demo` profile** seeds the
+planner as already added (`demo-data.sql`), which is where the switch is exercised
+end to end.
+
+---
+
+## Planner
+
+The first add-on. `DECIDED` versus `OPEN`, the implicit roster and what an
+unanswered date means are described in `API_REFERENCE.md` (section 9); this is the
+checklist.
+
+| Endpoint | Who |
+|---|---|
+| `GET /api/planner/campaign/{campaignId}/plans` | participant (add-on on) |
+| `POST /api/planner/campaign/{campaignId}/plans` | any participant |
+| `GET /api/planner/plans/{planId}` | participant |
+| `PATCH /api/planner/plans/{planId}` | any participant, while open |
+| `PATCH /api/planner/plans/{planId}/status` | any participant (decide requires one of the plan's own dates) |
+| `DELETE /api/planner/plans/{planId}` | the plan's creator or the campaign owner, else 403 |
+| `POST /api/planner/plans/{planId}/dates` | any participant, while open |
+| `PATCH`/`DELETE /api/planner/dates/{dateId}` | the member who offered it, the plan's creator, or the owner |
+| `PUT`/`DELETE /api/planner/dates/{dateId}/attendance` | any member of the roster |
+| `PUT`/`DELETE /api/planner/plans/{planId}/members/me` | the caller's own seat (rejoin is refused after an owner removal) |
+| `DELETE /api/planner/plans/{planId}/members/{memberId}` | the campaign owner |
+| `PUT /api/planner/plans/{planId}/members/{memberId}` | the campaign owner — the way back after their removal |
+
+- Every mutation answers with the whole plan; a stale plan or date `version` is 409
+- The add-on gates all of it: while the planner is switched off, every endpoint answers 400
+- The same day cannot be offered twice in one plan (409), and a decided plan refuses dates, answers and roster changes until it is reopened (400)
+- Limits: `app.planner.max-title-length`, `-description-length`, `-note-length`, `-plans-per-campaign`, `-dates-per-plan` (see the backend README)
+
+---
+
 ## Notes for Teams
 
 **Frontend:** This contract defines what you can expect. If backend deviates, flag it immediately.

@@ -194,3 +194,38 @@ INSERT INTO ship_crew (ship_id, user_id, notes, image_urls, characters, created_
 VALUES (1, 1, 'Runs the cargo manifest (and the bribes).', '[]',
         '[{"name":"Vex","roleOnShip":"Pilot"},{"name":"Doc","roleOnShip":"Medic"}]',
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+
+-- =====================================================================================
+-- CAMPAIGN ADD-ONS AND THE PLANNER
+-- =====================================================================================
+-- The planner is switched on for Curse of Strahd, so Demo Mode shows the add-on
+-- working: the campaign menu carries a Planner section, and the owner (User1) can
+-- switch it off and back on in Campaign Settings → Add-ons. That toggle is what
+-- Guest Demo cannot demonstrate — it has no backend, so its campaigns carry
+-- `addons` in `demoData.js` instead.
+--
+-- The plan is deliberately open, with two candidate dates and a few answers, so
+-- the planner has something to look at the moment the demo profile starts. Nobody
+-- has answered everything: the colour marker is meant to be read, not just seen.
+INSERT INTO campaign_addon (campaign_id, addon_key, created_by, created_at, updated_at, last_modified_by)
+VALUES (1, 'PLANNER', 'User1', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'User1');
+
+INSERT INTO planner_plan (id, campaign_id, title, description, status, decided_date_id,
+                          created_by_user_id, version, created_at, updated_at, created_by, last_modified_by)
+VALUES (1, 1, 'Session 12 — when do we play next?', 'Pick a day and I will book the table.',
+        'OPEN', NULL, 1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'User1', 'User1');
+
+INSERT INTO planner_date (id, plan_id, plan_date, start_time, end_time, note, created_by_user_id,
+                          version, created_at, updated_at, created_by, last_modified_by)
+VALUES (1, 1, DATE '2026-11-07', TIME '18:00:00', TIME '22:00:00', 'Saturday evening at my place.',
+        1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'User1', 'User1'),
+       (2, 1, DATE '2026-11-14', TIME '19:00:00', TIME '23:00:00', 'One week later, same table.',
+        2, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'User2', 'User2');
+
+INSERT INTO planner_attendance (plan_date_id, user_id, state, created_at, updated_at, last_modified_by)
+VALUES (1, 1, 'YES', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'User1'),
+       (1, 2, 'YES', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'User2'),
+       (1, 3, 'MAYBE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'User3'),
+       (2, 2, 'YES', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'User2'),
+       (2, 3, 'NO', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'User3');
