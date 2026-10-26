@@ -1,4 +1,4 @@
-package org.kruskopf.backend.ship;
+package org.kruskopf.backend.json;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
@@ -12,11 +12,15 @@ import java.util.List;
 
 /**
  * JPA converter that stores a list of strings as a JSON array in a single TEXT
- * column. Used for the ship's upgrade names (small, closed catalog that may
- * contain duplicates for repeatable upgrades) and its gallery image URLs.
+ * column.
+ * <p>
+ * Shared by every "small list of strings" column in the schema: the ship's
+ * upgrade names (a small, closed catalog that may repeat an entry for repeatable
+ * upgrades), gallery image URLs — the ship's and a character's — and any future
+ * column of the same shape.
  */
 @Converter
-public class ShipStringListConverter implements AttributeConverter<List<String>, String> {
+public class StringListConverter implements AttributeConverter<List<String>, String> {
 
     private static final TypeReference<List<String>> LIST_OF_STRINGS = new TypeReference<>() {
     };
@@ -31,7 +35,7 @@ public class ShipStringListConverter implements AttributeConverter<List<String>,
         try {
             return objectMapper.writeValueAsString(values);
         } catch (JacksonException e) {
-            throw new IllegalStateException("Failed to convert ship string list to JSON", e);
+            throw new IllegalStateException("Failed to convert string list to JSON", e);
         }
     }
 
@@ -43,7 +47,7 @@ public class ShipStringListConverter implements AttributeConverter<List<String>,
         try {
             return objectMapper.readValue(dbData, LIST_OF_STRINGS);
         } catch (JacksonException e) {
-            throw new IllegalStateException("Failed to convert JSON to ship string list", e);
+            throw new IllegalStateException("Failed to convert JSON to string list", e);
         }
     }
 }

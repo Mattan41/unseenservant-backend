@@ -14,6 +14,10 @@ import org.springframework.lang.Nullable;
  * {@code systemType} is optional too: a null on create stores a character with no
  * game system (only the generic core fields exist and no block is attached), and
  * on PATCH it means "leave the system unchanged".
+ * <p>
+ * The gallery ({@code imageUrls}) is deliberately absent: it is managed by the
+ * dedicated image endpoints ({@code /api/characters/{id}/images}), never by this
+ * form payload.
  */
 public record CharacterInputDTO(
         Long ownerId,

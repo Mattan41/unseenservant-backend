@@ -8,31 +8,42 @@ import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.filestorage.FileStorageService;
+import org.kruskopf.backend.filestorage.StoredFileTransaction;
 import org.kruskopf.backend.playercharacter.GameCharacterMapper;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
 import org.kruskopf.backend.playercharacter.repository.GameCharacterRepository;
 import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.repository.UserRepository;
+import org.kruskopf.backend.playercharacter.dto.CharacterOutputDTO;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * The "remove from campaign" detach is allowed for the character's owner, the
- * campaign GM, or the campaign owner — and no one else.
+ * The character's write surface: the "remove from campaign" detach is allowed for
+ * the character's owner, the campaign GM, or the campaign owner — and no one
+ * else — while the gallery is the owner's alone.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("GameCharacterService.removeCharacterFromCampaign()")
+@DisplayName("GameCharacterService")
 class GameCharacterServiceTest {
 
     @Mock
@@ -52,6 +63,9 @@ class GameCharacterServiceTest {
 
     @Mock
     private FileStorageService fileStorageService;
+
+    @Mock
+    private StoredFileTransaction storedFileTransaction;
 
     @InjectMocks
     private GameCharacterService gameCharacterService;
@@ -127,5 +141,50 @@ class GameCharacterServiceTest {
         assertThatThrownBy(() -> gameCharacterService.removeCharacterFromCampaign(CHARACTER_ID, STRANGER_ID))
                 .isInstanceOf(UnauthorizedAccessException.class);
         assertThat(character.getCampaign()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("A gallery image is appended to the character's existing ones")
+    void addCharacterImageAppendsUrl() {
+        GameCharacter character = storedCharacter();
+        character.setImageUrls(new ArrayList<>(List.of("/images/first.png")));
+        when(gameCharacterRepository.save(character)).thenReturn(character);
+        MultipartFile file = mock(MultipartFile.class);
+        // The real helper stores the file and then runs the callback inside a
+        // transaction; stand in for that so the callback body is still exercised.
+        when(storedFileTransaction.storeThenRun(eq(file), any(String.class), eq("IMAGE"),
+                ArgumentMatchers.<Function<String, CharacterOutputDTO>>any()))
+                .thenAnswer(invocation -> invocation
+                        .<Function<String, CharacterOutputDTO>>getArgument(3)
+                        .apply("stored.png"));
+
+        gameCharacterService.addCharacterImage(CHARACTER_ID, file, CHARACTER_OWNER_ID);
+
+        assertThat(character.getImageUrls())
+                .containsExactly("/images/first.png", "/images/stored.png");
+    }
+
+    @Test
+    @DisplayName("Removing a gallery image drops the matching URL and keeps the rest")
+    void removeCharacterImageDropsUrl() {
+        GameCharacter character = storedCharacter();
+        character.setImageUrls(new ArrayList<>(List.of("/images/a.png", "/images/b.png")));
+        when(gameCharacterRepository.save(character)).thenReturn(character);
+
+        gameCharacterService.removeCharacterImage(CHARACTER_ID, "/images/a.png", CHARACTER_OWNER_ID);
+
+        assertThat(character.getImageUrls()).containsExactly("/images/b.png");
+    }
+
+    @Test
+    @DisplayName("Another player may not add an image to the character")
+    void rejectsForeignImageUpload() {
+        storedCharacter();
+        MultipartFile file = mock(MultipartFile.class);
+
+        assertThatThrownBy(() -> gameCharacterService.addCharacterImage(CHARACTER_ID, file, GM_ID))
+                .isInstanceOf(UnauthorizedAccessException.class);
+        // Authorization comes first: a refused upload must not touch the disk.
+        verifyNoInteractions(storedFileTransaction);
     }
 }

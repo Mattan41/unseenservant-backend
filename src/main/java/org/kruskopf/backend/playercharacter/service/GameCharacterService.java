@@ -6,6 +6,7 @@ import org.kruskopf.backend.campaign.service.CampaignPermissionService;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.filestorage.FileStorageService;
+import org.kruskopf.backend.filestorage.StoredFileTransaction;
 import org.kruskopf.backend.playercharacter.GameCharacterMapper;
 import org.kruskopf.backend.playercharacter.dto.CharacterInputDTO;
 import org.kruskopf.backend.playercharacter.dto.CharacterOutputDTO;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,6 +32,7 @@ public class GameCharacterService {
     private final GameCharacterMapper gameCharacterMapper;
     private final CampaignPermissionService campaignPermissionService;
     private final FileStorageService fileStorageService;
+    private final StoredFileTransaction storedFileTransaction;
 
     public GameCharacterService(
             GameCharacterRepository gameCharacterRepository,
@@ -37,13 +40,15 @@ public class GameCharacterService {
             CampaignRepository campaignRepository,
             GameCharacterMapper gameCharacterMapper,
             CampaignPermissionService campaignPermissionService,
-            FileStorageService fileStorageService) {
+            FileStorageService fileStorageService,
+            StoredFileTransaction storedFileTransaction) {
         this.gameCharacterRepository = gameCharacterRepository;
         this.userRepository = userRepository;
         this.campaignRepository = campaignRepository;
         this.gameCharacterMapper = gameCharacterMapper;
         this.campaignPermissionService = campaignPermissionService;
         this.fileStorageService = fileStorageService;
+        this.storedFileTransaction = storedFileTransaction;
     }
 
     public CharacterOutputDTO createCharacter(CharacterInputDTO inputDTO) {
@@ -121,12 +126,7 @@ public class GameCharacterService {
     }
 
     public CharacterOutputDTO uploadCharacterImage(long characterId, MultipartFile file, long userId) {
-        GameCharacter character = gameCharacterRepository.findById(characterId)
-                .orElseThrow(() -> new ResourceNotFoundException("Character not found"));
-
-        if (!character.getOwner().getId().equals(userId)) {
-            throw new UnauthorizedAccessException("User does not own this character");
-        }
+        GameCharacter character = requireOwnedCharacter(characterId, userId);
 
         try {
             String fileName = fileStorageService.storeFile(file, "character_" + characterId, "IMAGE");
@@ -138,6 +138,53 @@ public class GameCharacterService {
             // wrapper: same 500 as before, but the type says what went wrong.
             throw new UncheckedIOException("Failed to store file", e);
         }
+    }
+
+    /**
+     * Append an image to the character's gallery.
+     * <p>
+     * A gallery image is art shown with the character — a drawing, a handout,
+     * anything beyond the portrait. In an Offworlders campaign these are the
+     * images the ship's crew card displays next to the character's notes.
+     * Owner-only, like every other write to a character.
+     */
+    public CharacterOutputDTO addCharacterImage(long characterId, MultipartFile file, long userId) {
+        GameCharacter character = requireOwnedCharacter(characterId, userId);
+
+        // Store the file first, then update the row in its own transaction, and
+        // delete the file again if that fails — the same no-orphan contract the
+        // ship's images use. Authorization happens above, before any disk write.
+        return storedFileTransaction.storeThenRun(
+                file, "character_" + characterId + "_gallery", "IMAGE", storedName -> {
+                    List<String> urls = new ArrayList<>(character.getImageUrls());
+                    urls.add("/images/" + storedName);
+                    character.setImageUrls(urls);
+                    return gameCharacterMapper.toOutputDTO(
+                            gameCharacterRepository.save(character), true);
+                });
+    }
+
+    /** Remove a gallery image from a character, by its stored URL. */
+    @Transactional
+    public CharacterOutputDTO removeCharacterImage(long characterId, String url, long userId) {
+        GameCharacter character = requireOwnedCharacter(characterId, userId);
+
+        List<String> urls = new ArrayList<>(character.getImageUrls());
+        urls.remove(url);
+        character.setImageUrls(urls);
+        return gameCharacterMapper.toOutputDTO(gameCharacterRepository.save(character), true);
+    }
+
+    /** The character, provided the caller owns it — the write-side gate. */
+    private GameCharacter requireOwnedCharacter(long characterId, long userId) {
+        GameCharacter character = gameCharacterRepository.findById(characterId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Character not found with id: " + characterId));
+
+        if (!character.getOwner().getId().equals(userId)) {
+            throw new UnauthorizedAccessException("User does not own this character");
+        }
+        return character;
     }
 
     @Transactional

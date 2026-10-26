@@ -4,8 +4,12 @@ import jakarta.persistence.*;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
 import org.kruskopf.backend.entity.AuditedEntity;
+import org.kruskopf.backend.json.StringListConverter;
 import org.kruskopf.backend.offworlders.entity.OffworldersCharacterData;
 import org.kruskopf.backend.user.entity.User;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * System-agnostic core character entity.
@@ -58,6 +62,19 @@ public class GameCharacter extends AuditedEntity {
 
     @Column
     private String imageUrl;
+
+    /**
+     * Gallery images (drawings, handouts, anything the player wants shown with
+     * the character), stored as a JSON array of URLs.
+     * <p>
+     * In an Offworlders campaign these are the images shown on the character's
+     * card in the ship's crew manifest, next to the character's {@link #notes} —
+     * the crew is the party, so the ship view reads the character rather than
+     * holding a manifest of its own.
+     */
+    @Column(name = "image_urls", columnDefinition = "TEXT")
+    @Convert(converter = StringListConverter.class)
+    private List<String> imageUrls = new ArrayList<>();
 
     @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Dnd5eCharacterData dnd5eData;
@@ -173,6 +190,14 @@ public class GameCharacter extends AuditedEntity {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 
     public Dnd5eCharacterData getDnd5eData() {
