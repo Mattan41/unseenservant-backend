@@ -187,13 +187,16 @@ UPDATE campaign SET primary_system = 'OFFWORLDERS' WHERE id = 2;
 INSERT INTO ship (id, campaign_id, version, name, hull, hull_max, armor, damage, drive_fuel, max_drive_fuel, credits, upgrades, notes, created_at, updated_at)
 VALUES (1, 2, 0, 'The Null Gravitas', 15, 15, 1, '1D6', 4, 6, 0, '["Additional Armor","Fuel Tanks"]', 'Cargo: a sealed crate for the Lundenwic job.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
--- Crew manifest: one entry per participant. User 1's is filled in; the other
--- participants start empty and fill theirs in from the ship view. Entries are
--- keyed on the user, so they survive a participant leaving the campaign.
-INSERT INTO ship_crew (ship_id, user_id, notes, image_urls, characters, created_at, updated_at)
-VALUES (1, 1, 'Runs the cargo manifest (and the bribes).', '[]',
-        '[{"name":"Vex","roleOnShip":"Pilot"},{"name":"Doc","roleOnShip":"Medic"}]',
-        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- Crew manifest. The ship's crew is the campaign's characters, so what used to
+-- be a `ship_crew` row for User 1 now lives on that user's character in campaign
+-- 2 — exactly what V4__ship_crew_into_character_images.sql does to a real
+-- database (note appended, gallery carried over). The seeded gallery image
+-- stands in for an upload: a real one is written to /images and served by the
+-- backend.
+UPDATE game_character
+SET notes = 'Runs the cargo manifest (and the bribes).',
+    image_urls = '["/default-scifi-Character.svg"]'
+WHERE id = 5;
 
 
 -- =====================================================================================

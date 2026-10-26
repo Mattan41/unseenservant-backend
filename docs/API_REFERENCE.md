@@ -763,6 +763,34 @@ The endpoint is system-agnostic. When `systemType` is `OFFWORLDERS`, send (and r
 
 ---
 
+### POST /api/characters/{id}/images — Add an image to the character's gallery
+
+**Auth:** Yes (ROLE_USER, must be owner)  
+**Status:** 200, 400, 401, 403, 404, 413
+
+**Request:** `multipart/form-data`, field name: `file`.
+
+> Max file size: **5MB** per file (`app.upload.max-file-size`). The HTTP multipart limits (`spring.servlet.multipart.max-file-size` / `max-request-size`) are 8MB.
+
+**Response (200):** `CharacterOutputDTO` with the image appended to `imageUrls`.
+
+> The gallery sits beside the single `avatarUrl` portrait. In an Offworlders campaign the gallery images and `notes` are what the ship's crew card shows for this character — the crew is the campaign's characters, so nothing has to be saved on the ship.
+
+---
+
+### DELETE /api/characters/{id}/images?url={url} — Remove a gallery image
+
+**Auth:** Yes (ROLE_USER, must be owner)  
+**Status:** 200, 401, 403, 404
+
+**Query params:** `url` (the stored image URL, e.g. `/images/character_14_gallery_ab12cd34.png`).
+
+Removes the URL from `imageUrls`; the stored file itself is left on disk.
+
+**Response (200):** `CharacterOutputDTO` with the image removed.
+
+---
+
 ### PATCH /api/characters/{characterId}/campaign — Link character to campaign
 
 **Auth:** Yes (ROLE_USER, must be owner)  

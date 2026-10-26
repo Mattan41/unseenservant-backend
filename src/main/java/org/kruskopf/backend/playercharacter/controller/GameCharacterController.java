@@ -121,6 +121,30 @@ public class GameCharacterController {
         return ResponseEntity.ok(updatedImage);
     }
 
+    /** Add an image to the character's gallery (owner only). */
+    @PostMapping("/{id}/images")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<CharacterOutputDTO> addImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
+
+        return ResponseEntity.ok(gameCharacterService.addCharacterImage(id, file, userId));
+    }
+
+    /** Remove a gallery image from the character by its stored URL (owner only). */
+    @DeleteMapping("/{id}/images")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<CharacterOutputDTO> removeImage(
+            @PathVariable Long id,
+            @RequestParam("url") String url,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
+
+        return ResponseEntity.ok(gameCharacterService.removeCharacterImage(id, url, userId));
+    }
+
     @PatchMapping("/{characterId}/campaign")
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<CharacterOutputDTO> addCharacterToCampaign(

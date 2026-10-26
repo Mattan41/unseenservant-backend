@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.entity.BaseEntity;
-import org.kruskopf.backend.ship.ShipStringListConverter;
+import org.kruskopf.backend.json.StringListConverter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -86,7 +86,7 @@ public class Ship extends BaseEntity {
     private int credits = DEFAULT_CREDITS;
 
     @Column(columnDefinition = "TEXT")
-    @Convert(converter = ShipStringListConverter.class)
+    @Convert(converter = StringListConverter.class)
     private List<String> upgrades = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
@@ -98,7 +98,7 @@ public class Ship extends BaseEntity {
 
     /** Gallery images (drawings, maps, etc.), stored as a JSON array of URLs. */
     @Column(name = "image_urls", columnDefinition = "TEXT")
-    @Convert(converter = ShipStringListConverter.class)
+    @Convert(converter = StringListConverter.class)
     private List<String> imageUrls = new ArrayList<>();
 
     public Ship() {

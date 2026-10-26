@@ -15,6 +15,7 @@ import org.kruskopf.backend.user.entity.User;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class GameCharacterMapper {
@@ -38,6 +39,7 @@ public class GameCharacterMapper {
                 character.getSystemType(),
                 character.getNotes(),
                 character.getImageUrl(),
+                character.getImageUrls() != null ? List.copyOf(character.getImageUrls()) : List.of(),
                 character.getAppearance(),
                 character.getBackstory(),
                 includePrivateBackstory ? character.getPrivateBackstory() : null,
