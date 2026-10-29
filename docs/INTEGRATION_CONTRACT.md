@@ -24,6 +24,7 @@ The canonical API reference is `API_REFERENCE.md` — generated from source code
 - JWT returned in `Authorization` response header: `Bearer <token>` — **not** in the body
 - Status: 200, 400, 401, 429
 - Throttled on two axes — the client address and the username (`LoginAttemptLimiter`) — because a guess costs a BCrypt comparison and a distributed attack on one account is invisible to a proxy. Over budget the answer is `429` with `Retry-After` in seconds, and a body that says nothing about whether the account exists. The frontend must treat 429 as "wait and retry", never as a logout: `src/api/lib/axios.js` has a branch for it, and nginx's own `limit_req` on the same path answers 429 too.
+- Every attempt writes an audit row — `LOGIN_SUCCEEDED`, `LOGIN_FAILED` or `LOGIN_THROTTLED` — and the row never records whether the username exists either. See **GET /api/admin/logs**.
 
 **GET /api/auth/oauth-init**
 - Query params: `provider` (google|github), `origin`
@@ -108,6 +109,38 @@ prefix is matched in `SecurityConfig`, and each controller repeats the rule with
 **DELETE /api/admin/whitelist/{id}**
 - Soft delete: the row remains with `active = false`, so a decision can be revisited
 - Status: 204, 401, 403, 404
+
+**GET /api/admin/logs**
+- Query: `type?`, `beforeId?`, `limit?`
+  - `type` is an `AuditEventType` name, case-insensitive; an unknown one is 400 naming the valid ones
+  - `beforeId` is the cursor — the `id` of the last row of the previous page
+  - `limit` is clamped to `app.audit.max-page-size`, and defaults to `app.audit.default-page-size`
+- Response: `[ AuditEventDTO { id, type, occurredAt, actorId, actorName, targetId, targetName, detail, clientIp } ]`, newest first (`id` descending — the table is append-only, so ids increase with the clock, and two rows written in the same millisecond would leave a timestamp-ordered page ambiguous)
+- Status: 200, 400, 401, 403
+- `occurredAt` is `createdAt`, i.e. the same UTC wall clock as every other timestamp in this document.
+- The trail is **append-only and read-only**: no endpoint writes, edits or deletes a row, and no endpoint can reach one except by reading it. `app.audit.retention-days` (default 365; `0` or less keeps everything) is the only thing that ever removes one, and it runs once at startup.
+- `actorId` / `targetId` are ids that **may no longer exist**: there is deliberately no foreign key to `users`, and `actorName` / `targetName` are copies taken at write time, so renaming or deleting an account does not rewrite history. A client must render them as text, not resolve them.
+
+**What the trail records** — the values `type` filters on:
+
+| Type | Recorded when |
+|---|---|
+| `ACCOUNT_CREATED` | a first OAuth login created the account |
+| `LOGIN_SUCCEEDED` | a correct password, or a completed OAuth handshake |
+| `LOGIN_FAILED` | a wrong password, or a username that does not exist |
+| `LOGIN_THROTTLED` | the login throttle answered `429` |
+| `OAUTH_REFUSED` | a provider login was refused: unverified email, or an address not on the whitelist |
+| `ROLE_CHANGED` | an administrator changed an account's role |
+| `ROLE_CHANGE_REFUSED` | the last-administrator guard refused a demotion |
+| `WHITELIST_ADDED` | an address was admitted, or a revoked row re-admitted |
+| `WHITELIST_UPDATED` | a whitelist row was re-roled and/or re-activated |
+| `WHITELIST_REVOKED` | an address was revoked (soft delete) |
+
+- User and administration events only. Campaigns, messages, characters, ships, journals and the planner are outside the trail on purpose.
+- `LOGIN_FAILED` and `LOGIN_THROTTLED` name the username that was attempted and never say whether the account exists — the same property the `401` has.
+- `OAUTH_REFUSED` is the row that answers *"why can't this person log in?"*: the `302` to `/under-construction` says nothing, and the whitelist UI cannot tell an unverified email from an address that is not on the list.
+- A refused **self**-demotion leaves no row (it is answered before the lookup, and the administrator who tried it is told); a refused last-administrator demotion does.
+- Every row is also written to the `audit` logger as one `key=value` line, so the same event is greppable in `docker logs` without reaching the database.
 
 **Whitelist semantics — two different switches**
 

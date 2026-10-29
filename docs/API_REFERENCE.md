@@ -364,6 +364,85 @@ Two different switches, and the Admin UI says so:
 
 ---
 
+### GET /api/admin/logs — Read the audit trail
+
+**Auth:** Yes (ROLE_ADMIN)  
+**Status:** 200, 400, 401, 403
+
+**Query parameters:**
+
+| Name | Meaning |
+|---|---|
+| `type` | Only this event type. Case-insensitive; an unknown name is refused with `400` naming the valid ones. Omit for everything. |
+| `beforeId` | Only rows older than this id. The cursor: pass the `id` of the last row of the page before. |
+| `limit` | Rows per page. Clamped to `app.audit.max-page-size`; defaults to `app.audit.default-page-size`. |
+
+**Response (200):** newest first
+
+```json
+[
+  {
+    "id": 41,
+    "type": "ROLE_CHANGED",
+    "occurredAt": "2026-10-26T19:04:11",
+    "actorId": 6,
+    "actorName": "admin",
+    "targetId": 2,
+    "targetName": "User2",
+    "detail": "USER -> ADMIN",
+    "clientIp": "203.0.113.7"
+  }
+]
+```
+
+**Rules:**
+
+- Rows are ordered by `id` descending, which is also time descending: the table is
+  append-only, so ids increase with the clock while two rows written in the same
+  millisecond would leave a timestamp-ordered page ambiguous.
+- There is **no endpoint that writes, edits or deletes a row.** The trail is
+  append-only; `app.audit.retention-days` is the only thing that ever removes one
+  (`AuditRetentionRunner`, once at startup).
+- `actorId` / `targetId` are ids that may no longer exist — deliberately no
+  foreign key, and `actorName` / `targetName` are copies taken at the time, so a
+  rename or a deletion does not rewrite history.
+- `clientIp` is the address `ClientIpResolver` documents (`CF-Connecting-IP`
+  behind the tunnel), and `null` for a row written outside a request.
+
+### AuditEventType
+
+Every value the `type` field can hold:
+
+| Type | Recorded when |
+|---|---|
+| `ACCOUNT_CREATED` | a first OAuth login created the account |
+| `LOGIN_SUCCEEDED` | a correct password, or a completed OAuth handshake |
+| `LOGIN_FAILED` | a wrong password, or a username that does not exist |
+| `LOGIN_THROTTLED` | the login throttle answered `429` |
+| `OAUTH_REFUSED` | a provider login was refused: unverified email, or an address not on the whitelist |
+| `ROLE_CHANGED` | an administrator changed an account's role |
+| `ROLE_CHANGE_REFUSED` | the last-administrator guard refused a demotion |
+| `WHITELIST_ADDED` | an address was admitted, or a revoked row re-admitted |
+| `WHITELIST_UPDATED` | a whitelist row was re-roled and/or re-activated |
+| `WHITELIST_REVOKED` | an address was revoked (soft delete) |
+
+Details worth knowing when reading the table:
+
+- **`LOGIN_FAILED` says nothing about whether the account exists**, exactly like
+  the `401` it accompanies: the endpoint must not answer that question, and the
+  row keeps the same property (it names the username that was attempted).
+- **A refused self-demotion leaves no row.** It is answered before the lookup,
+  changes nothing, and the administrator who tried it is told. The
+  last-administrator refusal *is* recorded, because that one says somebody is
+  about to empty the administrator seat.
+- **Only user- and administration-related events are recorded.** Campaigns,
+  messages, characters, ships, journals and the planner are not: a scope decision,
+  not an oversight (docs/ARCHITECTURE.md, "Audit trail").
+- Every row is mirrored to the `audit` logger as one `key=value` line, so the same
+  event is greppable in `docker logs` without reaching the database.
+
+---
+
 ## 4. Campaigns
 
 `/api/campaigns/**` — requires authentication.  

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.kruskopf.backend.audit.AuditService;
 import org.kruskopf.backend.auth.JwtService;
 import org.kruskopf.backend.auth.dto.LoginRequest;
 import org.kruskopf.backend.ratelimit.LoginAttemptLimiter;
@@ -44,6 +45,9 @@ class AuthControllerLoginTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private AuditService auditService;
+
     private AuthController authController;
 
     @BeforeEach
@@ -53,7 +57,8 @@ class AuthControllerLoginTest {
 
         when(passwordEncoder.encode(anyString())).thenReturn(UNKNOWN_USER_HASH);
         authController = new AuthController(
-                userRepository, passwordEncoder, jwtService, new LoginAttemptLimiter(properties));
+                userRepository, passwordEncoder, jwtService, new LoginAttemptLimiter(properties),
+                auditService);
     }
 
     @Test
@@ -68,6 +73,8 @@ class AuthControllerLoginTest {
         // The same call a known account gets: that equality is the point, and it
         // is what stops the endpoint from answering "does this user exist?".
         verify(passwordEncoder).matches("password123", UNKNOWN_USER_HASH);
+        // The trail gets the attempt, and cannot tell the two cases apart either.
+        verify(auditService).loginFailed("nobody");
     }
 
     @Test
@@ -94,6 +101,7 @@ class AuthControllerLoginTest {
 
         verify(passwordEncoder).matches("password123", "stored-hash");
         org.assertj.core.api.Assertions.assertThat(response.getBody()).isNotNull();
+        verify(auditService).loginSucceeded(user, "password");
     }
 
     private static LoginRequest login(String username) {

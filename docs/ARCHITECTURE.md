@@ -78,6 +78,70 @@ The throttle is off in the `test` profile (`app.rate-limit.enabled=false`), so a
 test that signs in repeatedly is not answered with a 429 by a counter it never
 asked about; `LoginRateLimitIT` turns it on for the behaviour it is about.
 
+## Audit trail
+
+The application records **user- and administration-related events only** — an
+account created, a login (succeeded, failed, throttled), an OAuth refusal, a role
+change, a whitelist change — in `audit_event`, and reads them back under
+Settings → Logs (`GET /api/admin/logs`, ROLE_ADMIN). Campaigns, messages,
+characters, ships, journals and the planner are deliberately outside it: the trail
+answers "who has an account here, and who changed what about it", not "what did
+people do in their campaigns". The whole scope is the `AuditEventType` enum, and
+every one of its values maps to exactly one call site.
+
+### Two write policies, and why
+
+`AuditEventStore` is the only writer, and it is a bean of its own because the
+distinction below is a Spring transaction annotation — a call from one method of a
+bean to another of the same bean does not go through the proxy, so an annotation
+on the callee would be silently ignored:
+
+| | `write` — joins the caller's transaction | `writeDetached` — `REQUIRES_NEW` |
+|---|---|---|
+| For | a change: a role edit, a whitelist edit, an account creation | an attempt or refusal: a login, a throttle, an OAuth refusal, a refused demotion |
+| If the insert fails | the change rolls back with it; the caller gets a 500 | a `WARN` on the `audit` logger, and the request continues |
+| Because | an unaudited privilege change is worse than a refused one | a full disk must not turn a valid login into a 500, and a refusal row has to outlive the rollback its own throw causes |
+
+That last cell is the subtle one: `AdminService.changeUserRole` is
+`@Transactional` and *throws* after recording a refused demotion, so a row written
+inside that transaction would vanish with it — and the refusal is precisely what
+the trail is for. `REQUIRES_NEW` is what makes it survive, and `AuditTrailIT`
+proves it against a real database rather than asserting it. Suspending the
+caller's transaction holds a second pooled connection for the length of one
+insert: a deliberate trade at this scale (see "Concurrency"), and a reason the
+Hikari pool is not the place to start tuning.
+
+`AuditService` owns which policy applies, one named method per event, so a call
+site reads as the sentence it records. Every event is *also* written to a logger
+named `audit` as one `key=value` line. The redundancy is intentional: the table is
+the readable trail, and the line is the half that survives the database being
+unavailable and is greppable in `docker logs`. It can be routed to a file or a
+collector later without touching the code.
+
+### What the rows deliberately do not have
+
+- **No foreign keys.** Every other table here has them; this one does not, because
+  a trail that disappears when the account it names is deleted is not a trail.
+  `actor_name` / `target_name` are copies taken at write time for the same reason,
+  so an id in a row may name an account that no longer exists.
+- **No update and no delete path.** No endpoint reaches a row except by reading
+  it, and the repository exposes no mutator. The single delete is the prune below.
+- **No secrets.** No password, no hash, no token. The failed-login row names the
+  username that was attempted and never whether the account exists — the same
+  property the 401 it accompanies has, so the trail cannot be used to enumerate
+  accounts either.
+
+### Retention
+
+The rows are personal data — a username, an address, where somebody signed in from
+— so they are pruned to `app.audit.retention-days` (default 365; `0` or less keeps
+everything instead of deleting it, so a mis-set variable cannot wipe the trail).
+`AuditRetentionRunner` does that once at startup, the same shape as
+`WhitelistLoader` and needing no scheduler: at this scale the table gains a handful
+of rows a day, so "daily, at boot" and "daily, at 03:00" differ by nothing an
+operator can observe. **The trail is therefore not complete beyond the retention
+period** — that is what a retention period is for.
+
 ## Database migrations
 
 Flyway owns the schema, discovered from the single location
@@ -199,13 +263,22 @@ org.kruskopf.backend/
 │   ├── CustomUserDetails.java
 │   └── CustomUserDetailsService.java
 ├── admin/                                # Administrator surface (ROLE_ADMIN only)
-│   ├── controller/AdminController.java   # /api/admin/** — accounts + email whitelist
+│   ├── controller/AdminController.java   # /api/admin/** — accounts, email whitelist, audit log
 │   ├── dto/
 │   │   ├── WhitelistEntryDTO.java
 │   │   ├── WhitelistEntryRequest.java
 │   │   ├── WhitelistUpdateRequest.java
 │   │   └── RoleUpdateRequest.java
 │   └── service/AdminService.java         # Role changes + whitelist CRUD, with the guards
+├── audit/                                # The audit trail (user + administration events)
+│   ├── AuditService.java                 # Named per-event methods; the two write policies
+│   ├── AuditEventStore.java              # The one writer: joins, or REQUIRES_NEW
+│   ├── AuditRetentionRunner.java         # The prune at startup (app.audit.retention-days)
+│   ├── entity/
+│   │   ├── AuditEvent.java               # Append-only; no FK to users
+│   │   └── AuditEventType.java           # Enum — the wire contract the Logs view filters on
+│   ├── repository/AuditEventRepository.java
+│   └── dto/AuditEventDTO.java
 ├── whitelist/
 │   ├── EmailWhitelist.java
 │   ├── EmailWhitelistRepository.java
@@ -355,6 +428,7 @@ Four entities stay outside the hierarchy, each for its own reason:
 | `PlannerAttendance` | id, plan_date_id + user_id (unique), state (`YES`/`NO`/`MAYBE`) | one member's answer to one date. **No row means "not answered yet"**, which counts against a date — that is what makes the green marker mean "everybody still in said yes". Deliberately without a version token: it is the caller's own answer |
 | `PlannerMemberExclusion` | id, plan_id + user_id (unique), removed_by, removed_by_owner | a member who is out of a plan. The roster is the campaign's participants minus these rows, so everybody is in a plan without any bookkeeping. `removed_by_owner` is the member's own move versus the owner's: a member undoes their own by rejoining, while a removal by the owner is undone by the owner putting them back. Answers survive, so either way the return restores them |
 | `EmailWhitelist` | id, email, role, active | standalone; **login gate** for OAuth — a revoked row is soft-deleted (`active = false`) so the decision can be revisited, and the address column is unique, so re-admitting reactivates that row. `role` applies to a *first* login only |
+| `AuditEvent` | id, eventType, actorId/actorName, targetId/targetName, detail, clientIp, createdAt | one event of the audit trail (see "Audit trail"). **Append-only and deliberately without foreign keys**: the actor and target names are copies, so a row keeps reading correctly after an account is renamed or deleted. The only delete is the retention prune |
 
 ## Tests
 - Integration tests use Testcontainers (`AbstractIntegrationTest`)
@@ -383,6 +457,7 @@ full application against a Testcontainer):
 | Campaign add-ons & planner | `PlannerServiceTest` | `PlannerControllerIT` (owner-only add-on switch, the add-on gating the endpoints, participant-only access, dates and their 409s, one answer per member, deciding and reopening, both kinds of roster removal and the owner putting a member back) |
 | Spells | `SpellServiceTest` | `SpellServiceIT` |
 | Admin & whitelist | `AdminServiceTest` | `AdminControllerIT` |
+| Audit trail | `AuditServiceTest` | `AuditTrailIT` (both write policies, the rollback a refusal survives, the prune), `AdminControllerIT` (the endpoint) |
 | Files & images | `FileStorageServiceTest`, `StoredFileTransactionTest` | `ImageCorsIT` |
 | Schema & runtime | — | `SchemaValidationIT` (Flyway baseline + Hibernate `validate`), `BackendApplicationIT`, `VirtualThreadsIT` |
 

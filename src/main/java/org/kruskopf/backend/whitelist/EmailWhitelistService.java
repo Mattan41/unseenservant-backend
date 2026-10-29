@@ -70,9 +70,14 @@ public class EmailWhitelistService {
         return whitelistRepository.save(entry);
     }
 
-    /** Soft delete: the row stays for the audit trail, but stops admitting logins. */
-    public void removeEmailById(Long id) {
-        updateEmail(id, null, false);
+    /**
+     * Soft delete: the row stays for the audit trail, but stops admitting logins.
+     *
+     * @return the row as it was left — {@code active = false}, and the address the
+     *   audit trail names
+     */
+    public EmailWhitelist removeEmailById(Long id) {
+        return updateEmail(id, null, false);
     }
 
     public void removeEmailFromWhitelist(String email) {

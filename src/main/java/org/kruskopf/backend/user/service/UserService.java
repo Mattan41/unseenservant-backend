@@ -1,5 +1,6 @@
 package org.kruskopf.backend.user.service;
 
+import org.kruskopf.backend.audit.AuditService;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UniqueConstraintViolationException;
 import org.kruskopf.backend.user.dto.UserDTO;
@@ -9,6 +10,7 @@ import org.kruskopf.backend.user.entity.UserRole;
 import org.kruskopf.backend.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,10 +20,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditService auditService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                       AuditService auditService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.auditService = auditService;
     }
 
     public List<UserDTO> searchUsers(String query, long currentUserId) {
@@ -34,6 +39,17 @@ public class UserService {
                 .toList();
     }
 
+    /**
+     * Finds the account behind a provider identity, or creates it on a first
+     * login.
+     * <p>
+     * This is the only place an account is created, and it is transactional so
+     * that the account and the audit row recording it commit together: the trail
+     * exists to answer "who has an account here and how did they get one", and an
+     * unrecorded creation would be the one gap that matters. The audit row
+     * therefore vetoes the creation - see {@code AuditService}.
+     */
+    @Transactional
     public User findOrCreateOAuthUser(String providerId, ProviderType providerType,
                                       String email, String fullName, UserRole role) {
         // 1. Returning user for this exact provider identity.
@@ -61,7 +77,9 @@ public class UserService {
                 role,
                 securePlaceholder
         );
-        return userRepository.save(newUser);
+        User created = userRepository.save(newUser);
+        auditService.accountCreated(created, providerType, role);
+        return created;
     }
 
     public Optional<User> findById(long id) {

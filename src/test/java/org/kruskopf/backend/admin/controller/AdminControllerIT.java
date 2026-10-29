@@ -5,6 +5,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.kruskopf.backend.AbstractIntegrationTest;
+import org.kruskopf.backend.audit.entity.AuditEvent;
+import org.kruskopf.backend.audit.entity.AuditEventType;
+import org.kruskopf.backend.audit.repository.AuditEventRepository;
 import org.kruskopf.backend.auth.JwtService;
 import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.User;
@@ -23,6 +26,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -52,6 +56,7 @@ class AdminControllerIT extends AbstractIntegrationTest {
     private final UserRepository userRepository;
     private final EmailWhitelistRepository whitelistRepository;
     private final EmailWhitelistService emailWhitelistService;
+    private final AuditEventRepository auditEventRepository;
     private final JwtService jwtService;
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
@@ -62,12 +67,14 @@ class AdminControllerIT extends AbstractIntegrationTest {
             UserRepository userRepository,
             EmailWhitelistRepository whitelistRepository,
             EmailWhitelistService emailWhitelistService,
+            AuditEventRepository auditEventRepository,
             JwtService jwtService) {
         this.mockMvc = mockMvc;
         this.objectMapper = objectMapper;
         this.userRepository = userRepository;
         this.whitelistRepository = whitelistRepository;
         this.emailWhitelistService = emailWhitelistService;
+        this.auditEventRepository = auditEventRepository;
         this.jwtService = jwtService;
     }
 
@@ -347,6 +354,116 @@ class AdminControllerIT extends AbstractIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body(Map.of("active", false))))
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/admin/logs")
+    class Logs {
+
+        /**
+         * The trail is a table like any other, but these assertions are about
+         * exact contents, so any row another class left behind would be noise.
+         * The delete runs inside this test's transaction, so it is rolled back
+         * again and cannot disturb anybody else.
+         */
+        @BeforeEach
+        void startFromAnEmptyTrail() {
+            auditEventRepository.deleteAll();
+        }
+
+        private AuditEvent aFailedLogin(String attempted) {
+            return AuditEvent.anonymous(AuditEventType.LOGIN_FAILED, attempted, null,
+                    "wrong password or unknown username", "203.0.113.7");
+        }
+
+        private AuditEvent aSucceededLogin() {
+            return AuditEvent.by(AuditEventType.LOGIN_SUCCEEDED, admin, "password", "203.0.113.7");
+        }
+
+        @Test
+        @DisplayName("Is refused for anonymous callers")
+        void isRefusedForAnonymousCallers() throws Exception {
+            mockMvc.perform(get("/api/admin/logs"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Is refused for ordinary accounts")
+        void isRefusedForOrdinaryAccounts() throws Exception {
+            mockMvc.perform(get("/api/admin/logs").header("Authorization", "Bearer " + memberToken))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("Lists the newest row first, with the fields the view reads")
+        void listsTheNewestRowFirst() throws Exception {
+            auditEventRepository.save(aFailedLogin("guessy"));
+            auditEventRepository.save(aSucceededLogin());
+
+            mockMvc.perform(get("/api/admin/logs").header("Authorization", "Bearer " + adminToken))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType("application/json"))
+                    .andExpect(jsonPath("$", hasSize(2)))
+                    .andExpect(jsonPath("$[0].type", is("LOGIN_SUCCEEDED")))
+                    .andExpect(jsonPath("$[0].actorId", is(admin.getId().intValue())))
+                    .andExpect(jsonPath("$[0].actorName", is("admin-it")))
+                    .andExpect(jsonPath("$[0].detail", is("password")))
+                    .andExpect(jsonPath("$[0].clientIp", is("203.0.113.7")))
+                    .andExpect(jsonPath("$[0].occurredAt").isNotEmpty())
+                    // A failed login has no account behind it, and still names
+                    // what was attempted.
+                    .andExpect(jsonPath("$[1].type", is("LOGIN_FAILED")))
+                    .andExpect(jsonPath("$[1].actorId").doesNotExist())
+                    .andExpect(jsonPath("$[1].actorName", is("guessy")));
+        }
+
+        @Test
+        @DisplayName("Filters by event type, whatever the casing of the filter")
+        void filtersByEventType() throws Exception {
+            auditEventRepository.save(aFailedLogin("guessy"));
+            auditEventRepository.save(aSucceededLogin());
+
+            mockMvc.perform(get("/api/admin/logs?type=login_failed")
+                            .header("Authorization", "Bearer " + adminToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)))
+                    .andExpect(jsonPath("$[0].type", is("LOGIN_FAILED")));
+        }
+
+        @Test
+        @DisplayName("Names the valid types when the filter is unknown")
+        void namesTheValidTypesForAnUnknownFilter() throws Exception {
+            mockMvc.perform(get("/api/admin/logs?type=LOGGED_IN")
+                            .header("Authorization", "Bearer " + adminToken))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail", containsString("ACCOUNT_CREATED")));
+        }
+
+        @Test
+        @DisplayName("Pages with the id of the last row of the previous page")
+        void pagesWithTheCursor() throws Exception {
+            long first = auditEventRepository.save(aFailedLogin("first")).getId();
+            long last = auditEventRepository.save(aSucceededLogin()).getId();
+
+            mockMvc.perform(get("/api/admin/logs?beforeId=" + last)
+                            .header("Authorization", "Bearer " + adminToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)))
+                    .andExpect(jsonPath("$[0].id", is((int) first)));
+        }
+
+        @Test
+        @DisplayName("Honours a limit")
+        void honoursALimit() throws Exception {
+            auditEventRepository.save(aFailedLogin("one"));
+            auditEventRepository.save(aFailedLogin("two"));
+            auditEventRepository.save(aSucceededLogin());
+
+            mockMvc.perform(get("/api/admin/logs?limit=2")
+                            .header("Authorization", "Bearer " + adminToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(2)));
         }
     }
 }

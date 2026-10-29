@@ -3,6 +3,7 @@ package org.kruskopf.backend.component;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.kruskopf.backend.audit.AuditService;
 import org.kruskopf.backend.auth.JwtService;
 import org.kruskopf.backend.config.Email;
 import org.kruskopf.backend.user.entity.ProviderType;
@@ -47,6 +48,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final EmailWhitelistService emailWhitelistService;
     private final JwtService jwtService;
+    private final AuditService auditService;
 
     private RestClient restClient;
 
@@ -58,11 +60,13 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                                       ObjectProvider<OAuth2AuthorizedClientService> authorizedClientServiceProvider,
                                       EmailWhitelistService emailWhitelistService,
                                       JwtService jwtService,
+                                      AuditService auditService,
                                       @Value("${ALLOWED_ORIGINS}") String[] allowedOrigins) {
         this.userService = userService;
         this.authorizedClientService = authorizedClientServiceProvider.getIfAvailable();
         this.emailWhitelistService = emailWhitelistService;
         this.jwtService = jwtService;
+        this.auditService = auditService;
         this.allowedOrigins = allowedOrigins;
     }
 
@@ -92,6 +96,10 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         // A provider may decline the login (e.g. an unverified Google email).
         // Reject through the same path used for a non-whitelisted email.
         if (userAttributes == null) {
+            // The address is taken from the provider's claims here rather than
+            // from the rejected attributes, so the trail still names who tried:
+            // "an unverified email was refused" with no address answers nothing.
+            auditService.oauthRefused(oAuth2User.getAttribute("email"), "the provider did not verify the email");
             response.sendRedirect(frontendUrl + "/under-construction");
             return;
         }
@@ -101,6 +109,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         String providerId = userAttributes.providerId();
 
         if (!emailWhitelistService.isEmailWhitelisted(email)) {
+            auditService.oauthRefused(email, "the address is not on the whitelist");
             response.sendRedirect(frontendUrl + "/under-construction");
             return;
         }
@@ -112,6 +121,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
         // Generate JWT token
         String jwtToken = jwtService.generateToken(user);
+        auditService.loginSucceeded(user, "oauth " + providerType);
 
         /* TODO: Refactor redirect URL logic and cleanup
          Create a private helper method 'findMatchingOrigin(String candidate)' to eliminate redundant loops.

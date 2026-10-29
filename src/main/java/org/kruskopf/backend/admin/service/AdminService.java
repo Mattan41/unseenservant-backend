@@ -1,6 +1,7 @@
 package org.kruskopf.backend.admin.service;
 
 import org.kruskopf.backend.admin.dto.WhitelistEntryDTO;
+import org.kruskopf.backend.audit.AuditService;
 import org.kruskopf.backend.exception.InvalidRequestException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.user.dto.UserDTO;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -44,13 +46,16 @@ public class AdminService {
     private final UserService userService;
     private final UserRepository userRepository;
     private final EmailWhitelistService emailWhitelistService;
+    private final AuditService auditService;
 
     public AdminService(UserService userService,
                         UserRepository userRepository,
-                        EmailWhitelistService emailWhitelistService) {
+                        EmailWhitelistService emailWhitelistService,
+                        AuditService auditService) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.emailWhitelistService = emailWhitelistService;
+        this.auditService = auditService;
     }
 
     /** Every account, for the users table. */
@@ -61,14 +66,21 @@ public class AdminService {
 
     /**
      * Changes an account's role and keeps its whitelist row in step.
+     * <p>
+     * The change is audited in this transaction ({@code AuditService.roleChanged}),
+     * so a trail that cannot be written fails the change with it. The
+     * self-demotion refusal is deliberately <em>not</em> recorded: it is answered
+     * before the lookup, changes nothing, and the administrator who tried it is
+     * told. The last-administrator refusal is recorded, because that one says
+     * somebody is about to empty the administrator seat.
      *
      * @param targetUserId the account to change
      * @param role         the new role
-     * @param actingUserId the administrator making the change
+     * @param actor        the administrator making the change, for the audit row
      */
     @Transactional
-    public UserDTO changeUserRole(long targetUserId, UserRole role, long actingUserId) {
-        if (targetUserId == actingUserId) {
+    public UserDTO changeUserRole(long targetUserId, UserRole role, User actor) {
+        if (Objects.equals(actor.getId(), targetUserId)) {
             throw new InvalidRequestException("You cannot change your own role.");
         }
 
@@ -77,11 +89,14 @@ public class AdminService {
 
         boolean demotion = target.getRole() == UserRole.ADMIN && role != UserRole.ADMIN;
         if (demotion && userRepository.countByRole(UserRole.ADMIN) <= 1) {
+            auditService.roleChangeRefused(actor, target, "the last administrator cannot be demoted");
             throw new InvalidRequestException("The last administrator cannot be demoted.");
         }
 
+        UserRole previousRole = target.getRole();
         User updated = userService.updateRole(targetUserId, role);
         emailWhitelistService.syncRoleForEmail(updated.getEmail(), role);
+        auditService.roleChanged(actor, updated, previousRole, role);
         return userService.toDTO(updated);
     }
 
@@ -93,31 +108,41 @@ public class AdminService {
                 .toList();
     }
 
-    /** Admits an address, or reactivates the row that already exists for it. */
+    /**
+     * Admits an address, or reactivates the row that already exists for it.
+     * Audited in this transaction, with the address as stored (lower-cased).
+     */
     @Transactional
-    public WhitelistEntryDTO addWhitelist(String email, String role) {
+    public WhitelistEntryDTO addWhitelist(User actor, String email, String role) {
         if (email == null || email.isBlank() || !email.contains("@")) {
             throw new InvalidRequestException("A valid email address is required.");
         }
         EmailWhitelist entry = emailWhitelistService.addOrReactivateEmail(email, parseRole(role));
+        auditService.whitelistAdded(actor, entry.getEmail(), entry.getRole());
         return WhitelistEntryDTO.from(entry);
     }
 
-    /** Partial update: re-roles and/or revokes (or re-admits) one address. */
+    /**
+     * Partial update: re-roles and/or revokes (or re-admits) one address.
+     * Audited in this transaction; the row's state after the change is what the
+     * trail names, so the log reads as the outcome rather than the request.
+     */
     @Transactional
-    public WhitelistEntryDTO updateWhitelist(Long id, String role, Boolean active) {
+    public WhitelistEntryDTO updateWhitelist(User actor, Long id, String role, Boolean active) {
         if (role == null && active == null) {
             throw new InvalidRequestException("Nothing to update: provide a role, an active flag, or both.");
         }
         UserRole parsedRole = role == null ? null : parseRole(role);
         EmailWhitelist entry = emailWhitelistService.updateEmail(id, parsedRole, active);
+        auditService.whitelistUpdated(actor, entry.getEmail(), entry.getRole(), entry.isActive());
         return WhitelistEntryDTO.from(entry);
     }
 
     /** Soft delete — the row is kept for the audit trail but stops admitting logins. */
     @Transactional
-    public void removeWhitelist(Long id) {
-        emailWhitelistService.removeEmailById(id);
+    public void removeWhitelist(User actor, Long id) {
+        EmailWhitelist entry = emailWhitelistService.removeEmailById(id);
+        auditService.whitelistRevoked(actor, entry.getEmail());
     }
 
     /**

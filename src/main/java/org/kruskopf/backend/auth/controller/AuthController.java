@@ -2,10 +2,12 @@ package org.kruskopf.backend.auth.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.kruskopf.backend.audit.AuditService;
 import org.kruskopf.backend.auth.JwtService;
 import org.kruskopf.backend.auth.dto.AuthDTO;
 import org.kruskopf.backend.auth.dto.LoginRequest;
 import org.kruskopf.backend.exception.InvalidRequestException;
+import org.kruskopf.backend.exception.RateLimitExceededException;
 import org.kruskopf.backend.ratelimit.ClientIpResolver;
 import org.kruskopf.backend.ratelimit.LoginAttemptLimiter;
 import org.kruskopf.backend.user.CustomUserDetails;
@@ -34,6 +36,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final LoginAttemptLimiter loginAttemptLimiter;
+    private final AuditService auditService;
 
     /**
      * Compared when the username does not exist, so an unknown account costs the
@@ -47,11 +50,13 @@ public class AuthController {
     public AuthController(UserRepository userRepository,
                           PasswordEncoder passwordEncoder,
                           JwtService jwtService,
-                          LoginAttemptLimiter loginAttemptLimiter) {
+                          LoginAttemptLimiter loginAttemptLimiter,
+                          AuditService auditService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.loginAttemptLimiter = loginAttemptLimiter;
+        this.auditService = auditService;
         this.unknownUserHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
@@ -61,7 +66,14 @@ public class AuthController {
                                    HttpServletRequest request) {
         // Throttle first: the lookup and the hash comparison below are the cost
         // it protects. See docs/ARCHITECTURE.md ("Login").
-        loginAttemptLimiter.checkLogin(ClientIpResolver.resolve(request), loginRequest.username());
+        try {
+            loginAttemptLimiter.checkLogin(ClientIpResolver.resolve(request), loginRequest.username());
+        } catch (RateLimitExceededException ex) {
+            // Recorded before the refusal leaves: a run of these is what an
+            // attempt on somebody's account looks like from here.
+            auditService.loginThrottled(loginRequest.username());
+            throw ex;
+        }
 
         var found = userRepository.findByUserName(loginRequest.username());
 
@@ -72,11 +84,15 @@ public class AuthController {
                 found.map(User::getPassword).orElse(unknownUserHash));
 
         if (found.isEmpty() || !matches) {
+            // The same row whether the account exists or not: the endpoint must
+            // not answer that question, and the trail is admin-only anyway.
+            auditService.loginFailed(loginRequest.username());
             throw new BadCredentialsException("Invalid username or password");
         }
 
         User user = found.get();
         String token = jwtService.generateToken(user);
+        auditService.loginSucceeded(user, "password");
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
