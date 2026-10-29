@@ -310,6 +310,7 @@ prefix is matched in `SecurityConfig`, and each controller repeats the rule with
 - Request: `UpdateParticipantsDTO { participantsToAdd: [ ParticipantResponseDTO ], participantIdsToRemove: [ Long ] }` (`nickname` optional, defaults server-side)
 - Response: `CampaignResponseDTO`
 - Status: 200, 400, 401, 403, 404
+- Note: the owner cannot remove themselves, an id that is not on the roster is a 404, and removing a participant detaches that user's characters from the campaign (the characters survive, unlinked).
 
 **PATCH /api/campaigns/{id}/participants/{participantId}/nickname**
 - Requires: the participant themselves, or the campaign owner to rename someone else
@@ -332,7 +333,7 @@ prefix is matched in `SecurityConfig`, and each controller repeats the rule with
 **DELETE /api/campaigns/{id}**
 - Requires: owner
 - Status: 204, 401, 403, 404
-- Note: A campaign's ship (if any) is removed with the campaign.
+- Note: A campaign's ship (if any) is removed with the campaign, and every participant's characters are detached from it first — `game_character.campaign_id` is a plain foreign key, so the unlink is what lets the campaign row go.
 
 **Campaign permission model**
 - Two independent axes: **ownership** (administration) and **table role** (GM = world-building).

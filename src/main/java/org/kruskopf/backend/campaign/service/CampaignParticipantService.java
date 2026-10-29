@@ -4,19 +4,21 @@ import org.kruskopf.backend.addon.service.CampaignAddonService;
 import org.kruskopf.backend.campaign.CampaignMapper;
 import org.kruskopf.backend.campaign.CampaignParticipantFactory;
 import org.kruskopf.backend.campaign.dto.CampaignResponseDTO;
+import org.kruskopf.backend.campaign.dto.ParticipantResponseDTO;
 import org.kruskopf.backend.campaign.dto.UpdateParticipantsDTO;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
+import org.kruskopf.backend.campaign.event.ParticipantRemovedEvent;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.exception.InvalidRequestException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.playercharacter.service.GameCharacterService;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,12 +34,9 @@ import java.util.Objects;
  * participant may rename themselves. The campaign's own fields and the
  * world-building side are {@link CampaignService}'s.
  * <p>
- * Two known follow-ups live here. The character unlink on removal keeps this
- * service coupled to the character domain: publishing a
- * {@code ParticipantRemovedEvent} instead is its own change, with its own
- * transaction semantics. And {@link #updateParticipants} still does both the add
- * and the remove half; it wants to be {@code addParticipants} /
- * {@code removeParticipants}.
+ * A removal is announced as a {@link ParticipantRemovedEvent} rather than acted on
+ * here: unlinking the removed user's characters belongs to the character domain,
+ * which listens for it, so nothing in this class knows characters exist.
  */
 @Service
 public class CampaignParticipantService {
@@ -48,33 +47,34 @@ public class CampaignParticipantService {
     private final CampaignRepository campaignRepository;
     private final UserService userService;
     private final CampaignPermissionService campaignPermissionService;
-    private final GameCharacterService gameCharacterService;
     private final CampaignAddonService campaignAddonService;
     private final CampaignMapper campaignMapper;
     private final CampaignParticipantFactory campaignParticipantFactory;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public CampaignParticipantService(CampaignRepository campaignRepository,
                                       UserService userService,
                                       CampaignPermissionService campaignPermissionService,
-                                      GameCharacterService gameCharacterService,
                                       CampaignAddonService campaignAddonService,
                                       CampaignMapper campaignMapper,
-                                      CampaignParticipantFactory campaignParticipantFactory) {
+                                      CampaignParticipantFactory campaignParticipantFactory,
+                                      ApplicationEventPublisher applicationEventPublisher) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
         this.campaignPermissionService = campaignPermissionService;
-        this.gameCharacterService = gameCharacterService;
         this.campaignAddonService = campaignAddonService;
         this.campaignMapper = campaignMapper;
         this.campaignParticipantFactory = campaignParticipantFactory;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     /**
-     * Updates the participants of a campaign by adding new users and removing existing ones.
-     * Also triggers cleanup of character-campaign associations for removed users.
+     * Applies a roster change: the users the request names are added, and the ids it
+     * names are removed. Owner-only, and the owner cannot be removed from their own
+     * campaign.
      *
      * @param campaignId    the ID of the campaign to update
-     * @param updateDTO     DTO containing lists of participant IDs to add or remove
+     * @param updateDTO     DTO containing the participants to add and the ids to remove
      * @param currentUserId the ID of the user performing the action (must be the owner)
      * @return the updated CampaignResponseDTO
      */
@@ -82,11 +82,11 @@ public class CampaignParticipantService {
     public CampaignResponseDTO updateParticipants(long campaignId, UpdateParticipantsDTO updateDTO, long currentUserId) {
         Campaign campaign = findCampaignOrThrow(campaignId);
 
-        // control owner
-        if (!campaign.isOwnedBy(currentUserId))
+        if (!campaign.isOwnedBy(currentUserId)) {
             throw new UnauthorizedAccessException("Only the campaign owner can update participants");
+        }
 
-        // if no participants to add or remove, return the current state
+        // A request that asks for nothing is answered with the current state.
         if (updateDTO.participantsToAdd() == null && updateDTO.participantIdsToRemove() == null) {
             return toDTO(campaign);
         }
@@ -96,49 +96,65 @@ public class CampaignParticipantService {
             throw new UnauthorizedAccessException("Owner cannot be removed from campaign");
         }
 
-        if (!(updateDTO.participantsToAdd() == null || updateDTO.participantsToAdd().isEmpty())) {
-            updateDTO.participantsToAdd().forEach(participantDTO -> {
-                User user = userService.findById(participantDTO.id())
-                        .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + participantDTO.id()));
-
-                // Check if user is already a participant
-                boolean isExistingParticipant = campaign.getParticipants().stream()
-                        .anyMatch(p -> Objects.equals(p.getUser().getId(), user.getId()));
-
-                if (isExistingParticipant) {
-                    // User is already a participant, log and skip
-                    logger.info("User {} is already a participant in campaign {}. Skipping addition", user.getId(), campaign.getId());
-                } else {
-                    campaign.getParticipants().add(campaignParticipantFactory.create(campaign, user, participantDTO));
-                }
-            });
-        }
-
-        // Remove participants
-        if (updateDTO.participantIdsToRemove() != null && !updateDTO.participantIdsToRemove().isEmpty()) {
-            // Verify that all participant IDs to remove are actually participants in the campaign
-            List<Long> nonExistingIds = updateDTO.participantIdsToRemove().stream()
-                    .filter(participantId -> campaign.getParticipants().stream()
-                            .noneMatch(p -> p.getUser().getId().equals(participantId)))
-                    .toList();
-
-            if (!nonExistingIds.isEmpty()) {
-                throw new ResourceNotFoundException("The following users are not participants in the campaign: "
-                        + String.join(", ", nonExistingIds.stream().map(String::valueOf).toList()));
-            }
-
-            // Remove campaign reference from all player characters of the participants to be removed
-            for (long userId : updateDTO.participantIdsToRemove()) {
-                gameCharacterService.removeAllCharactersFromCampaign(userId, campaignId);
-            }
-
-            // remove the participants
-            campaign.getParticipants().removeIf(participant ->
-                    updateDTO.participantIdsToRemove().contains(participant.getUser().getId()));
-        }
+        addParticipants(campaign, updateDTO.participantsToAdd());
+        removeParticipants(campaign, updateDTO.participantIdsToRemove());
 
         Campaign savedCampaign = campaignRepository.save(campaign);
         return toDTO(savedCampaign);
+    }
+
+    /**
+     * Adds the users the request names, skipping anybody who is already on the roster:
+     * a repeated add is a client convenience, unlike a removal of somebody who is not
+     * there, which the removal half refuses outright.
+     */
+    private void addParticipants(Campaign campaign, List<ParticipantResponseDTO> participantsToAdd) {
+        if (participantsToAdd == null || participantsToAdd.isEmpty()) {
+            return;
+        }
+
+        participantsToAdd.forEach(participantDTO -> {
+            User user = userService.findById(participantDTO.id())
+                    .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + participantDTO.id()));
+
+            boolean isExistingParticipant = campaign.getParticipants().stream()
+                    .anyMatch(p -> Objects.equals(p.getUser().getId(), user.getId()));
+
+            if (isExistingParticipant) {
+                // User is already a participant, log and skip
+                logger.info("User {} is already a participant in campaign {}. Skipping addition", user.getId(), campaign.getId());
+            } else {
+                campaign.getParticipants().add(campaignParticipantFactory.create(campaign, user, participantDTO));
+            }
+        });
+    }
+
+    /**
+     * Removes the named participants, refusing the whole request when any of the ids is
+     * not on the roster so that a typo cannot silently drop the rest. Each removal is
+     * announced as a {@link ParticipantRemovedEvent} — the character domain unlinks that
+     * user's characters off the back of it.
+     */
+    private void removeParticipants(Campaign campaign, List<Long> participantIdsToRemove) {
+        if (participantIdsToRemove == null || participantIdsToRemove.isEmpty()) {
+            return;
+        }
+
+        List<Long> nonExistingIds = participantIdsToRemove.stream()
+                .filter(participantId -> campaign.getParticipants().stream()
+                        .noneMatch(p -> p.getUser().getId().equals(participantId)))
+                .toList();
+
+        if (!nonExistingIds.isEmpty()) {
+            throw new ResourceNotFoundException("The following users are not participants in the campaign: "
+                    + String.join(", ", nonExistingIds.stream().map(String::valueOf).toList()));
+        }
+
+        participantIdsToRemove.forEach(userId ->
+                applicationEventPublisher.publishEvent(new ParticipantRemovedEvent(campaign.getId(), userId)));
+
+        campaign.getParticipants().removeIf(participant ->
+                participantIdsToRemove.contains(participant.getUser().getId()));
     }
 
     @Transactional

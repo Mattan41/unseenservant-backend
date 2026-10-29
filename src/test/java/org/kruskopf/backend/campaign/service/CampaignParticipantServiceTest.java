@@ -13,11 +13,11 @@ import org.kruskopf.backend.campaign.dto.UpdateParticipantsDTO;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
+import org.kruskopf.backend.campaign.event.ParticipantRemovedEvent;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.exception.InvalidRequestException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
-import org.kruskopf.backend.playercharacter.service.GameCharacterService;
 import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
@@ -25,6 +25,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -58,7 +59,7 @@ class CampaignParticipantServiceTest {
     private CampaignPermissionService campaignPermissionService;
 
     @Mock
-    private GameCharacterService gameCharacterService;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Mock
     private CampaignAddonService campaignAddonService;
@@ -76,6 +77,7 @@ class CampaignParticipantServiceTest {
     private static final long OWNER_ID = 1L;
     private static final long GM_ID = 2L;
     private static final long PLAYER_ID = 3L;
+    private static final long ADDED_ID = 50L;
     private static final long OUTSIDER_ID = 99L;
 
     private User userWithId(long id) {
@@ -301,18 +303,36 @@ class CampaignParticipantServiceTest {
         }
 
         @Test
-        @DisplayName("Removing a participant unlinks their characters from the campaign")
-        void removingParticipantUnlinksCharacters() {
+        @DisplayName("Removing a participant announces it and takes them off the roster")
+        void removingParticipantAnnouncesIt() {
             Campaign campaign = storedCampaign();
             when(campaignRepository.save(campaign)).thenReturn(campaign);
 
             campaignParticipantService.updateParticipants(
                     CAMPAIGN_ID, new UpdateParticipantsDTO(null, List.of(PLAYER_ID)), OWNER_ID);
 
-            verify(gameCharacterService).removeAllCharactersFromCampaign(PLAYER_ID, CAMPAIGN_ID);
+            verify(applicationEventPublisher).publishEvent(new ParticipantRemovedEvent(CAMPAIGN_ID, PLAYER_ID));
             assertThat(campaign.getParticipants())
                     .extracting(p -> p.getUser().getId())
                     .doesNotContain(PLAYER_ID);
+        }
+
+        @Test
+        @DisplayName("An invalid removal id fails the request and saves nothing")
+        void invalidRemovalSavesNothing() {
+            storedCampaign();
+            when(userService.findById(ADDED_ID)).thenReturn(Optional.of(userWithId(ADDED_ID)));
+
+            assertThatThrownBy(() -> campaignParticipantService.updateParticipants(
+                    CAMPAIGN_ID,
+                    new UpdateParticipantsDTO(
+                            List.of(new ParticipantResponseDTO(ADDED_ID, "The Wizard", "PLAYER")),
+                            List.of(OUTSIDER_ID)),
+                    OWNER_ID))
+                    .isInstanceOf(ResourceNotFoundException.class);
+
+            verify(campaignRepository, never()).save(any());
+            verifyNoInteractions(applicationEventPublisher);
         }
 
         @Test
@@ -333,7 +353,7 @@ class CampaignParticipantServiceTest {
             assertThatThrownBy(() -> campaignParticipantService.updateParticipants(
                     CAMPAIGN_ID, new UpdateParticipantsDTO(null, List.of(PLAYER_ID)), GM_ID))
                     .isInstanceOf(UnauthorizedAccessException.class);
-            verifyNoInteractions(gameCharacterService);
+            verifyNoInteractions(applicationEventPublisher);
         }
 
         @Test
@@ -344,7 +364,7 @@ class CampaignParticipantServiceTest {
             assertThatThrownBy(() -> campaignParticipantService.updateParticipants(
                     CAMPAIGN_ID, new UpdateParticipantsDTO(null, List.of(OUTSIDER_ID)), OWNER_ID))
                     .isInstanceOf(ResourceNotFoundException.class);
-            verifyNoInteractions(gameCharacterService);
+            verifyNoInteractions(applicationEventPublisher);
         }
 
         @Test
@@ -356,7 +376,7 @@ class CampaignParticipantServiceTest {
                     CAMPAIGN_ID, new UpdateParticipantsDTO(null, null), OWNER_ID);
 
             verify(campaignRepository, never()).save(any());
-            verifyNoInteractions(gameCharacterService);
+            verifyNoInteractions(applicationEventPublisher);
         }
     }
 }

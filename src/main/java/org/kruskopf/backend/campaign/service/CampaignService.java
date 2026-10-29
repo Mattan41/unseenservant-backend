@@ -7,15 +7,16 @@ import org.kruskopf.backend.campaign.dto.*;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
+import org.kruskopf.backend.campaign.event.CampaignDeletedEvent;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.filestorage.StoredFileTransaction;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
-import org.kruskopf.backend.playercharacter.service.GameCharacterService;
 import org.kruskopf.backend.ship.service.ShipService;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,32 +32,24 @@ public class CampaignService {
     private final CampaignRepository campaignRepository;
     private final UserService userService;
     private final CampaignPermissionService campaignPermissionService;
-    private final GameCharacterService gameCharacterService;
     private final StoredFileTransaction storedFileTransaction;
     private final ShipService shipService;
     private final CampaignAddonService campaignAddonService;
     private final CampaignMapper campaignMapper;
     private final CampaignParticipantFactory campaignParticipantFactory;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, GameCharacterService gameCharacterService, StoredFileTransaction storedFileTransaction, ShipService shipService, CampaignAddonService campaignAddonService, CampaignMapper campaignMapper, CampaignParticipantFactory campaignParticipantFactory) {
+    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, StoredFileTransaction storedFileTransaction, ShipService shipService, CampaignAddonService campaignAddonService, CampaignMapper campaignMapper, CampaignParticipantFactory campaignParticipantFactory, ApplicationEventPublisher applicationEventPublisher) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
         this.campaignPermissionService = campaignPermissionService;
-        this.gameCharacterService = gameCharacterService;
         this.storedFileTransaction = storedFileTransaction;
         this.shipService = shipService;
         this.campaignAddonService = campaignAddonService;
         this.campaignMapper = campaignMapper;
         this.campaignParticipantFactory = campaignParticipantFactory;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
-
-    // TODO: The participant split left the campaign domain knowing the character domain: both
-    //       this service's deleteCampaign and CampaignParticipantService's removal call
-    //       gameCharacterService.removeAllCharactersFromCampaign. Publishing
-    //       ParticipantRemovedEvent/CampaignDeletedEvent via ApplicationEventPublisher is what
-    //       would decouple it, and that is its own change with its own transaction semantics.
-    //       On the participant side, updateParticipants should itself be broken into
-    //       addParticipants/removeParticipants.
 
     @Transactional
     public CampaignResponseDTO createCampaign(CampaignCreationDTO dto) {
@@ -189,10 +182,13 @@ public class CampaignService {
             throw new UnauthorizedAccessException("Only the campaign owner can delete the campaign");
         }
 
-        campaign.getParticipants().stream()
+        // Announced before the campaign goes, because the listener clears the campaign
+        // reference on every character that pointed at it, and those rows hold a foreign
+        // key to this one. It runs in this transaction (see CampaignMembershipListener),
+        // so a delete that rolls back takes the unlinking with it.
+        applicationEventPublisher.publishEvent(new CampaignDeletedEvent(id, campaign.getParticipants().stream()
                 .map(participant -> participant.getUser().getId())
-                .forEach(userId -> gameCharacterService.removeAllCharactersFromCampaign(userId, id));
-
+                .toList()));
 
         campaignRepository.delete(campaign);
     }
