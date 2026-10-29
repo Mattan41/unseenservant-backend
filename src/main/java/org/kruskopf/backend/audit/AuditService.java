@@ -226,19 +226,33 @@ public class AuditService {
         try {
             store.writeDetached(event);
         } catch (RuntimeException ex) {
-            auditLog.warn("AUDIT {} could not be stored (it is still in this log): {}",
-                    event.getEventType(), ex.getMessage());
+            // No claim about the mirror line: it is only written when this logger
+            // logs INFO, which the guard in mirror() honours.
+            auditLog.warn("AUDIT {} could not be stored: {}", event.getEventType(), ex.getMessage());
         }
     }
 
+    /**
+     * The one line every audit event also writes to the {@code audit} logger.
+     * <p>
+     * Guarded, and assembled into locals before the call: java:S2629 is right that
+     * arguments built from calls are evaluated whether anybody reads the
+     * line or not, and the guard means silencing the logger
+     * ({@code logging.level.audit=WARN}) costs nothing at all.
+     */
     private static void mirror(AuditEvent event) {
+        if (!auditLog.isInfoEnabled()) {
+            return;
+        }
+
+        String type = event.getEventType().name();
+        String actor = orDash(event.getActorId(), event.getActorName());
+        String target = orDash(event.getTargetId(), event.getTargetName());
+        String detail = event.getDetail();
         String clientIp = event.getClientIp();
+
         auditLog.info("AUDIT type={} actor={} target={} detail={} ip={}",
-                event.getEventType(),
-                orDash(event.getActorId(), event.getActorName()),
-                orDash(event.getTargetId(), event.getTargetName()),
-                event.getDetail(),
-                clientIp == null ? DASH : clientIp);
+                type, actor, target, detail, clientIp == null ? DASH : clientIp);
     }
 
     private static String orDash(Long id, String name) {
