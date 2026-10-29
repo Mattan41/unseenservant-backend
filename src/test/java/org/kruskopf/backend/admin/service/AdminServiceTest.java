@@ -1,11 +1,14 @@
 package org.kruskopf.backend.admin.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.kruskopf.backend.audit.AuditService;
 import org.kruskopf.backend.exception.InvalidRequestException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
+import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.dto.UserDTO;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.entity.UserRole;
@@ -42,11 +45,23 @@ class AdminServiceTest {
     @Mock
     private EmailWhitelistService emailWhitelistService;
 
+    @Mock
+    private AuditService auditService;
+
     @InjectMocks
     private AdminService adminService;
 
     private static final long ACTING_ADMIN_ID = 1L;
     private static final long TARGET_ID = 2L;
+
+    /** The administrator making the changes; an id is what the self-check compares. */
+    private User actor;
+
+    @BeforeEach
+    void setUp() {
+        actor = TestDataFactory.aUser("actor");
+        actor.setId(ACTING_ADMIN_ID);
+    }
 
     @Nested
     @DisplayName("changeUserRole")
@@ -56,26 +71,31 @@ class AdminServiceTest {
         @DisplayName("Refuses to change the caller's own role")
         void refusesSelfChange() {
             assertThatThrownBy(
-                    () -> adminService.changeUserRole(ACTING_ADMIN_ID, UserRole.USER, ACTING_ADMIN_ID))
+                    () -> adminService.changeUserRole(ACTING_ADMIN_ID, UserRole.USER, actor))
                     .isInstanceOf(InvalidRequestException.class)
                     .hasMessageContaining("your own role");
 
             verifyNoInteractions(userRepository);
+            // A mis-click that changes nothing is deliberately not part of the
+            // trail: it is answered before the lookup, and the administrator who
+            // tried it is told.
+            verifyNoInteractions(auditService);
         }
 
         @Test
-        @DisplayName("Refuses to demote the last administrator")
+        @DisplayName("Refuses to demote the last administrator, and records the refusal")
         void refusesDemotingTheLastAdministrator() {
             User target = mock(User.class);
             when(target.getRole()).thenReturn(UserRole.ADMIN);
             when(userRepository.findById(TARGET_ID)).thenReturn(Optional.of(target));
             when(userRepository.countByRole(UserRole.ADMIN)).thenReturn(1L);
 
-            assertThatThrownBy(() -> adminService.changeUserRole(TARGET_ID, UserRole.USER, ACTING_ADMIN_ID))
+            assertThatThrownBy(() -> adminService.changeUserRole(TARGET_ID, UserRole.USER, actor))
                     .isInstanceOf(InvalidRequestException.class)
                     .hasMessageContaining("last administrator");
 
             verify(userService, never()).updateRole(anyLong(), any());
+            verify(auditService).roleChangeRefused(actor, target, "the last administrator cannot be demoted");
         }
 
         @Test
@@ -92,8 +112,10 @@ class AdminServiceTest {
             UserDTO dto = new UserDTO(TARGET_ID, "target", "target@example.com", "Target", "USER");
             when(userService.toDTO(updated)).thenReturn(dto);
 
-            assertThat(adminService.changeUserRole(TARGET_ID, UserRole.USER, ACTING_ADMIN_ID)).isEqualTo(dto);
+            assertThat(adminService.changeUserRole(TARGET_ID, UserRole.USER, actor)).isEqualTo(dto);
             verify(emailWhitelistService).syncRoleForEmail("target@example.com", UserRole.USER);
+            // The trail names the role it came from, not only the one it went to.
+            verify(auditService).roleChanged(actor, updated, UserRole.ADMIN, UserRole.USER);
         }
 
         @Test
@@ -109,10 +131,11 @@ class AdminServiceTest {
             UserDTO dto = new UserDTO(TARGET_ID, "target", "target@example.com", "Target", "ADMIN");
             when(userService.toDTO(updated)).thenReturn(dto);
 
-            assertThat(adminService.changeUserRole(TARGET_ID, UserRole.ADMIN, ACTING_ADMIN_ID)).isEqualTo(dto);
+            assertThat(adminService.changeUserRole(TARGET_ID, UserRole.ADMIN, actor)).isEqualTo(dto);
             verify(emailWhitelistService).syncRoleForEmail("target@example.com", UserRole.ADMIN);
             // Promotion never consults the administrator count.
             verify(userRepository, never()).countByRole(any());
+            verify(auditService).roleChanged(actor, updated, UserRole.USER, UserRole.ADMIN);
         }
 
         @Test
@@ -120,8 +143,11 @@ class AdminServiceTest {
         void reportsMissingTarget() {
             when(userRepository.findById(TARGET_ID)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> adminService.changeUserRole(TARGET_ID, UserRole.ADMIN, ACTING_ADMIN_ID))
+            assertThatThrownBy(() -> adminService.changeUserRole(TARGET_ID, UserRole.ADMIN, actor))
                     .isInstanceOf(ResourceNotFoundException.class);
+
+            // Nothing was refused by a rule, so nothing is reported as a refusal.
+            verifyNoInteractions(auditService);
         }
     }
 
@@ -132,7 +158,7 @@ class AdminServiceTest {
         @Test
         @DisplayName("Requires an email address when adding")
         void requiresAnEmail() {
-            assertThatThrownBy(() -> adminService.addWhitelist("  ", "USER"))
+            assertThatThrownBy(() -> adminService.addWhitelist(actor, "  ", "USER"))
                     .isInstanceOf(InvalidRequestException.class)
                     .hasMessageContaining("email address");
         }
@@ -140,37 +166,72 @@ class AdminServiceTest {
         @Test
         @DisplayName("Rejects a string that is not an address")
         void rejectsANonAddress() {
-            assertThatThrownBy(() -> adminService.addWhitelist("not-an-address", "USER"))
+            assertThatThrownBy(() -> adminService.addWhitelist(actor, "not-an-address", "USER"))
                     .isInstanceOf(InvalidRequestException.class)
                     .hasMessageContaining("email address");
         }
 
         @Test
-        @DisplayName("Adds the address through the whitelist service")
+        @DisplayName("Adds the address through the whitelist service, and records it")
         void addsThroughTheWhitelistService() {
             EmailWhitelist saved = new EmailWhitelist("new@example.com", UserRole.USER);
             saved.setId(7L);
             when(emailWhitelistService.addOrReactivateEmail("New@Example.com", UserRole.USER))
                     .thenReturn(saved);
 
-            assertThat(adminService.addWhitelist("New@Example.com", "user").email())
+            assertThat(adminService.addWhitelist(actor, "New@Example.com", "user").email())
                     .isEqualTo("new@example.com");
+            // The trail names the address as stored, not as typed.
+            verify(auditService).whitelistAdded(actor, "new@example.com", UserRole.USER);
         }
 
         @Test
         @DisplayName("Requires something to update")
         void requiresSomethingToUpdate() {
-            assertThatThrownBy(() -> adminService.updateWhitelist(5L, null, null))
+            assertThatThrownBy(() -> adminService.updateWhitelist(actor, 5L, null, null))
                     .isInstanceOf(InvalidRequestException.class)
                     .hasMessageContaining("Nothing to update");
         }
 
         @Test
-        @DisplayName("Revokes an address by id")
+        @DisplayName("Records the change the request asked for, not the row's resulting state")
+        void recordsTheChangeTheRequestAskedFor() {
+            EmailWhitelist entry = new EmailWhitelist("promote-me@example.com", UserRole.ADMIN);
+            entry.setId(5L);
+            when(emailWhitelistService.updateEmail(5L, UserRole.ADMIN, null)).thenReturn(entry);
+
+            adminService.updateWhitelist(actor, 5L, "ADMIN", null);
+
+            // The request carried no active flag, so the trail must not claim one:
+            // it says the role became ADMIN, and nothing about re-admitting.
+            verify(auditService).whitelistUpdated(actor, "promote-me@example.com", UserRole.ADMIN, null);
+        }
+
+        @Test
+        @DisplayName("Records a revoke as a revoke, without claiming a role change")
+        void recordsARevokeWithoutARoleChange() {
+            EmailWhitelist entry = new EmailWhitelist("gone@example.com", UserRole.USER);
+            entry.setId(6L);
+            entry.setActive(false);
+            when(emailWhitelistService.updateEmail(6L, null, false)).thenReturn(entry);
+
+            adminService.updateWhitelist(actor, 6L, null, false);
+
+            verify(auditService).whitelistUpdated(actor, "gone@example.com", null, false);
+        }
+
+        @Test
+        @DisplayName("Revokes an address by id, and records it")
         void revokesById() {
-            adminService.removeWhitelist(5L);
+            EmailWhitelist entry = new EmailWhitelist("revoke-me@example.com", UserRole.USER);
+            entry.setId(5L);
+            entry.setActive(false);
+            when(emailWhitelistService.removeEmailById(5L)).thenReturn(entry);
+
+            adminService.removeWhitelist(actor, 5L);
 
             verify(emailWhitelistService).removeEmailById(5L);
+            verify(auditService).whitelistRevoked(actor, "revoke-me@example.com");
         }
     }
 

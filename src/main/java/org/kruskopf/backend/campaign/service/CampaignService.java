@@ -316,7 +316,7 @@ public class CampaignService {
         CampaignRole role;
         try {
             role = CampaignRole.valueOf(roleString);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             // A client error, not a server fault: the caller sent a role that does not exist.
             throw new InvalidRequestException("Invalid role: " + roleString + ". Valid roles are PLAYER and GM.");
         }
@@ -390,7 +390,7 @@ public class CampaignService {
             effectiveRole = (participantDTO.role() == null || participantDTO.role().isBlank())
                     ? CampaignRole.PLAYER // Standard role
                     : CampaignRole.valueOf(participantDTO.role());
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             logger.warn("Invalid role specified: {}. Using PLAYER as default.", participantDTO.role());
             effectiveRole = CampaignRole.PLAYER;
         }
@@ -448,6 +448,8 @@ public class CampaignService {
                 participant.getUser().getId().equals(viewerId)
                         && participant.getRole() == CampaignRole.GM);
 
+        User owner = campaign.getOwner();
+
         return new CampaignResponseDTO(
                 campaign.getId(),
                 campaign.getName(),
@@ -456,7 +458,7 @@ public class CampaignService {
                 includePrivate ? campaign.getPrivateDescription() : null,
                 campaign.getImageUrl(),
                 campaign.getPrimarySystem(),
-                campaign.getOwner() != null ? campaign.getOwner().getId() : null,
+                owner != null ? owner.getId() : null,
                 campaign.getParticipants().stream()
                         .map(participant -> new ParticipantResponseDTO(
                                 participant.getUser().getId(),
@@ -473,8 +475,9 @@ public class CampaignService {
     }
 
     private String getEffectiveDisplayName(User user) {
-        return user.getDisplayName() != null && !user.getDisplayName().isBlank()
-                ? user.getDisplayName()
+        String displayName = user.getDisplayName();
+        return displayName != null && !displayName.isBlank()
+                ? displayName
                 : user.getFullName();
     }
 

@@ -118,11 +118,11 @@ Verify with the query at the end of this note: it must show a single row, versio
    Java, say why in the pull request instead of reaching for
    `BaseJavaMigration` by habit.
 3. **Naming:** `V<version>__<snake_case_description>.sql`, versions strictly
-   increasing with no gaps. `V4__ship_crew_into_character_images.sql` (the ship
-   crew manifest folded into the party: `game_character.image_urls` added, the
-   per-participant `ship_crew` entries copied onto their owner's first character
-   in the campaign, the table dropped) is the current tip, so the next migration
-   is `V5`.
+   increasing with no gaps. `V5__audit_event.sql` (the audit trail: one new
+   `audit_event` table, deliberately without foreign keys so a row survives the
+   account it names, and append-only apart from the retention prune) is the
+   current tip, so the next migration is `V6`. Before it, `V4` folded the ship
+   crew manifest into the party.
 4. **Check the next free version before creating a file.** A duplicate makes
    Flyway abort at startup with `Found more than one migration with version N` —
    the app never boots. If two branches are in flight, skip a number rather than

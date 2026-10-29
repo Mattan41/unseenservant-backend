@@ -31,15 +31,18 @@ public class GameCharacterMapper {
      * gets a DTO whose private backstory is null.
      */
     public CharacterOutputDTO toOutputDTO(GameCharacter character, boolean includePrivateBackstory) {
+        Campaign campaign = character.getCampaign();
+        List<String> imageUrls = character.getImageUrls();
+
         return new CharacterOutputDTO(
                 character.getId(),
                 character.getOwner().getId(),
-                character.getCampaign() != null ? character.getCampaign().getId() : null,
+                campaign != null ? campaign.getId() : null,
                 character.getName(),
                 character.getSystemType(),
                 character.getNotes(),
                 character.getImageUrl(),
-                character.getImageUrls() != null ? List.copyOf(character.getImageUrls()) : List.of(),
+                imageUrls != null ? List.copyOf(imageUrls) : List.of(),
                 character.getAppearance(),
                 character.getBackstory(),
                 includePrivateBackstory ? character.getPrivateBackstory() : null,

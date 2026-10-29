@@ -1,5 +1,6 @@
 package org.kruskopf.backend.message;
 
+import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.message.dto.MessageCreationDTO;
 import org.kruskopf.backend.message.dto.MessageDTO;
 import org.kruskopf.backend.message.entity.Message;
@@ -10,10 +11,13 @@ import org.springframework.stereotype.Component;
 public class MessageMapper {
 
     public MessageDTO toDTO(Message message) {
+        Campaign campaign = message.getCampaign();
+        User user = message.getUser();
+
         return new MessageDTO(
                 message.getId(),
-                message.getCampaign() != null ? message.getCampaign().getId() : null,
-                message.getUser() != null ? message.getUser().getId() : null,
+                campaign != null ? campaign.getId() : null,
+                user != null ? user.getId() : null,
                 message.getMessageBody(),
                 message.getCreatedAt(),
                 message.getUpdatedAt()
