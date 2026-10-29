@@ -63,7 +63,7 @@ public class CampaignActivityService {
         Map<Long, LocalDateTime> lastMessageByCampaign = messageRepository
                 .findLastMessageAtByCampaignIdIn(campaignIds)
                 .stream()
-                .collect(Collectors.toMap(CampaignLastMessage::getCampaignId, CampaignLastMessage::getLastMessageAt));
+                .collect(Collectors.toMap(CampaignLastMessage::campaignId, CampaignLastMessage::lastMessageAt));
 
         // A Map rather than a stream-toMap: a campaign without a ship must simply
         // be absent from the lookup, not a null value (Collectors.toMap refuses

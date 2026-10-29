@@ -1,6 +1,7 @@
 package org.kruskopf.backend.campaign.service;
 
 import org.kruskopf.backend.addon.service.CampaignAddonService;
+import org.kruskopf.backend.campaign.CampaignMapper;
 import org.kruskopf.backend.campaign.dto.*;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
@@ -39,8 +40,9 @@ public class CampaignService {
     private final StoredFileTransaction storedFileTransaction;
     private final ShipService shipService;
     private final CampaignAddonService campaignAddonService;
+    private final CampaignMapper campaignMapper;
 
-    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, GameCharacterService gameCharacterService, StoredFileTransaction storedFileTransaction, ShipService shipService, CampaignAddonService campaignAddonService) {
+    public CampaignService(CampaignRepository campaignRepository, UserService userService, CampaignPermissionService campaignPermissionService, GameCharacterService gameCharacterService, StoredFileTransaction storedFileTransaction, ShipService shipService, CampaignAddonService campaignAddonService, CampaignMapper campaignMapper) {
         this.campaignRepository = campaignRepository;
         this.userService = userService;
         this.campaignPermissionService = campaignPermissionService;
@@ -48,16 +50,16 @@ public class CampaignService {
         this.storedFileTransaction = storedFileTransaction;
         this.shipService = shipService;
         this.campaignAddonService = campaignAddonService;
+        this.campaignMapper = campaignMapper;
     }
 
 // TODO: Split the participant methods — updateParticipants (see the note on its
     //       growing complexity below), updateParticipantNickname, updateParticipantRole and
     //       transferOwnership, plus the getCampaignRole/getEffectiveNickname helpers — into a
-    //       CampaignParticipantService. They share mapToResponseDTO with the campaign methods,
-    //       so the mapping has to move out first: a CampaignMapper alongside the existing
-    //       ShipMapper/MessageMapper is the established pattern, and every mapToResponseDTO
-    //       call site (and CampaignServiceTest, which injects this service's collaborators)
-    //       has to move with it. Two follow-ups on top of the split:
+    //       CampaignParticipantService. They map through CampaignMapper, which the campaign
+    //       methods use as well, so the mapper already covers both. CampaignServiceTest, which
+    //       injects this service's collaborators, has to move its participant tests with them.
+    //       Two follow-ups on top of the split:
     //         • the character unlink on removal (gameCharacterService.removeAllCharactersFromCampaign)
     //           keeps the service coupled to the character domain — publishing
     //           ParticipantRemovedEvent/CampaignDeletedEvent via ApplicationEventPublisher is what
@@ -109,7 +111,7 @@ public class CampaignService {
 
         Campaign savedCampaign = campaignRepository.save(campaign);
         createDefaultShipIfOffworlders(savedCampaign);
-        return mapToResponseDTO(savedCampaign, dto.ownerId());
+        return toDTO(savedCampaign, dto.ownerId());
     }
 
     @Transactional(readOnly = true)
@@ -117,7 +119,7 @@ public class CampaignService {
         List<Campaign> campaigns = campaignRepository.findAll();
         Map<Long, List<String>> addonsByCampaign = campaignAddonService.enabledAddonKeysFor(idsOf(campaigns));
         return campaigns.stream()
-                .map(campaign -> mapToResponseDTO(campaign, -1L,
+                .map(campaign -> campaignMapper.toDTO(campaign, -1L,
                         addonsByCampaign.getOrDefault(campaign.getId(), List.of())))
                 .toList();
     }
@@ -127,7 +129,7 @@ public class CampaignService {
         List<Campaign> campaigns = campaignRepository.findAllByParticipantsUserId(userId);
         Map<Long, List<String>> addonsByCampaign = campaignAddonService.enabledAddonKeysFor(idsOf(campaigns));
         return campaigns.stream()
-                .map(campaign -> mapToResponseDTO(campaign, userId,
+                .map(campaign -> campaignMapper.toDTO(campaign, userId,
                         addonsByCampaign.getOrDefault(campaign.getId(), List.of())))
                 .toList();
     }
@@ -135,7 +137,7 @@ public class CampaignService {
     @Transactional(readOnly = true)
     public CampaignResponseDTO getCampaignById(long id) {
         Campaign campaign = findCampaignOrThrow(id);
-        return mapToResponseDTO(campaign);
+        return toDTO(campaign);
     }
 
     @Transactional(readOnly = true)
@@ -146,7 +148,7 @@ public class CampaignService {
         boolean isParticipant = campaignPermissionService.isParticipant(campaignId, userId);
 
         if (isParticipant)
-            return mapToResponseDTO(campaign, userId);
+            return toDTO(campaign, userId);
 
         // If user is not a participant, throw exception
         throw new UnauthorizedAccessException("User is not authorized to access this campaign");
@@ -171,7 +173,7 @@ public class CampaignService {
 
         Campaign savedCampaign = campaignRepository.save(campaign);
         createDefaultShipIfOffworlders(savedCampaign);
-        return mapToResponseDTO(savedCampaign, currentUserId);
+        return toDTO(savedCampaign, currentUserId);
     }
 
     /**
@@ -193,7 +195,7 @@ public class CampaignService {
         return storedFileTransaction.storeThenRun(file, "campaign_" + id, "IMAGE", storedName -> {
             Campaign campaign = findCampaignOrThrow(id);
             campaign.setImageUrl("/images/" + storedName);
-            return mapToResponseDTO(campaignRepository.save(campaign));
+            return toDTO(campaignRepository.save(campaign));
         });
     }
 
@@ -218,7 +220,7 @@ public class CampaignService {
 
         // if no participants to add or remove, return the current state
         if (updateDTO.participantsToAdd() == null && updateDTO.participantIdsToRemove() == null) {
-            return mapToResponseDTO(campaign);
+            return toDTO(campaign);
         }
 
         // Prevent owner from being removed
@@ -278,7 +280,7 @@ public class CampaignService {
         }
 
         Campaign savedCampaign = campaignRepository.save(campaign);
-        return mapToResponseDTO(savedCampaign);
+        return toDTO(savedCampaign);
     }
 
     @Transactional
@@ -299,7 +301,7 @@ public class CampaignService {
         participant.setNickname(nickname);
         campaignRepository.save(campaign);
 
-        return mapToResponseDTO(campaign);
+        return toDTO(campaign);
     }
 
 
@@ -329,7 +331,7 @@ public class CampaignService {
         participant.setRole(role);
         campaignRepository.save(campaign);
 
-        return mapToResponseDTO(campaign);
+        return toDTO(campaign);
     }
 
     // campaign management
@@ -362,7 +364,7 @@ public class CampaignService {
         campaign.setOwner(newOwner);
         Campaign savedCampaign = campaignRepository.save(campaign);
 
-        return mapToResponseDTO(savedCampaign);
+        return toDTO(savedCampaign);
     }
 
     @Transactional
@@ -420,55 +422,18 @@ public class CampaignService {
         }
     }
 
-    /** Maps without private fields (fails closed). */
-    private CampaignResponseDTO mapToResponseDTO(Campaign campaign) {
-        return mapToResponseDTO(campaign, -1L);
+    /** Maps one campaign with no viewer identity: private fields are left out. */
+    private CampaignResponseDTO toDTO(Campaign campaign) {
+        return toDTO(campaign, -1L);
     }
 
     /**
      * Maps one campaign, looking its enabled add-ons up on the way. The list
-     * endpoints use the overload below instead, so a page of campaigns costs one
-     * add-on query rather than one each.
+     * endpoints call {@link CampaignMapper} directly instead, so a page of
+     * campaigns costs one add-on query rather than one each.
      */
-    private CampaignResponseDTO mapToResponseDTO(Campaign campaign, long viewerId) {
-        return mapToResponseDTO(campaign, viewerId, campaignAddonService.enabledAddonKeys(campaign.getId()));
-    }
-
-    /**
-     * Maps a campaign. The private description (GM notes) is only included when
-     * the viewer is a campaign GM; everyone else — including a non-GM campaign
-     * owner — receives null. World lore is public, so it is always included.
-     * <p>
-     * {@code addons} are the optional capabilities the campaign owner has switched
-     * on, which is what the client's navigation filters on. They are public to
-     * every participant (they describe the campaign's shape, not its secrets).
-     */
-    private CampaignResponseDTO mapToResponseDTO(Campaign campaign, long viewerId, List<String> addons) {
-        boolean includePrivate = campaign.getParticipants().stream().anyMatch(participant ->
-                participant.getUser().getId().equals(viewerId)
-                        && participant.getRole() == CampaignRole.GM);
-
-        User owner = campaign.getOwner();
-
-        return new CampaignResponseDTO(
-                campaign.getId(),
-                campaign.getName(),
-                campaign.getDescription(),
-                campaign.getWorldLore(),
-                includePrivate ? campaign.getPrivateDescription() : null,
-                campaign.getImageUrl(),
-                campaign.getPrimarySystem(),
-                owner != null ? owner.getId() : null,
-                campaign.getParticipants().stream()
-                        .map(participant -> new ParticipantResponseDTO(
-                                participant.getUser().getId(),
-                                participant.getNickname(),
-                                participant.getRole().name()))
-                        .toList(),
-                addons == null ? List.of() : addons,
-                campaign.getCreatedAt(),
-                campaign.getUpdatedAt()
-        );
+    private CampaignResponseDTO toDTO(Campaign campaign, long viewerId) {
+        return campaignMapper.toDTO(campaign, viewerId, campaignAddonService.enabledAddonKeys(campaign.getId()));
     }
 
     /** The ids of a page of campaigns, for one batched add-on lookup. */

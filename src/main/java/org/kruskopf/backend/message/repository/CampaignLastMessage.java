@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  */
 public interface CampaignLastMessage {
 
-    Long getCampaignId();
+    Long campaignId();
 
-    LocalDateTime getLastMessageAt();
+    LocalDateTime lastMessageAt();
 }

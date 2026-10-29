@@ -63,26 +63,11 @@ class CampaignActivityServiceTest {
         return ship;
     }
 
-    /** One row of the batched "newest message per campaign" projection. */
-    private static final class LastMessage implements CampaignLastMessage {
+    /**
+     * One row of the batched "newest message per campaign" projection.
+     */
+        private record LastMessage(Long campaignId, LocalDateTime lastMessageAt) implements CampaignLastMessage {
 
-        private final Long campaignId;
-        private final LocalDateTime lastMessageAt;
-
-        private LastMessage(Long campaignId, LocalDateTime lastMessageAt) {
-            this.campaignId = campaignId;
-            this.lastMessageAt = lastMessageAt;
-        }
-
-        @Override
-        public Long getCampaignId() {
-            return campaignId;
-        }
-
-        @Override
-        public LocalDateTime getLastMessageAt() {
-            return lastMessageAt;
-        }
     }
 
     @Nested
@@ -121,9 +106,9 @@ class CampaignActivityServiceTest {
             List<CampaignActivityDTO> activity = campaignActivityService.getActivityForCurrentUser(USER_ID);
 
             assertThat(activity).hasSize(1);
-            assertThat(activity.get(0).lastMessageAt()).isNull();
-            assertThat(activity.get(0).shipUpdatedAt()).isNull();
-            assertThat(activity.get(0).campaignUpdatedAt()).isNotNull();
+            assertThat(activity.getFirst().lastMessageAt()).isNull();
+            assertThat(activity.getFirst().shipUpdatedAt()).isNull();
+            assertThat(activity.getFirst().campaignUpdatedAt()).isNotNull();
         }
 
         @Test
