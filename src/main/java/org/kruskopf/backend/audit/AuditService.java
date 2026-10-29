@@ -74,7 +74,9 @@ public class AuditService {
                         @Value("${app.audit.default-page-size:100}") int defaultPageSize) {
         this.store = store;
         this.repository = repository;
-        this.maxPageSize = maxPageSize;
+        // A cap below 1 cannot be honoured, and Math.clamp refuses min > max, so a
+        // misconfigured property is read as 1 instead of failing every request.
+        this.maxPageSize = maxPageSize < 1 ? 1 : maxPageSize;
         this.defaultPageSize = defaultPageSize;
     }
 
@@ -84,31 +86,36 @@ public class AuditService {
 
     /** A first OAuth login created the account. */
     public void accountCreated(User user, ProviderType provider, UserRole role) {
-        record(AuditEvent.by(AuditEventType.ACCOUNT_CREATED, user,
+        recordChange(AuditEvent.by(AuditEventType.ACCOUNT_CREATED, user,
                 "provider " + provider + ", role " + role, clientIp()));
     }
 
     /** An administrator changed an account's role. */
     public void roleChanged(User actor, User target, UserRole from, UserRole to) {
-        record(AuditEvent.byOn(AuditEventType.ROLE_CHANGED, actor, target,
+        recordChange(AuditEvent.byOn(AuditEventType.ROLE_CHANGED, actor, target,
                 from + " -> " + to, clientIp()));
     }
 
     /** An address was admitted to the whitelist, or a revoked row was re-admitted. */
     public void whitelistAdded(User actor, String email, UserRole role) {
-        record(AuditEvent.byOnEmail(AuditEventType.WHITELIST_ADDED, actor, email,
+        recordChange(AuditEvent.byOnEmail(AuditEventType.WHITELIST_ADDED, actor, email,
                 "role " + role, clientIp()));
     }
 
-    /** A whitelist row was re-roled and/or re-activated. */
+    /**
+     * A whitelist row was re-roled and/or re-activated.
+     *
+     * @param role   the role this request asked for, or {@code null}
+     * @param active the active flag this request carried, or {@code null}
+     */
     public void whitelistUpdated(User actor, String email, UserRole role, Boolean active) {
-        record(AuditEvent.byOnEmail(AuditEventType.WHITELIST_UPDATED, actor, email,
+        recordChange(AuditEvent.byOnEmail(AuditEventType.WHITELIST_UPDATED, actor, email,
                 describe(role, active), clientIp()));
     }
 
     /** An address was revoked: the row stays, but it stops admitting logins. */
     public void whitelistRevoked(User actor, String email) {
-        record(AuditEvent.byOnEmail(AuditEventType.WHITELIST_REVOKED, actor, email,
+        recordChange(AuditEvent.byOnEmail(AuditEventType.WHITELIST_REVOKED, actor, email,
                 "logins refused", clientIp()));
     }
 
@@ -198,7 +205,7 @@ public class AuditService {
         }
         try {
             return AuditEventType.valueOf(type.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException _) {
             throw new InvalidRequestException("Unknown event type '" + type + "' (" + typeNames() + ").");
         }
     }
@@ -208,7 +215,7 @@ public class AuditService {
     // ------------------------------------------------------------------
 
     /** A change: the app log line first, then the row in the caller's transaction. */
-    private void record(AuditEvent event) {
+    private void recordChange(AuditEvent event) {
         mirror(event);
         store.write(event);
     }
@@ -225,12 +232,13 @@ public class AuditService {
     }
 
     private static void mirror(AuditEvent event) {
+        String clientIp = event.getClientIp();
         auditLog.info("AUDIT type={} actor={} target={} detail={} ip={}",
                 event.getEventType(),
                 orDash(event.getActorId(), event.getActorName()),
                 orDash(event.getTargetId(), event.getTargetName()),
                 event.getDetail(),
-                event.getClientIp() == null ? DASH : event.getClientIp());
+                clientIp == null ? DASH : clientIp);
     }
 
     private static String orDash(Long id, String name) {
@@ -240,16 +248,33 @@ public class AuditService {
         return id == null ? name : id + ":" + name;
     }
 
+    /**
+     * The sentence a whitelist change carries: the role the caller asked for, and
+     * whether the address was re-admitted or revoked.
+     * <p>
+     * Both arguments are the <em>request's</em> values rather than the row's
+     * resulting state, which is why either can be absent — a PATCH may send a
+     * role, an active flag, or both. The outcome alone could not tell a
+     * re-admission from a no-op, and a trail must not claim one that did not
+     * happen.
+     */
     private static String describe(UserRole role, Boolean active) {
+        boolean reAdmitted = Boolean.TRUE.equals(active);
+
         if (role == null) {
-            return Boolean.TRUE.equals(active) ? "re-admitted" : "revoked";
+            return reAdmitted ? "re-admitted" : "revoked";
         }
-        return "role " + role + (active == null ? "" : (active ? ", re-admitted" : ", revoked"));
+
+        String state = "";
+        if (active != null) {
+            state = reAdmitted ? ", re-admitted" : ", revoked";
+        }
+        return "role " + role + state;
     }
 
     private int clampLimit(Integer limit) {
         int requested = limit == null ? defaultPageSize : limit;
-        return Math.max(1, Math.min(requested, maxPageSize));
+        return Math.clamp(requested, 1, maxPageSize);
     }
 
     private static String typeNames() {

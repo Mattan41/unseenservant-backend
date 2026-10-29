@@ -1,5 +1,7 @@
 package org.kruskopf.backend.planner;
 
+import org.kruskopf.backend.campaign.entity.Campaign;
+import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
 import org.kruskopf.backend.planner.dto.PlannerAttendanceDTO;
 import org.kruskopf.backend.planner.dto.PlannerDateDTO;
@@ -9,6 +11,7 @@ import org.kruskopf.backend.planner.entity.PlannerAttendance;
 import org.kruskopf.backend.planner.entity.PlannerDate;
 import org.kruskopf.backend.planner.entity.PlannerMemberExclusion;
 import org.kruskopf.backend.planner.entity.PlannerPlan;
+import org.kruskopf.backend.user.entity.User;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -27,14 +30,18 @@ public class PlannerMapper {
     public PlannerPlanDTO toPlanDTO(PlannerPlan plan,
                                     List<PlannerDateDTO> dates,
                                     List<PlannerMemberDTO> members) {
+        Campaign campaign = plan.getCampaign();
+        PlannerDate decidedDate = plan.getDecidedDate();
+        User createdBy = plan.getCreatedByUser();
+
         return new PlannerPlanDTO(
                 plan.getId(),
-                plan.getCampaign() != null ? plan.getCampaign().getId() : null,
+                campaign != null ? campaign.getId() : null,
                 plan.getTitle(),
                 plan.getDescription(),
                 plan.getStatus().name(),
-                plan.getDecidedDate() != null ? plan.getDecidedDate().getId() : null,
-                plan.getCreatedByUser() != null ? plan.getCreatedByUser().getId() : null,
+                decidedDate != null ? decidedDate.getId() : null,
+                createdBy != null ? createdBy.getId() : null,
                 plan.getVersion(),
                 plan.getCreatedAt(),
                 plan.getUpdatedAt(),
@@ -44,13 +51,15 @@ public class PlannerMapper {
     }
 
     public PlannerDateDTO toDateDTO(PlannerDate date, List<PlannerAttendance> attendances) {
+        User createdBy = date.getCreatedByUser();
+
         return new PlannerDateDTO(
                 date.getId(),
                 date.getDate(),
                 date.getStartTime(),
                 date.getEndTime(),
                 date.getNote(),
-                date.getCreatedByUser() != null ? date.getCreatedByUser().getId() : null,
+                createdBy != null ? createdBy.getId() : null,
                 date.getVersion(),
                 attendances.stream()
                         .map(attendance -> new PlannerAttendanceDTO(
@@ -66,10 +75,12 @@ public class PlannerMapper {
      * @param exclusion the plan's opt-out row for them, or null when they are in
      */
     public PlannerMemberDTO toMemberDTO(CampaignUser participant, PlannerMemberExclusion exclusion) {
+        CampaignRole role = participant.getRole();
+
         return new PlannerMemberDTO(
                 participant.getUser().getId(),
                 participant.getNickname(),
-                participant.getRole() != null ? participant.getRole().name() : null,
+                role != null ? role.name() : null,
                 exclusion != null,
                 exclusion != null && exclusion.isRemovedByOwner()
         );

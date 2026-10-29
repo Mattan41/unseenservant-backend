@@ -124,8 +124,11 @@ public class AdminService {
 
     /**
      * Partial update: re-roles and/or revokes (or re-admits) one address.
-     * Audited in this transaction; the row's state after the change is what the
-     * trail names, so the log reads as the outcome rather than the request.
+     * Audited in this transaction. The trail names the change this request asked
+     * for — the fields it actually carried — because the row's resulting state
+     * cannot tell a re-admission from a no-op, and a trail must not claim one that
+     * did not happen. The address comes from the stored row, so it reads as it is
+     * stored (lower-cased).
      */
     @Transactional
     public WhitelistEntryDTO updateWhitelist(User actor, Long id, String role, Boolean active) {
@@ -134,7 +137,7 @@ public class AdminService {
         }
         UserRole parsedRole = role == null ? null : parseRole(role);
         EmailWhitelist entry = emailWhitelistService.updateEmail(id, parsedRole, active);
-        auditService.whitelistUpdated(actor, entry.getEmail(), entry.getRole(), entry.isActive());
+        auditService.whitelistUpdated(actor, entry.getEmail(), parsedRole, active);
         return WhitelistEntryDTO.from(entry);
     }
 
@@ -156,7 +159,7 @@ public class AdminService {
         }
         try {
             return UserRole.valueOf(role.trim().toUpperCase(java.util.Locale.ROOT));
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException _) {
             throw new InvalidRequestException("Unknown role '" + role + "' (" + roleNames() + ").");
         }
     }

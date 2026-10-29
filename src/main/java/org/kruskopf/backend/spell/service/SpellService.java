@@ -149,7 +149,7 @@ public class SpellService {
     private Map<String, Object> parseSpellData(Spell spell) {
         try {
             return deserializeSpellJson(spell);
-        } catch (Exception e) {
+        } catch (Exception _) {
             return Map.of(
                     "slug", spell.getSlug(),
                     "name", spell.getName(),

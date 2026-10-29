@@ -96,7 +96,11 @@ class AuditTrailIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("Keeps a refused demotion after the change's transaction has rolled back")
     void keepsARefusedDemotionAcrossTheRollback() {
-        assertThatThrownBy(() -> adminService.changeUserRole(target.getId(), UserRole.USER, actor))
+        // Read the id before the lambda: a throwing call inside it would be caught
+        // by assertThatThrownBy and read as the refusal this test is about.
+        long targetId = target.getId();
+
+        assertThatThrownBy(() -> adminService.changeUserRole(targetId, UserRole.USER, actor))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("last administrator");
 

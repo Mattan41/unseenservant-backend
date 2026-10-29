@@ -95,7 +95,8 @@ public class GameCharacterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + id));
 
         boolean isOwner = character.getOwner().getId().equals(userId);
-        Long campaignId = character.getCampaign() != null ? character.getCampaign().getId() : null;
+        Campaign campaign = character.getCampaign();
+        Long campaignId = campaign != null ? campaign.getId() : null;
         boolean isParticipant = campaignId != null && campaignPermissionService.isParticipant(campaignId, userId);
         boolean isGameMaster = campaignId != null && campaignPermissionService.isGameMaster(campaignId, userId);
 
@@ -215,7 +216,8 @@ public class GameCharacterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Character not found with id: " + characterId));
 
         boolean isCharacterOwner = character.getOwner().getId().equals(userId);
-        Long campaignId = character.getCampaign() != null ? character.getCampaign().getId() : null;
+        Campaign campaign = character.getCampaign();
+        Long campaignId = campaign != null ? campaign.getId() : null;
 
         // The character's owner may always detach it; the campaign's GM or owner
         // may too. This only detaches (campaignId = null) — it never deletes.

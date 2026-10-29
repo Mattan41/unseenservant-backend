@@ -1,9 +1,11 @@
 package org.kruskopf.backend.journal;
 
+import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.journal.dto.JournalDTO;
 import org.kruskopf.backend.journal.dto.JournalPageDTO;
 import org.kruskopf.backend.journal.entity.Journal;
 import org.kruskopf.backend.journal.entity.JournalPage;
+import org.kruskopf.backend.user.entity.User;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,10 +19,14 @@ public class JournalMapper {
      */
     public JournalDTO toJournalDTO(Journal journal, List<JournalPage> pages) {
         List<JournalPageDTO> pageDTOs = pages.stream().map(this::toPageDTO).toList();
+
+        Campaign campaign = journal.getCampaign();
+        User user = journal.getUser();
+
         return new JournalDTO(
                 journal.getId(),
-                journal.getCampaign() != null ? journal.getCampaign().getId() : null,
-                journal.getUser() != null ? journal.getUser().getId() : null,
+                campaign != null ? campaign.getId() : null,
+                user != null ? user.getId() : null,
                 pageDTOs.size(),
                 pageDTOs
         );

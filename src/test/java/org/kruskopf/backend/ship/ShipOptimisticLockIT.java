@@ -117,8 +117,14 @@ class ShipOptimisticLockIT extends AbstractIntegrationTest {
         ShipDTO created = shipService.saveShip(campaign.getId(), shipInput("The Desert Rose", null, null), user.getId());
         shipService.saveShip(campaign.getId(), shipInput(null, 7, created.version()), user.getId());
 
-        assertThatThrownBy(() -> shipService.saveShip(
-                campaign.getId(), shipInput(null, 3, created.version()), user.getId()))
+        // Everything but the call under test is arranged first: a throwing setup
+        // call inside the lambda would be caught by assertThatThrownBy and read as
+        // the rejection this test is about.
+        Long campaignId = campaign.getId();
+        long userId = user.getId();
+        ShipInputDTO staleInput = shipInput(null, 3, created.version());
+
+        assertThatThrownBy(() -> shipService.saveShip(campaignId, staleInput, userId))
                 .isInstanceOf(ConcurrentUpdateException.class);
     }
 

@@ -194,15 +194,30 @@ class AdminServiceTest {
         }
 
         @Test
-        @DisplayName("Records the row's state after an update, not the request")
-        void recordsTheStateAfterAnUpdate() {
+        @DisplayName("Records the change the request asked for, not the row's resulting state")
+        void recordsTheChangeTheRequestAskedFor() {
             EmailWhitelist entry = new EmailWhitelist("promote-me@example.com", UserRole.ADMIN);
             entry.setId(5L);
             when(emailWhitelistService.updateEmail(5L, UserRole.ADMIN, null)).thenReturn(entry);
 
             adminService.updateWhitelist(actor, 5L, "ADMIN", null);
 
-            verify(auditService).whitelistUpdated(actor, "promote-me@example.com", UserRole.ADMIN, true);
+            // The request carried no active flag, so the trail must not claim one:
+            // it says the role became ADMIN, and nothing about re-admitting.
+            verify(auditService).whitelistUpdated(actor, "promote-me@example.com", UserRole.ADMIN, null);
+        }
+
+        @Test
+        @DisplayName("Records a revoke as a revoke, without claiming a role change")
+        void recordsARevokeWithoutARoleChange() {
+            EmailWhitelist entry = new EmailWhitelist("gone@example.com", UserRole.USER);
+            entry.setId(6L);
+            entry.setActive(false);
+            when(emailWhitelistService.updateEmail(6L, null, false)).thenReturn(entry);
+
+            adminService.updateWhitelist(actor, 6L, null, false);
+
+            verify(auditService).whitelistUpdated(actor, "gone@example.com", null, false);
         }
 
         @Test

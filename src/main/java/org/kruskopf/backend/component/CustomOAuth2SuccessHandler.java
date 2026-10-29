@@ -44,6 +44,9 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
     private static final Logger log = LoggerFactory.getLogger(CustomOAuth2SuccessHandler.class);
 
+    /** The OAuth2 user attribute both providers spell "email" (GitHub only fills it sometimes). */
+    private static final String EMAIL_ATTRIBUTE = "email";
+
     private final UserService userService;
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final EmailWhitelistService emailWhitelistService;
@@ -99,7 +102,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             // The address is taken from the provider's claims here rather than
             // from the rejected attributes, so the trail still names who tried:
             // "an unverified email was refused" with no address answers nothing.
-            auditService.oauthRefused(oAuth2User.getAttribute("email"), "the provider did not verify the email");
+            auditService.oauthRefused(oAuth2User.getAttribute(EMAIL_ATTRIBUTE), "the provider did not verify the email");
             response.sendRedirect(frontendUrl + "/under-construction");
             return;
         }
@@ -224,14 +227,14 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             // Reject through the same path as a non-whitelisted email (handled by the caller).
             return null;
         }
-        String email = oAuth2User.getAttribute("email");
+        String email = oAuth2User.getAttribute(EMAIL_ATTRIBUTE);
         String name = oAuth2User.getAttribute("name");
         String providerId = oAuth2User.getAttribute("sub");
         return new UserAttributes(email, name, providerId);
     }
 
     private UserAttributes getGitHubAttributes(OAuth2User oAuth2User, OAuth2AccessToken accessToken) {
-        String email = oAuth2User.getAttribute("email");
+        String email = oAuth2User.getAttribute(EMAIL_ATTRIBUTE);
         if (email == null) {
             // Fetch email from GitHub API
             List<Email> emails = getEmails(accessToken);

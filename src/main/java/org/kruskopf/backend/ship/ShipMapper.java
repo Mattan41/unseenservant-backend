@@ -1,5 +1,6 @@
 package org.kruskopf.backend.ship;
 
+import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.ship.dto.ShipDTO;
 import org.kruskopf.backend.ship.dto.ShipInputDTO;
 import org.kruskopf.backend.ship.entity.Ship;
@@ -12,9 +13,13 @@ import java.util.List;
 public class ShipMapper {
 
     public ShipDTO toDTO(Ship ship) {
+        Campaign campaign = ship.getCampaign();
+        List<String> upgrades = ship.getUpgrades();
+        List<String> imageUrls = ship.getImageUrls();
+
         return new ShipDTO(
                 ship.getId(),
-                ship.getCampaign() != null ? ship.getCampaign().getId() : null,
+                campaign != null ? campaign.getId() : null,
                 ship.getName(),
                 ship.getHull(),
                 ship.getHullMax(),
@@ -23,10 +28,10 @@ public class ShipMapper {
                 ship.getDriveFuel(),
                 ship.getMaxDriveFuel(),
                 ship.getCredits(),
-                ship.getUpgrades() != null ? List.copyOf(ship.getUpgrades()) : List.of(),
+                upgrades != null ? List.copyOf(upgrades) : List.of(),
                 ship.getNotes(),
                 ship.getImageUrl(),
-                ship.getImageUrls() != null ? List.copyOf(ship.getImageUrls()) : List.of(),
+                imageUrls != null ? List.copyOf(imageUrls) : List.of(),
                 ship.getVersion()
         );
     }

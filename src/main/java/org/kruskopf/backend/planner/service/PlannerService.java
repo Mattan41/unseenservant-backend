@@ -370,7 +370,8 @@ public class PlannerService {
         requireOpen(plan);
         requireDateEditable(date, userId);
 
-        if (plan.getDecidedDate() != null && plan.getDecidedDate().getId().equals(date.getId())) {
+        PlannerDate decidedDate = plan.getDecidedDate();
+        if (decidedDate != null && decidedDate.getId().equals(date.getId())) {
             plan.setDecidedDate(null);
             planRepository.saveAndFlush(plan);
         }

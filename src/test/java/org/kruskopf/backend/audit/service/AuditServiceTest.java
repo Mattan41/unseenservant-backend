@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -159,6 +160,21 @@ class AuditServiceTest {
         }
 
         @Test
+        @DisplayName("Reads a configured cap below 1 as 1, rather than failing the request")
+        void readsACapBelowOneAsOne() {
+            // Math.clamp refuses min > max, so the cap is normalised where it is
+            // read: a mis-set property must not turn the Logs view into a 500.
+            AuditService service = new AuditService(store, repository, 0, 100);
+            when(repository.findByOrderByIdDesc(any())).thenReturn(List.of());
+
+            service.recent(null, null, null);
+
+            ArgumentCaptor<Pageable> page = ArgumentCaptor.forClass(Pageable.class);
+            verify(repository).findByOrderByIdDesc(page.capture());
+            assertThat(page.getValue().getPageSize()).isEqualTo(1);
+        }
+
+        @Test
         @DisplayName("Filters by type and cursor when both are given")
         void filtersByTypeAndCursor() {
             when(repository.findByEventTypeAndIdLessThanOrderByIdDesc(
@@ -189,6 +205,44 @@ class AuditServiceTest {
             assertThat(dto.actorId()).isNull();
             assertThat(dto.occurredAt()).isEqualTo(LocalDateTime.of(2026, 10, 26, 12, 0));
             assertThat(dto.clientIp()).isEqualTo("203.0.113.7");
+        }
+    }
+
+    @Nested
+    @DisplayName("whitelist detail wording")
+    class WhitelistDetail {
+
+        /**
+         * The trail names the change the request asked for, so a role toggle must
+         * not read as a re-admission: that claim is what the request's active flag
+         * is for.
+         */
+        private String detailFor(UserRole role, Boolean active) {
+            auditService.whitelistUpdated(actor, "someone@example.com", role, active);
+
+            ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
+            verify(store, atLeastOnce()).write(captor.capture());
+            return captor.getAllValues().getLast().getDetail();
+        }
+
+        @Test
+        @DisplayName("Names the role the request asked for")
+        void namesTheRequestedRole() {
+            assertThat(detailFor(UserRole.ADMIN, null)).isEqualTo("role ADMIN");
+        }
+
+        @Test
+        @DisplayName("Says re-admitted only when the request re-admitted")
+        void saysReAdmittedOnlyForAReAdmission() {
+            assertThat(detailFor(null, true)).isEqualTo("re-admitted");
+            assertThat(detailFor(UserRole.ADMIN, true)).isEqualTo("role ADMIN, re-admitted");
+        }
+
+        @Test
+        @DisplayName("Says revoked when the request revoked")
+        void saysRevokedWhenTheRequestRevoked() {
+            assertThat(detailFor(null, false)).isEqualTo("revoked");
+            assertThat(detailFor(UserRole.ADMIN, false)).isEqualTo("role ADMIN, revoked");
         }
     }
 

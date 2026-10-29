@@ -21,25 +21,33 @@ import java.util.Optional;
  */
 public interface JournalPageRepository extends JpaRepository<JournalPage, Long> {
 
+    /**
+     * The journal parameter the three queries below share. Named once because a
+     * {@code @Param} that disagrees with its {@code :placeholder} fails at
+     * runtime, not at compile time — which is the mistake this name makes
+     * impossible.
+     */
+    String JOURNAL_ID = "journalId";
+
     /** The whole book, in reading order. */
     List<JournalPage> findByJournalIdOrderByPositionAscIdAsc(Long journalId);
 
     long countByJournalId(Long journalId);
 
-    @Query("SELECT MAX(p.position) FROM JournalPage p WHERE p.journal.id = :journalId")
-    Integer findMaxPosition(@Param("journalId") Long journalId);
+    @Query("SELECT MAX(p.position) FROM JournalPage p WHERE p.journal.id = :" + JOURNAL_ID)
+    Integer findMaxPosition(@Param(JOURNAL_ID) Long journalId);
 
     Optional<JournalPage> findFirstByJournalIdOrderByPositionDesc(Long journalId);
 
     /** Make room at {@code positionFrom}: page P and everything after it moves one step. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE JournalPage p SET p.position = p.position + 1 "
-            + "WHERE p.journal.id = :journalId AND p.position >= :positionFrom")
-    int shiftPositionsUp(@Param("journalId") Long journalId, @Param("positionFrom") int positionFrom);
+            + "WHERE p.journal.id = :" + JOURNAL_ID + " AND p.position >= :positionFrom")
+    int shiftPositionsUp(@Param(JOURNAL_ID) Long journalId, @Param("positionFrom") int positionFrom);
 
     /** Close the gap a deleted page left behind: everything after it moves one step back. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE JournalPage p SET p.position = p.position - 1 "
-            + "WHERE p.journal.id = :journalId AND p.position > :positionFrom")
-    int shiftPositionsDown(@Param("journalId") Long journalId, @Param("positionFrom") int positionFrom);
+            + "WHERE p.journal.id = :" + JOURNAL_ID + " AND p.position > :positionFrom")
+    int shiftPositionsDown(@Param(JOURNAL_ID) Long journalId, @Param("positionFrom") int positionFrom);
 }
