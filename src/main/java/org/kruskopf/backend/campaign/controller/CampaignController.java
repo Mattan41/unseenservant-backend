@@ -1,6 +1,7 @@
 package org.kruskopf.backend.campaign.controller;
 
 import org.kruskopf.backend.campaign.dto.*;
+import org.kruskopf.backend.campaign.service.CampaignActivityService;
 import org.kruskopf.backend.campaign.service.CampaignService;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.springframework.http.HttpStatus;
@@ -20,9 +21,11 @@ import java.util.List;
 public class CampaignController {
 
     private final CampaignService campaignService;
+    private final CampaignActivityService campaignActivityService;
 
-    public CampaignController(CampaignService campaignService) {
+    public CampaignController(CampaignService campaignService, CampaignActivityService campaignActivityService) {
         this.campaignService = campaignService;
+        this.campaignActivityService = campaignActivityService;
     }
 
     @PostMapping
@@ -57,6 +60,21 @@ public class CampaignController {
         Long userId = customUserDetails.user().getId();
         List<CampaignResponseDTO> campaigns = campaignService.getAllCampaignsForCurrentUser(userId);
         return ResponseEntity.ok(campaigns);
+    }
+
+    /**
+     * What has changed in each of the caller's campaigns: the timestamps the
+     * client badges its navigation with. Deliberately one request for the whole
+     * list, and deliberately scoped to the campaigns {@code GET /api/campaigns/me}
+     * returns (see {@link CampaignActivityService}).
+     * <p>
+     * A literal path, so it is matched ahead of {@code /{id}} — "activity" is not
+     * a campaign id and must never be read as one.
+     */
+    @GetMapping("/activity")
+    public ResponseEntity<List<CampaignActivityDTO>> getCampaignActivity(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        Long userId = customUserDetails.user().getId();
+        return ResponseEntity.ok(campaignActivityService.getActivityForCurrentUser(userId));
     }
 
     @GetMapping("/{id}")

@@ -465,7 +465,9 @@ public class CampaignService {
                                 participant.getNickname(),
                                 participant.getRole().name()))
                         .toList(),
-                addons == null ? List.of() : addons
+                addons == null ? List.of() : addons,
+                campaign.getCreatedAt(),
+                campaign.getUpdatedAt()
         );
     }
 

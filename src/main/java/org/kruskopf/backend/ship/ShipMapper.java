@@ -32,7 +32,8 @@ public class ShipMapper {
                 ship.getNotes(),
                 ship.getImageUrl(),
                 imageUrls != null ? List.copyOf(imageUrls) : List.of(),
-                ship.getVersion()
+                ship.getVersion(),
+                ship.getUpdatedAt()
         );
     }
 
