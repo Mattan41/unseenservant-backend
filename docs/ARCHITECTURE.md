@@ -459,7 +459,7 @@ full application against a Testcontainer):
 | Admin & whitelist | `AdminServiceTest` | `AdminControllerIT` |
 | Audit trail | `AuditServiceTest` | `AuditTrailIT` (both write policies, the rollback a refusal survives, the prune), `AdminControllerIT` (the endpoint) |
 | Files & images | `FileStorageServiceTest`, `StoredFileTransactionTest` | `ImageCorsIT` |
-| Schema & runtime | — | `SchemaValidationIT` (Flyway baseline + Hibernate `validate`), `BackendApplicationIT`, `VirtualThreadsIT` |
+| Schema & runtime | `DemoProfileBootTest` (the `demo` profile's entity-generated schema + seed) | `SchemaValidationIT` (Flyway baseline + Hibernate `validate`), `BackendApplicationIT`, `VirtualThreadsIT` |
 
 `./mvnw test` runs the unit column alone; `./mvnw verify` runs both, which is what
 CI does on every pull request.

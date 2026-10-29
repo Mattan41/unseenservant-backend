@@ -31,7 +31,7 @@ import java.time.LocalTime;
  */
 @Entity
 @Table(name = "planner_date", uniqueConstraints = {
-        @UniqueConstraint(name = "uq_planner_date_plan_date", columnNames = {"plan_id", "date"})
+        @UniqueConstraint(name = "uq_planner_date_plan_date", columnNames = {"plan_id", "plan_date"})
 })
 public class PlannerDate extends AuditedEntity {
 
