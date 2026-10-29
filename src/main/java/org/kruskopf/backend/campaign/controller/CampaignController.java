@@ -2,6 +2,7 @@ package org.kruskopf.backend.campaign.controller;
 
 import org.kruskopf.backend.campaign.dto.*;
 import org.kruskopf.backend.campaign.service.CampaignActivityService;
+import org.kruskopf.backend.campaign.service.CampaignParticipantService;
 import org.kruskopf.backend.campaign.service.CampaignService;
 import org.kruskopf.backend.user.CustomUserDetails;
 import org.springframework.http.HttpStatus;
@@ -16,15 +17,20 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/campaigns")
 // Every campaign endpoint is role-shaped at this level; the resource-shaped rules
-// (owner / GM / participant) live in CampaignService behind CampaignPermissionService.
+// (owner / GM / participant) live in CampaignService and CampaignParticipantService,
+// both of them behind CampaignPermissionService.
 @PreAuthorize("hasRole('ROLE_USER')")
 public class CampaignController {
 
     private final CampaignService campaignService;
+    private final CampaignParticipantService campaignParticipantService;
     private final CampaignActivityService campaignActivityService;
 
-    public CampaignController(CampaignService campaignService, CampaignActivityService campaignActivityService) {
+    public CampaignController(CampaignService campaignService,
+                              CampaignParticipantService campaignParticipantService,
+                              CampaignActivityService campaignActivityService) {
         this.campaignService = campaignService;
+        this.campaignParticipantService = campaignParticipantService;
         this.campaignActivityService = campaignActivityService;
     }
 
@@ -113,7 +119,7 @@ public class CampaignController {
             @PathVariable Long id,
             @RequestBody UpdateParticipantsDTO updateDTO) {
         Long userId = customUserDetails.user().getId();
-        CampaignResponseDTO updatedCampaign = campaignService.updateParticipants(id, updateDTO, userId);
+        CampaignResponseDTO updatedCampaign = campaignParticipantService.updateParticipants(id, updateDTO, userId);
         return ResponseEntity.ok(updatedCampaign);
     }
 
@@ -124,7 +130,7 @@ public class CampaignController {
             @PathVariable Long participantId,
             @RequestBody String nickname) {
         Long userId = customUserDetails.user().getId();
-        CampaignResponseDTO updatedCampaign = campaignService.updateParticipantNickname(id, participantId, nickname, userId);
+        CampaignResponseDTO updatedCampaign = campaignParticipantService.updateParticipantNickname(id, participantId, nickname, userId);
         return ResponseEntity.ok(updatedCampaign);
     }
 
@@ -135,7 +141,7 @@ public class CampaignController {
             @PathVariable Long participantId,
             @RequestBody String role) {
         Long userId = customUserDetails.user().getId();
-        CampaignResponseDTO updatedCampaign = campaignService.updateParticipantRole(id, participantId, role, userId);
+        CampaignResponseDTO updatedCampaign = campaignParticipantService.updateParticipantRole(id, participantId, role, userId);
         return ResponseEntity.ok(updatedCampaign);
     }
 
@@ -146,7 +152,7 @@ public class CampaignController {
             @PathVariable Long id,
             @RequestBody CampaignTransferOwnerDTO request) {
         Long currentUserId = customUserDetails.user().getId();
-        CampaignResponseDTO updatedCampaign = campaignService.transferOwnership(id, request.newOwnerId(), currentUserId);
+        CampaignResponseDTO updatedCampaign = campaignParticipantService.transferOwnership(id, request.newOwnerId(), currentUserId);
         return ResponseEntity.ok(updatedCampaign);
     }
 

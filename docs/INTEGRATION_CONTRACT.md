@@ -339,7 +339,7 @@ prefix is matched in `SecurityConfig`, and each controller repeats the rule with
 - Content operations — `PUT /api/campaigns/{id}`, `POST /api/campaigns/{id}/image`, world lore and GM notes — require a campaign **GM**.
 - Administration — `PATCH /participants`, `/participants/{id}/nickname` (for another participant), `/participants/{id}/role`, `/owner`, and `DELETE /api/campaigns/{id}` — requires the campaign **owner**.
 - The campaign creator is seeded as a **GM** participant, so owner-as-GM works out of the box; a non-GM owner is not treated as a GM.
-- Enforced in `CampaignService` via `CampaignPermissionService.isGameMaster` / `isCampaignOwner`; the frontend mirrors the same rules (`src/features/campaign/campaignPermissions.js`).
+- Enforced in `CampaignService` (the content axis, `isGameMaster`) and `CampaignParticipantService` (the administration axis, `isCampaignOwner`) via `CampaignPermissionService`; the frontend mirrors the same rules (`src/features/campaign/campaignPermissions.js`).
 
 ---
 

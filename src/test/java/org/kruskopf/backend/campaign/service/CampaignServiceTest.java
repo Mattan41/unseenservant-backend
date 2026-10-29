@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kruskopf.backend.addon.service.CampaignAddonService;
 import org.kruskopf.backend.campaign.CampaignMapper;
+import org.kruskopf.backend.campaign.CampaignParticipantFactory;
 import org.kruskopf.backend.campaign.dto.CampaignResponseDTO;
 import org.kruskopf.backend.campaign.dto.CampaignUpdateDTO;
 import org.kruskopf.backend.campaign.entity.Campaign;
@@ -64,6 +65,9 @@ class CampaignServiceTest {
 
     @Spy
     private CampaignMapper campaignMapper = new CampaignMapper();
+
+    @Spy
+    private CampaignParticipantFactory campaignParticipantFactory = new CampaignParticipantFactory();
 
     @InjectMocks
     private CampaignService campaignService;
@@ -141,48 +145,6 @@ class CampaignServiceTest {
             assertThatThrownBy(() -> campaignService.uploadCampaignImage(CAMPAIGN_ID, null, PLAYER_ID))
                     .isInstanceOf(UnauthorizedAccessException.class);
             verifyNoInteractions(storedFileTransaction);
-        }
-    }
-
-    @Nested
-    @DisplayName("updateParticipantNickname()")
-    class UpdateParticipantNickname {
-
-        @Test
-        @DisplayName("A participant may rename themselves without any ownership check")
-        void allowsSelf() {
-            Campaign campaign = storedCampaign();
-            when(campaignRepository.save(campaign)).thenReturn(campaign);
-
-            campaignService.updateParticipantNickname(CAMPAIGN_ID, PLAYER_ID, "Renamed", PLAYER_ID);
-
-            assertThat(campaign.getParticipants())
-                    .anySatisfy(p -> assertThat(p.getNickname()).isEqualTo("Renamed"));
-            verifyNoInteractions(campaignPermissionService);
-        }
-
-        @Test
-        @DisplayName("The campaign owner may rename another participant")
-        void allowsOwnerForOthers() {
-            Campaign campaign = storedCampaign();
-            when(campaignPermissionService.isCampaignOwner(CAMPAIGN_ID, OWNER_ID)).thenReturn(true);
-            when(campaignRepository.save(campaign)).thenReturn(campaign);
-
-            campaignService.updateParticipantNickname(CAMPAIGN_ID, PLAYER_ID, "Renamed", OWNER_ID);
-
-            assertThat(campaign.getParticipants())
-                    .anySatisfy(p -> assertThat(p.getNickname()).isEqualTo("Renamed"));
-        }
-
-        @Test
-        @DisplayName("A GM who is not the owner may not rename another participant")
-        void rejectsNonOwnerForOthers() {
-            storedCampaign();
-            when(campaignPermissionService.isCampaignOwner(CAMPAIGN_ID, GM_ID)).thenReturn(false);
-
-            assertThatThrownBy(() ->
-                    campaignService.updateParticipantNickname(CAMPAIGN_ID, PLAYER_ID, "Renamed", GM_ID))
-                    .isInstanceOf(UnauthorizedAccessException.class);
         }
     }
 

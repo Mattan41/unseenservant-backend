@@ -183,9 +183,12 @@ org.kruskopf.backend/
 │   ├── repository/
 │   │   ├── CampaignRepository.java
 │   │   └── CampaignUserRepository.java
-│   └── service/
-│       ├── CampaignPermissionService.java 
-│       └── CampaignService.java
+│   ├── service/
+│   │   ├── CampaignPermissionService.java 
+│   │   ├── CampaignParticipantService.java # The roster: add/remove, rename, role, ownership
+│   │   └── CampaignService.java
+│   ├── CampaignMapper.java                 # Campaign → CampaignResponseDTO (the GM-notes rule)
+│   └── CampaignParticipantFactory.java     # The role / nickname fallbacks a join row is built from
 ├── journal/                              # Private per-participant campaign journals
 │   ├── controller/JournalController.java
 │   ├── dto/
@@ -449,7 +452,7 @@ full application against a Testcontainer):
 |------|------|-------------|
 | Auth, sessions, OAuth linking | `AuthControllerLoginTest`, `CustomUserDetailsTest` | `AuthControllerIT`, `LoginCredentialsIT`, `SecurityConfigIT`, `EndpointAuthenticationIT`, `UserServiceOAuthLoginIT` |
 | Login throttle | `LoginAttemptLimiterTest`, `ClientIpResolverTest` | `LoginRateLimitIT` |
-| Campaigns & permissions | `CampaignServiceTest`, `CampaignPermissionServiceTest` | `CampaignPermissionServiceIT` |
+| Campaigns & permissions | `CampaignServiceTest`, `CampaignParticipantServiceTest`, `CampaignPermissionServiceTest`, `CampaignMapperTest`, `CampaignParticipantFactoryTest` | `CampaignPermissionServiceIT` |
 | Characters | `GameCharacterMapperTest`, `GameCharacterServiceTest` | — (reached through the campaign and message ITs) |
 | Ships | `ShipServiceTest` | `ShipOptimisticLockIT` |
 | Messages | `MessageMapperTest` | `MessageControllerIT` — also the JSON wire format the frontend parses |
