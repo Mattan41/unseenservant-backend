@@ -511,6 +511,24 @@ Valid `role` values: `GM` | `PLAYER`
 
 ---
 
+### GET /api/campaigns/activity — What has changed in my campaigns
+
+**Auth:** Yes (ROLE_USER)  
+**Status:** 200, 401
+
+**Response (200):** List of `CampaignActivityDTO` — one row per campaign the caller is in (the same set `/me` returns):
+```json
+[
+  { "campaignId": 2, "campaignUpdatedAt": "2026-10-29T19:04:11", "lastMessageAt": "2026-10-29T18:40:00", "shipUpdatedAt": null }
+]
+```
+
+Change stamps only — never counts, never per-user data — so a client can badge its campaign
+navigation without a request per campaign and without the server holding read state
+(`CampaignActivityService`). `/activity` is a literal path and is matched ahead of `/{id}`.
+
+---
+
 ### GET /api/campaigns/{id} — Get campaign by ID
 
 **Auth:** Yes (authorized participant)  
@@ -1405,13 +1423,31 @@ Limits, each named in the 400 it produces: `app.planner.max-title-length` (200),
   "participants": [
     { "id": 1, "nickname": "The Hero", "role": "PLAYER" }
   ],
-  "addons": ["planner"]
+  "addons": ["planner"],
+  "createdAt": "2026-05-29T09:00:00",
+  "updatedAt": "2026-10-29T19:04:11"
 }
 ```
 
 `addons` lists the optional capabilities the campaign's owner has switched on, by
 their API keys. Always present, `[]` when the campaign has none — it is what the
 client's navigation filters its sections on (see section 8).
+
+`createdAt` / `updatedAt` are the audit stamps the row already carries (`BaseEntity`), exposed
+so a client can tell what changed since it last looked. `updatedAt` moves on any campaign
+write, not only on a change to the lore text.
+
+### CampaignActivityDTO
+```json
+[
+  { "campaignId": 2, "campaignUpdatedAt": "2026-10-29T19:04:11", "lastMessageAt": null, "shipUpdatedAt": null }
+]
+```
+
+One row per campaign the caller participates in. Every stamp is nullable, and `null` means
+"nothing there yet" (no ship, no messages). Nothing in it is per-user: the read state is the
+client's, and the endpoint exists so a whole campaign list can be badged with one request.
+
 
 ### PlannerPlanDTO
 ```json

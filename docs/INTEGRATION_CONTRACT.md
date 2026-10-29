@@ -269,10 +269,26 @@ prefix is matched in `SecurityConfig`, and each controller repeats the rule with
 - Response: `[ CampaignResponseDTO ]` — campaigns where logged-in user is a participant
 - Status: 200, 401
 
+**GET /api/campaigns/activity**
+- Requires: ROLE_USER
+- Response: `[ CampaignActivityDTO ]` — one row per campaign the caller participates in,
+  the same set `GET /api/campaigns/me` returns:
+  `{ campaignId, campaignUpdatedAt, lastMessageAt, shipUpdatedAt }`, every stamp nullable
+  (`null` = nothing there yet: no ship, no messages)
+- Status: 200, 401
+- Notes: this is the read model a client badges its campaign navigation with, so it
+  deliberately holds **change stamps only, never counts and never per-user data** — what a
+  user has already read is the client's own business. A whole page of campaigns costs three
+  queries (campaigns, newest message per campaign, ships), never one per campaign;
+  `campaignUpdatedAt` moves on any campaign write, so it means "this campaign changed", not
+  strictly "the lore text changed". `/activity` is a literal path: it is matched ahead of
+  `/{id}` and is never read as a campaign id.
+
 **GET /api/campaigns/{id}**
 - Requires: authorized participant
-- Response: `CampaignResponseDTO { id, name, description, worldLore, privateDescription, imageUrl, primarySystem, ownerId, participants: [ { id, nickname, role } ] }`
+- Response: `CampaignResponseDTO { id, name, description, worldLore, privateDescription, imageUrl, primarySystem, ownerId, participants: [ { id, nickname, role } ], addons, createdAt, updatedAt }`
   - `privateDescription` is `null` unless the requester is a campaign GM (a non-GM owner does not receive it); `worldLore` is always included
+  - `createdAt` / `updatedAt` are the audit stamps the row already carries (Spring Data writes them through `BaseEntity`), so exposing them needed no migration. `updatedAt` moves on any campaign write
 - Status: 200, 401, 403, 404
 
 **PUT /api/campaigns/{id}**
@@ -646,9 +662,36 @@ for its 401/403, so one parser covers every status.
   "participants": [
     { "id": 1, "nickname": "User1", "role": "PLAYER" },
     { "id": 2, "nickname": "User2", "role": "GM" }
-  ]
+  ],
+  "addons": ["planner"],
+  "createdAt": "2026-05-29T09:00:00",
+  "updatedAt": "2026-10-29T19:04:11"
 }
 ```
+
+> `createdAt` / `updatedAt` are the audit stamps the row already carries — Spring Data writes
+> them through `BaseEntity`, so exposing them needed no schema change. A client compares
+> `updatedAt` against its own "last opened" marker to decide whether to flag the campaign's
+> world lore; it therefore moves on **any** campaign write (a rename, an image, a participant
+> or add-on change), not only on a change to the lore text.
+
+### CampaignActivityDTO
+```json
+[
+  {
+    "campaignId": 2,
+    "campaignUpdatedAt": "2026-10-29T19:04:11",
+    "lastMessageAt": "2026-10-29T18:40:00",
+    "shipUpdatedAt": null
+  }
+]
+```
+
+> One row per campaign the caller participates in. Every stamp is nullable and a `null` means
+> "there is nothing there yet" — no ship, no messages — rather than "unreadable". Nothing here
+> is per-user: the same answer is served to every participant, and the client keeps its own
+> read state and compares the two. That is why there is no unread *count*: a count would need
+> per-user server state, or the client's markers sent along with the request.
 
 ### ShipDTO
 ```json
@@ -667,9 +710,14 @@ for its 401/403, so one parser covers every status.
   "notes": "Cargo: a sealed crate.",
   "imageUrl": null,
   "imageUrls": [],
-  "version": 3
+  "version": 3,
+  "updatedAt": "2026-10-29T19:04:11"
 }
 ```
+
+> `version` stays the optimistic-concurrency token a client echoes back on the next save;
+> `updatedAt` is the change stamp a client badges the Ship section with, and the two are not
+> interchangeable.
 
 ### MessageDTO
 ```json
