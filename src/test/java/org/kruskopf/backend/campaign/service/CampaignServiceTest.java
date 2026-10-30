@@ -5,28 +5,36 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kruskopf.backend.addon.service.CampaignAddonService;
+import org.kruskopf.backend.campaign.CampaignMapper;
+import org.kruskopf.backend.campaign.CampaignParticipantFactory;
 import org.kruskopf.backend.campaign.dto.CampaignResponseDTO;
 import org.kruskopf.backend.campaign.dto.CampaignUpdateDTO;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
 import org.kruskopf.backend.campaign.entity.CampaignUser;
+import org.kruskopf.backend.campaign.event.CampaignDeletedEvent;
 import org.kruskopf.backend.campaign.repository.CampaignRepository;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.filestorage.StoredFileTransaction;
-import org.kruskopf.backend.playercharacter.service.GameCharacterService;
 import org.kruskopf.backend.ship.service.ShipService;
 import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.User;
 import org.kruskopf.backend.user.service.UserService;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -49,7 +57,7 @@ class CampaignServiceTest {
     private CampaignPermissionService campaignPermissionService;
 
     @Mock
-    private GameCharacterService gameCharacterService;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Mock
     private StoredFileTransaction storedFileTransaction;
@@ -59,6 +67,12 @@ class CampaignServiceTest {
 
     @Mock
     private CampaignAddonService campaignAddonService;
+
+    @Spy
+    private CampaignMapper campaignMapper = new CampaignMapper();
+
+    @Spy
+    private CampaignParticipantFactory campaignParticipantFactory = new CampaignParticipantFactory();
 
     @InjectMocks
     private CampaignService campaignService;
@@ -140,48 +154,6 @@ class CampaignServiceTest {
     }
 
     @Nested
-    @DisplayName("updateParticipantNickname()")
-    class UpdateParticipantNickname {
-
-        @Test
-        @DisplayName("A participant may rename themselves without any ownership check")
-        void allowsSelf() {
-            Campaign campaign = storedCampaign();
-            when(campaignRepository.save(campaign)).thenReturn(campaign);
-
-            campaignService.updateParticipantNickname(CAMPAIGN_ID, PLAYER_ID, "Renamed", PLAYER_ID);
-
-            assertThat(campaign.getParticipants())
-                    .anySatisfy(p -> assertThat(p.getNickname()).isEqualTo("Renamed"));
-            verifyNoInteractions(campaignPermissionService);
-        }
-
-        @Test
-        @DisplayName("The campaign owner may rename another participant")
-        void allowsOwnerForOthers() {
-            Campaign campaign = storedCampaign();
-            when(campaignPermissionService.isCampaignOwner(CAMPAIGN_ID, OWNER_ID)).thenReturn(true);
-            when(campaignRepository.save(campaign)).thenReturn(campaign);
-
-            campaignService.updateParticipantNickname(CAMPAIGN_ID, PLAYER_ID, "Renamed", OWNER_ID);
-
-            assertThat(campaign.getParticipants())
-                    .anySatisfy(p -> assertThat(p.getNickname()).isEqualTo("Renamed"));
-        }
-
-        @Test
-        @DisplayName("A GM who is not the owner may not rename another participant")
-        void rejectsNonOwnerForOthers() {
-            storedCampaign();
-            when(campaignPermissionService.isCampaignOwner(CAMPAIGN_ID, GM_ID)).thenReturn(false);
-
-            assertThatThrownBy(() ->
-                    campaignService.updateParticipantNickname(CAMPAIGN_ID, PLAYER_ID, "Renamed", GM_ID))
-                    .isInstanceOf(UnauthorizedAccessException.class);
-        }
-    }
-
-    @Nested
     @DisplayName("GM notes visibility")
     class GmNotesVisibility {
 
@@ -206,6 +178,34 @@ class CampaignServiceTest {
 
             assertThat(result.privateDescription()).isNull();
             assertThat(result.worldLore()).isEqualTo("Public lore");
+        }
+    }
+
+    @Nested
+    @DisplayName("deleteCampaign()")
+    class DeleteCampaign {
+
+        @Test
+        @DisplayName("The owner deletes the campaign and announces who was in it")
+        void ownerDeletesTheCampaign() {
+            Campaign campaign = storedCampaign();
+
+            campaignService.deleteCampaign(CAMPAIGN_ID, OWNER_ID);
+
+            verify(applicationEventPublisher).publishEvent(new CampaignDeletedEvent(
+                    CAMPAIGN_ID, List.of(OWNER_ID, GM_ID, PLAYER_ID)));
+            verify(campaignRepository).delete(campaign);
+        }
+
+        @Test
+        @DisplayName("A non-owner may not delete the campaign, and nothing is announced")
+        void rejectsNonOwner() {
+            storedCampaign();
+
+            assertThatThrownBy(() -> campaignService.deleteCampaign(CAMPAIGN_ID, GM_ID))
+                    .isInstanceOf(UnauthorizedAccessException.class);
+            verifyNoInteractions(applicationEventPublisher);
+            verify(campaignRepository, never()).delete(any(Campaign.class));
         }
     }
 }

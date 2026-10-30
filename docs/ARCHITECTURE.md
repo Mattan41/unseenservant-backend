@@ -180,12 +180,18 @@ org.kruskopf.backend/
 │   │   ├── CampaignRole.java       # Enum
 │   │   ├── CampaignUser.java       # Join entity (Campaign ↔ User)
 │   │   └── CampaignUserId.java     # Composite key
+│   ├── event/
+│   │   ├── CampaignDeletedEvent.java       # → the character domain unlinks the whole roster
+│   │   └── ParticipantRemovedEvent.java    # → the character domain unlinks that one user
 │   ├── repository/
 │   │   ├── CampaignRepository.java
 │   │   └── CampaignUserRepository.java
-│   └── service/
-│       ├── CampaignPermissionService.java 
-│       └── CampaignService.java
+│   ├── service/
+│   │   ├── CampaignPermissionService.java 
+│   │   ├── CampaignParticipantService.java # The roster: add/remove, rename, role, ownership
+│   │   └── CampaignService.java
+│   ├── CampaignMapper.java                 # Campaign → CampaignResponseDTO (the GM-notes rule)
+│   └── CampaignParticipantFactory.java     # The role / nickname fallbacks a join row is built from
 ├── journal/                              # Private per-participant campaign journals
 │   ├── controller/JournalController.java
 │   ├── dto/
@@ -213,6 +219,7 @@ org.kruskopf.backend/
 │   │   └── GameSystem.java              # System enum (DND5E, OFFWORLDERS)
 │   ├── repository/GameCharacterRepository.java
 │   ├── service/GameCharacterService.java
+│   ├── CampaignMembershipListener.java    # Reacts to ParticipantRemovedEvent / CampaignDeletedEvent
 │   └── GameCharacterMapper.java
 ├── dnd5e/                               # D&D 5e-specific character data
 │   ├── entity/Dnd5eCharacterData.java           # 1:1 with GameCharacter (shared PK)
@@ -318,11 +325,32 @@ Each domain is a self-contained package with:
 - `service/` — business logic
 - `controller/` — REST endpoints
 - `dto/` — request/response objects
+- `event/` — domain events, immutable records published by the service that owns the change
 
 Not everything lives in a feature package. The JPA base classes the entities share live in the
 root `entity/` — `BaseEntity` (generated `id`, `createdAt` / `updatedAt`) and its `AuditedEntity`
 subclass (the two `by` usernames), see "Existing entities" below — and code every feature uses
 lives in `config/`, `exception/` and `filestorage/`.
+
+### Domain events
+The one cross-feature collaboration so far is deliberately *not* a service-to-service call. A roster
+change is published as a domain event and the character domain reacts to it:
+
+- `campaign/event/ParticipantRemovedEvent(campaignId, userId)` — one per removal, published by
+  `CampaignParticipantService.removeParticipants`;
+- `campaign/event/CampaignDeletedEvent(campaignId, participantIds)` — one per deletion, published by
+  `CampaignService.deleteCampaign`, and it carries the roster because the rows are gone by the time it
+  is handled;
+- `CampaignMembershipListener`, in `playercharacter/`, handles both and calls
+  `GameCharacterService.removeAllCharactersFromCampaign`.
+
+Neither campaign service imports the character domain any more. The events carry ids, never entities.
+
+Both handlers are plain `@EventListener`s, which Spring runs synchronously on the publishing thread
+**inside the publisher's transaction**, so a roster change that rolls back takes the unlink with it —
+the same atomicity the direct call used to have. Moving to
+`@TransactionalEventListener(AFTER_COMMIT)` + `REQUIRES_NEW` would decouple the transactions as well,
+at the price of a failed unlink leaving orphaned `campaign_id` references and nothing to retry them.
 
 ### Naming
 - Controllers: `@RestController`, `@RequestMapping("/api/feature")`
@@ -449,8 +477,8 @@ full application against a Testcontainer):
 |------|------|-------------|
 | Auth, sessions, OAuth linking | `AuthControllerLoginTest`, `CustomUserDetailsTest` | `AuthControllerIT`, `LoginCredentialsIT`, `SecurityConfigIT`, `EndpointAuthenticationIT`, `UserServiceOAuthLoginIT` |
 | Login throttle | `LoginAttemptLimiterTest`, `ClientIpResolverTest` | `LoginRateLimitIT` |
-| Campaigns & permissions | `CampaignServiceTest`, `CampaignPermissionServiceTest` | `CampaignPermissionServiceIT` |
-| Characters | `GameCharacterMapperTest`, `GameCharacterServiceTest` | — (reached through the campaign and message ITs) |
+| Campaigns & permissions | `CampaignServiceTest`, `CampaignParticipantServiceTest`, `CampaignPermissionServiceTest`, `CampaignMapperTest`, `CampaignParticipantFactoryTest` | `CampaignPermissionServiceIT`, `CampaignControllerIT` (the roster over HTTP: who may change it, and that deleting a campaign or removing a participant leaves that member's characters unlinked) |
+| Characters | `GameCharacterMapperTest`, `GameCharacterServiceTest`, `CampaignMembershipListenerTest` | — (reached through `CampaignControllerIT`, the campaign and message ITs) |
 | Ships | `ShipServiceTest` | `ShipOptimisticLockIT` |
 | Messages | `MessageMapperTest` | `MessageControllerIT` — also the JSON wire format the frontend parses |
 | Journals | `JournalServiceTest` | `JournalControllerIT` (ownership, page ordering, the virtual last page, the limits, concurrent first write), `JournalOptimisticLockIT` |

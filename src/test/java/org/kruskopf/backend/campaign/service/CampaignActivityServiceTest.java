@@ -63,16 +63,12 @@ class CampaignActivityServiceTest {
         return ship;
     }
 
-    /** One row of the batched "newest message per campaign" projection. */
-    private static final class LastMessage implements CampaignLastMessage {
-
-        private final Long campaignId;
-        private final LocalDateTime lastMessageAt;
-
-        private LastMessage(Long campaignId, LocalDateTime lastMessageAt) {
-            this.campaignId = campaignId;
-            this.lastMessageAt = lastMessageAt;
-        }
+    /**
+     * One row of the batched "newest message per campaign" projection. The
+     * {@code get}-style overrides are what the interface asks for — see the note on
+     * {@link CampaignLastMessage}.
+     */
+    private record LastMessage(Long campaignId, LocalDateTime lastMessageAt) implements CampaignLastMessage {
 
         @Override
         public Long getCampaignId() {
@@ -121,9 +117,9 @@ class CampaignActivityServiceTest {
             List<CampaignActivityDTO> activity = campaignActivityService.getActivityForCurrentUser(USER_ID);
 
             assertThat(activity).hasSize(1);
-            assertThat(activity.get(0).lastMessageAt()).isNull();
-            assertThat(activity.get(0).shipUpdatedAt()).isNull();
-            assertThat(activity.get(0).campaignUpdatedAt()).isNotNull();
+            assertThat(activity.getFirst().lastMessageAt()).isNull();
+            assertThat(activity.getFirst().shipUpdatedAt()).isNull();
+            assertThat(activity.getFirst().campaignUpdatedAt()).isNotNull();
         }
 
         @Test

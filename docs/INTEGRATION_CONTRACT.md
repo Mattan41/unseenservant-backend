@@ -310,6 +310,7 @@ prefix is matched in `SecurityConfig`, and each controller repeats the rule with
 - Request: `UpdateParticipantsDTO { participantsToAdd: [ ParticipantResponseDTO ], participantIdsToRemove: [ Long ] }` (`nickname` optional, defaults server-side)
 - Response: `CampaignResponseDTO`
 - Status: 200, 400, 401, 403, 404
+- Note: the owner cannot remove themselves, an id that is not on the roster is a 404, and removing a participant detaches that user's characters from the campaign (the characters survive, unlinked).
 
 **PATCH /api/campaigns/{id}/participants/{participantId}/nickname**
 - Requires: the participant themselves, or the campaign owner to rename someone else
@@ -332,14 +333,14 @@ prefix is matched in `SecurityConfig`, and each controller repeats the rule with
 **DELETE /api/campaigns/{id}**
 - Requires: owner
 - Status: 204, 401, 403, 404
-- Note: A campaign's ship (if any) is removed with the campaign.
+- Note: A campaign's ship (if any) is removed with the campaign, and every participant's characters are detached from it first — `game_character.campaign_id` is a plain foreign key, so the unlink is what lets the campaign row go.
 
 **Campaign permission model**
 - Two independent axes: **ownership** (administration) and **table role** (GM = world-building).
 - Content operations — `PUT /api/campaigns/{id}`, `POST /api/campaigns/{id}/image`, world lore and GM notes — require a campaign **GM**.
 - Administration — `PATCH /participants`, `/participants/{id}/nickname` (for another participant), `/participants/{id}/role`, `/owner`, and `DELETE /api/campaigns/{id}` — requires the campaign **owner**.
 - The campaign creator is seeded as a **GM** participant, so owner-as-GM works out of the box; a non-GM owner is not treated as a GM.
-- Enforced in `CampaignService` via `CampaignPermissionService.isGameMaster` / `isCampaignOwner`; the frontend mirrors the same rules (`src/features/campaign/campaignPermissions.js`).
+- Enforced in `CampaignService` (the content axis, `isGameMaster`) and `CampaignParticipantService` (the administration axis, `isCampaignOwner`) via `CampaignPermissionService`; the frontend mirrors the same rules (`src/features/campaign/campaignPermissions.js`).
 
 ---
 
