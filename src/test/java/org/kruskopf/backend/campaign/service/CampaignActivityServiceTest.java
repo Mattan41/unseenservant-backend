@@ -64,10 +64,21 @@ class CampaignActivityServiceTest {
     }
 
     /**
-     * One row of the batched "newest message per campaign" projection.
+     * One row of the batched "newest message per campaign" projection. The
+     * {@code get}-style overrides are what the interface asks for — see the note on
+     * {@link CampaignLastMessage}.
      */
-        private record LastMessage(Long campaignId, LocalDateTime lastMessageAt) implements CampaignLastMessage {
+    private record LastMessage(Long campaignId, LocalDateTime lastMessageAt) implements CampaignLastMessage {
 
+        @Override
+        public Long getCampaignId() {
+            return campaignId;
+        }
+
+        @Override
+        public LocalDateTime getLastMessageAt() {
+            return lastMessageAt;
+        }
     }
 
     @Nested
