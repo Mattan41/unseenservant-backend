@@ -3,6 +3,9 @@ package org.kruskopf.backend.campaign;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.kruskopf.backend.campaign.dto.ParticipantResponseDTO;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.campaign.entity.CampaignRole;
@@ -103,29 +106,13 @@ class CampaignParticipantFactoryTest {
             assertThat(participant.getNickname()).isEqualTo(user.getUserName());
         }
 
-        @Test
-        @DisplayName("A missing role is PLAYER")
-        void missingRoleIsPlayer() {
+        @ParameterizedTest
+        @NullAndEmptySource
+        @ValueSource(strings = {" ", "KING"})
+        @DisplayName("A role that is missing, blank or unknown falls back to PLAYER")
+        void unusableRoleIsPlayer(String role) {
             CampaignUser participant = factory.create(
-                    campaign(), userWithId(USER_ID), new ParticipantResponseDTO(USER_ID, "Nick", null));
-
-            assertThat(participant.getRole()).isEqualTo(CampaignRole.PLAYER);
-        }
-
-        @Test
-        @DisplayName("A blank role is PLAYER")
-        void blankRoleIsPlayer() {
-            CampaignUser participant = factory.create(
-                    campaign(), userWithId(USER_ID), new ParticipantResponseDTO(USER_ID, "Nick", " "));
-
-            assertThat(participant.getRole()).isEqualTo(CampaignRole.PLAYER);
-        }
-
-        @Test
-        @DisplayName("An unknown role is PLAYER rather than an error")
-        void unknownRoleIsPlayer() {
-            CampaignUser participant = factory.create(
-                    campaign(), userWithId(USER_ID), new ParticipantResponseDTO(USER_ID, "Nick", "KING"));
+                    campaign(), userWithId(USER_ID), new ParticipantResponseDTO(USER_ID, "Nick", role));
 
             assertThat(participant.getRole()).isEqualTo(CampaignRole.PLAYER);
         }

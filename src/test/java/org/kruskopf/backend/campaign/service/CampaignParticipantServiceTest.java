@@ -322,13 +322,11 @@ class CampaignParticipantServiceTest {
         void invalidRemovalSavesNothing() {
             storedCampaign();
             when(userService.findById(ADDED_ID)).thenReturn(Optional.of(userWithId(ADDED_ID)));
+            UpdateParticipantsDTO request = new UpdateParticipantsDTO(
+                    List.of(new ParticipantResponseDTO(ADDED_ID, "The Wizard", "PLAYER")),
+                    List.of(OUTSIDER_ID));
 
-            assertThatThrownBy(() -> campaignParticipantService.updateParticipants(
-                    CAMPAIGN_ID,
-                    new UpdateParticipantsDTO(
-                            List.of(new ParticipantResponseDTO(ADDED_ID, "The Wizard", "PLAYER")),
-                            List.of(OUTSIDER_ID)),
-                    OWNER_ID))
+            assertThatThrownBy(() -> campaignParticipantService.updateParticipants(CAMPAIGN_ID, request, OWNER_ID))
                     .isInstanceOf(ResourceNotFoundException.class);
 
             verify(campaignRepository, never()).save(any());
@@ -339,9 +337,9 @@ class CampaignParticipantServiceTest {
         @DisplayName("The owner cannot remove themselves")
         void ownerCannotBeRemoved() {
             storedCampaign();
+            UpdateParticipantsDTO request = new UpdateParticipantsDTO(null, List.of(OWNER_ID));
 
-            assertThatThrownBy(() -> campaignParticipantService.updateParticipants(
-                    CAMPAIGN_ID, new UpdateParticipantsDTO(null, List.of(OWNER_ID)), OWNER_ID))
+            assertThatThrownBy(() -> campaignParticipantService.updateParticipants(CAMPAIGN_ID, request, OWNER_ID))
                     .isInstanceOf(UnauthorizedAccessException.class);
         }
 
@@ -349,9 +347,9 @@ class CampaignParticipantServiceTest {
         @DisplayName("A non-owner may not change the roster")
         void rejectsNonOwner() {
             storedCampaign();
+            UpdateParticipantsDTO request = new UpdateParticipantsDTO(null, List.of(PLAYER_ID));
 
-            assertThatThrownBy(() -> campaignParticipantService.updateParticipants(
-                    CAMPAIGN_ID, new UpdateParticipantsDTO(null, List.of(PLAYER_ID)), GM_ID))
+            assertThatThrownBy(() -> campaignParticipantService.updateParticipants(CAMPAIGN_ID, request, GM_ID))
                     .isInstanceOf(UnauthorizedAccessException.class);
             verifyNoInteractions(applicationEventPublisher);
         }
@@ -360,9 +358,9 @@ class CampaignParticipantServiceTest {
         @DisplayName("Removing somebody who is not a participant is a 404")
         void rejectsUnknownRemoval() {
             storedCampaign();
+            UpdateParticipantsDTO request = new UpdateParticipantsDTO(null, List.of(OUTSIDER_ID));
 
-            assertThatThrownBy(() -> campaignParticipantService.updateParticipants(
-                    CAMPAIGN_ID, new UpdateParticipantsDTO(null, List.of(OUTSIDER_ID)), OWNER_ID))
+            assertThatThrownBy(() -> campaignParticipantService.updateParticipants(CAMPAIGN_ID, request, OWNER_ID))
                     .isInstanceOf(ResourceNotFoundException.class);
             verifyNoInteractions(applicationEventPublisher);
         }
