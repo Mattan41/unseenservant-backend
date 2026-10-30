@@ -477,8 +477,8 @@ full application against a Testcontainer):
 |------|------|-------------|
 | Auth, sessions, OAuth linking | `AuthControllerLoginTest`, `CustomUserDetailsTest` | `AuthControllerIT`, `LoginCredentialsIT`, `SecurityConfigIT`, `EndpointAuthenticationIT`, `UserServiceOAuthLoginIT` |
 | Login throttle | `LoginAttemptLimiterTest`, `ClientIpResolverTest` | `LoginRateLimitIT` |
-| Campaigns & permissions | `CampaignServiceTest`, `CampaignParticipantServiceTest`, `CampaignPermissionServiceTest`, `CampaignMapperTest`, `CampaignParticipantFactoryTest` | `CampaignPermissionServiceIT` |
-| Characters | `GameCharacterMapperTest`, `GameCharacterServiceTest`, `CampaignMembershipListenerTest` | — (reached through the campaign and message ITs) |
+| Campaigns & permissions | `CampaignServiceTest`, `CampaignParticipantServiceTest`, `CampaignPermissionServiceTest`, `CampaignMapperTest`, `CampaignParticipantFactoryTest` | `CampaignPermissionServiceIT`, `CampaignControllerIT` (the roster over HTTP: who may change it, and that deleting a campaign or removing a participant leaves that member's characters unlinked) |
+| Characters | `GameCharacterMapperTest`, `GameCharacterServiceTest`, `CampaignMembershipListenerTest` | — (reached through `CampaignControllerIT`, the campaign and message ITs) |
 | Ships | `ShipServiceTest` | `ShipOptimisticLockIT` |
 | Messages | `MessageMapperTest` | `MessageControllerIT` — also the JSON wire format the frontend parses |
 | Journals | `JournalServiceTest` | `JournalControllerIT` (ownership, page ordering, the virtual last page, the limits, concurrent first write), `JournalOptimisticLockIT` |
