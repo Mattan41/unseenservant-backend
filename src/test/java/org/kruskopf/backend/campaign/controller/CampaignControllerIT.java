@@ -40,8 +40,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * a campaign and removing a participant both leave that member's characters with no
  * campaign. The campaign side only announces it — {@code CampaignMembershipListener} is
  * what carries it out — so these are the tests that would catch the listener being
- * unwired, an event nobody handles, or the unlink arriving after the campaign row has
- * already gone (the character's foreign key would then refuse the delete outright).
+ * unwired, an event nobody handles, an unlink that lost its campaign scope, or one that
+ * arrived after the campaign row had already gone.
+ * <p>
+ * Three things about the setup are worth knowing. Assertions read the database through
+ * {@link #reloaded}, which flushes first: a foreign key still pointing at the campaign
+ * therefore fails there, and in a real request that check is the commit's. The listener
+ * is synchronous ({@code @EventListener}), so it runs inside this test's transaction —
+ * a {@code @TransactionalEventListener} would never fire here, there being no commit,
+ * and would need {@code fallbackExecution = true}. And the schema under test is
+ * Flyway's, the same one production validates (see {@code docs/MIGRATIONS.md}); the test
+ * profile also has Hibernate's {@code create-drop} switched on, whose drop attempts fail
+ * against those foreign keys and are logged as warnings.
  */
 @AutoConfigureMockMvc
 @Transactional
@@ -82,8 +92,13 @@ class CampaignControllerIT extends AbstractIntegrationTest {
     private User gm;
     private User player;
     private User stayer;
+    private User outsider;
     private Campaign campaign;
+    /** A second campaign that also holds {@code player}: nothing here may reach into it. */
+    private Campaign otherCampaign;
     private GameCharacter playerCharacter;
+    private GameCharacter playerSecondCharacter;
+    private GameCharacter playerElsewhere;
     private GameCharacter stayerCharacter;
 
     @BeforeEach
@@ -98,6 +113,7 @@ class CampaignControllerIT extends AbstractIntegrationTest {
         gm = userRepository.save(TestDataFactory.aUser("gm"));
         player = userRepository.save(TestDataFactory.aUser("player"));
         stayer = userRepository.save(TestDataFactory.aUser("stayer"));
+        outsider = userRepository.save(TestDataFactory.aUser("outsider"));
 
         // The owner is a PLAYER deliberately: ownership and the GM role are two
         // separate axes, and a fixture that conflates them would keep passing while the
@@ -113,7 +129,20 @@ class CampaignControllerIT extends AbstractIntegrationTest {
         campaign.getParticipants().add(new CampaignUser(campaign, player, CampaignRole.PLAYER, "Player"));
         campaign.getParticipants().add(new CampaignUser(campaign, stayer, CampaignRole.PLAYER, "Stayer"));
 
+        // A second campaign, its roster built the same way, with the same player in it.
+        // The unlink is a bulk update, so an unlink that had lost its
+        // `AND campaign.id = :campaignId` would take this membership's characters too —
+        // and no other test here would notice.
+        otherCampaign = campaignRepository.save(TestDataFactory.aCampaign(gm));
+        otherCampaign.getParticipants().add(new CampaignUser(otherCampaign, gm, CampaignRole.GM, "The GM"));
+        otherCampaign.getParticipants().add(new CampaignUser(otherCampaign, player, CampaignRole.PLAYER, "Player"));
+
+        // Two characters for the player in this campaign, because the unlink takes all of
+        // them and not just the first row it finds, and one in the other campaign, which
+        // it must leave alone.
         playerCharacter = gameCharacterRepository.save(TestDataFactory.aCharacter(player, campaign));
+        playerSecondCharacter = gameCharacterRepository.save(TestDataFactory.aCharacter(player, campaign));
+        playerElsewhere = gameCharacterRepository.save(TestDataFactory.aCharacter(player, otherCampaign));
         stayerCharacter = gameCharacterRepository.save(TestDataFactory.aCharacter(stayer, campaign));
 
         // Then hand the request an empty persistence context, as a real request would
@@ -175,6 +204,18 @@ class CampaignControllerIT extends AbstractIntegrationTest {
         return objectMapper.readTree(result.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8));
     }
 
+    /** Whether the database still holds that user on that campaign's roster. */
+    private boolean rosterHas(Campaign ofCampaign, User user) {
+        entityManager.flush();
+        return campaignUserRepository.existsByCampaignIdAndUserId(ofCampaign.getId(), user.getId());
+    }
+
+    /** How many roster rows that campaign has, as the database has them. */
+    private int rosterSize(Campaign ofCampaign) {
+        entityManager.flush();
+        return campaignUserRepository.findByCampaignId(ofCampaign.getId()).size();
+    }
+
     @Nested
     @DisplayName("DELETE /api/campaigns/{id}")
     class DeleteCampaign {
@@ -185,8 +226,20 @@ class CampaignControllerIT extends AbstractIntegrationTest {
             deleteCampaign(owner).andExpect(status().isNoContent());
 
             assertThat(reloaded(campaign)).isNull();
+            assertThat(rosterSize(campaign)).isZero();
             assertThat(reloaded(playerCharacter).getCampaign()).isNull();
+            assertThat(reloaded(playerSecondCharacter).getCampaign()).isNull();
             assertThat(reloaded(stayerCharacter).getCampaign()).isNull();
+        }
+
+        @Test
+        @DisplayName("a second campaign the same members are in is left alone")
+        void deletingOneCampaignLeavesTheOtherAlone() throws Exception {
+            deleteCampaign(owner).andExpect(status().isNoContent());
+
+            assertThat(reloaded(otherCampaign)).isNotNull();
+            assertThat(rosterHas(otherCampaign, player)).isTrue();
+            assertThat(reloaded(playerElsewhere).getCampaign()).isNotNull();
         }
 
         @Test
@@ -195,6 +248,7 @@ class CampaignControllerIT extends AbstractIntegrationTest {
             deleteCampaign(gm).andExpect(status().isForbidden());
 
             assertThat(reloaded(campaign)).isNotNull();
+            assertThat(rosterHas(campaign, player)).isTrue();
             assertThat(reloaded(playerCharacter).getCampaign()).isNotNull();
         }
 
@@ -211,21 +265,44 @@ class CampaignControllerIT extends AbstractIntegrationTest {
     class UpdateParticipants {
 
         @Test
-        @DisplayName("removing a participant unlinks their characters and leaves the rest in the campaign")
-        void removingAParticipantUnlinksTheirCharacters() throws Exception {
+        @DisplayName("removing a participant unlinks every character they have here and leaves the rest")
+        void removingAParticipantUnlinksEveryCharacterTheyHaveThere() throws Exception {
             JsonNode answer = answerOf(patchParticipants(owner, removeBody(player)).andExpect(status().isOk()));
 
             assertThat(participantIdsOf(answer))
                     .doesNotContain(player.getId())
                     .contains(stayer.getId());
+            assertThat(rosterHas(campaign, player)).isFalse();
+            assertThat(rosterHas(campaign, stayer)).isTrue();
             assertThat(reloaded(playerCharacter).getCampaign()).isNull();
+            assertThat(reloaded(playerSecondCharacter).getCampaign()).isNull();
             assertThat(reloaded(stayerCharacter).getCampaign()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("a campaign the removed member is also in is left alone")
+        void removingAParticipantLeavesTheirOtherCampaignAlone() throws Exception {
+            patchParticipants(owner, removeBody(player)).andExpect(status().isOk());
+
+            assertThat(rosterHas(otherCampaign, player)).isTrue();
+            assertThat(reloaded(playerElsewhere).getCampaign()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("one id that is not on the roster refuses the whole request")
+        void anIdOutsideTheRosterRefusesTheWholeRequest() throws Exception {
+            patchParticipants(owner, removeBody(player, outsider)).andExpect(status().isNotFound());
+
+            assertThat(rosterHas(campaign, player)).isTrue();
+            assertThat(reloaded(playerCharacter).getCampaign()).isNotNull();
         }
 
         @Test
         @DisplayName("the owner cannot remove themselves")
         void theOwnerCannotRemoveThemselves() throws Exception {
             patchParticipants(owner, removeBody(owner)).andExpect(status().isForbidden());
+
+            assertThat(rosterHas(campaign, owner)).isTrue();
         }
 
         @Test
@@ -233,6 +310,7 @@ class CampaignControllerIT extends AbstractIntegrationTest {
         void nonOwnerCannotChangeTheRoster() throws Exception {
             patchParticipants(gm, removeBody(player)).andExpect(status().isForbidden());
 
+            assertThat(rosterHas(campaign, player)).isTrue();
             assertThat(reloaded(playerCharacter).getCampaign()).isNotNull();
         }
     }
