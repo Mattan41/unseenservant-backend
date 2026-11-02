@@ -178,9 +178,8 @@ Two environments consume these images:
 Because production's watchtower follows `latest`, a merge-to-main workflow must
 never be able to move that tag: the workflow resolves its tags in a single step
 and a guard step fails the run if `latest` would be published outside a release
-event. The host-side runbook and the verification checklist live in the
-infrastructure repository (`Mattan41/projects-notes`,
-`unseen-servant/staging/README.md`).
+event. The host-side runbook and the verification checklist are kept outside this
+repository.
 
 Neither host publishes 3306 (MySQL) or 5005 (JDWP). The JDWP agent is only ever
 enabled through the explicit `docker-compose.debug.yml` override, which binds it
