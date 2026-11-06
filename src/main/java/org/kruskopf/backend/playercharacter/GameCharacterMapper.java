@@ -11,6 +11,7 @@ import org.kruskopf.backend.playercharacter.dto.CharacterInputDTO;
 import org.kruskopf.backend.playercharacter.dto.CharacterOutputDTO;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
+import org.kruskopf.backend.section.ContentSection;
 import org.kruskopf.backend.user.entity.User;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +34,7 @@ public class GameCharacterMapper {
     public CharacterOutputDTO toOutputDTO(GameCharacter character, boolean includePrivateBackstory) {
         Campaign campaign = character.getCampaign();
         List<String> imageUrls = character.getImageUrls();
+        List<ContentSection> sections = character.getSections();
 
         return new CharacterOutputDTO(
                 character.getId(),
@@ -41,6 +43,7 @@ public class GameCharacterMapper {
                 character.getName(),
                 character.getSystemType(),
                 character.getNotes(),
+                sections != null ? List.copyOf(sections) : List.of(),
                 character.getImageUrl(),
                 imageUrls != null ? List.copyOf(imageUrls) : List.of(),
                 character.getAppearance(),
@@ -106,6 +109,9 @@ public class GameCharacterMapper {
 
         GameCharacter character = new GameCharacter(owner, campaign, dto.name(), system);
         character.setNotes(dto.notes());
+        if (dto.sections() != null) {
+            character.setSections(new ArrayList<>(dto.sections()));
+        }
         character.setAppearance(dto.appearance());
         character.setBackstory(dto.backstory());
         character.setPrivateBackstory(dto.privateBackstory());
@@ -161,6 +167,9 @@ public class GameCharacterMapper {
         if (dto.name() != null) entity.setName(dto.name());
         if (dto.systemType() != null) entity.setSystemType(dto.systemType());
         if (dto.notes() != null) entity.setNotes(dto.notes());
+        // A whole-list replacement, in the order the client sent: the array is
+        // the owner's arrangement, so nothing here reorders or merges it.
+        if (dto.sections() != null) entity.setSections(new ArrayList<>(dto.sections()));
         if (dto.appearance() != null) entity.setAppearance(dto.appearance());
         if (dto.backstory() != null) entity.setBackstory(dto.backstory());
         if (dto.privateBackstory() != null) entity.setPrivateBackstory(dto.privateBackstory());

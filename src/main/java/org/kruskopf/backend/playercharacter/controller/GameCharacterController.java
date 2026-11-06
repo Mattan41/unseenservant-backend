@@ -41,6 +41,7 @@ public class GameCharacterController {
                     inputDTO.name(),
                     inputDTO.systemType(),
                     inputDTO.notes(),
+                    inputDTO.sections(),
                     inputDTO.avatarUrl(),
                     inputDTO.appearance(),
                     inputDTO.backstory(),

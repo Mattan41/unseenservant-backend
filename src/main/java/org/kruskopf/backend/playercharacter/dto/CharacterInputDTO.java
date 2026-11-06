@@ -4,7 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.kruskopf.backend.dnd5e.dto.Dnd5eCharacterDataInputDTO;
 import org.kruskopf.backend.offworlders.dto.OffworldersCharacterDataInputDTO;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
+import org.kruskopf.backend.section.ContentSection;
 import org.springframework.lang.Nullable;
+
+import java.util.List;
 
 /**
  * System-agnostic input payload for creating/updating a character.
@@ -18,6 +21,10 @@ import org.springframework.lang.Nullable;
  * The gallery ({@code imageUrls}) is deliberately absent: it is managed by the
  * dedicated image endpoints ({@code /api/characters/{id}/images}), never by this
  * form payload.
+ * <p>
+ * {@code sections} is a whole-list replacement: the array sent is the array
+ * stored, in that order. Omitting it leaves the stored sections untouched, so a
+ * PATCH that only renames the character cannot wipe them.
  */
 public record CharacterInputDTO(
         Long ownerId,
@@ -25,6 +32,7 @@ public record CharacterInputDTO(
         String name,
         @Nullable GameSystem systemType,
         String notes,
+        @Nullable List<ContentSection> sections,
         String avatarUrl,
         String appearance,
         String backstory,
