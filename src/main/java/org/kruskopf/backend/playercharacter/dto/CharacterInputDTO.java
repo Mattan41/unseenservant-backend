@@ -5,7 +5,7 @@ import org.kruskopf.backend.dnd5e.dto.Dnd5eCharacterDataInputDTO;
 import org.kruskopf.backend.offworlders.dto.OffworldersCharacterDataInputDTO;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
 import org.kruskopf.backend.section.ContentSection;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 

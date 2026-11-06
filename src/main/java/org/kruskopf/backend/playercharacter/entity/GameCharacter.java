@@ -93,10 +93,14 @@ public class GameCharacter extends AuditedEntity {
     @Convert(converter = StringListConverter.class)
     private List<String> imageUrls = new ArrayList<>();
 
-    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // Both 1:1 blocks are eager on purpose: Hibernate does not honour
+    // FetchType.LAZY on the inverse side of a @OneToOne, and the read paths map
+    // the child outside a transaction (spring.jpa.open-in-view=false), so it is
+    // loaded with the character anyway. State that instead of implying lazy.
+    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Dnd5eCharacterData dnd5eData;
 
-    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private OffworldersCharacterData offworldersData;
 
     // Constructors

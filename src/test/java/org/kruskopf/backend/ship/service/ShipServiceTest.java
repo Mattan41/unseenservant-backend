@@ -197,7 +197,7 @@ class ShipServiceTest {
         // The array is the crew's arrangement: nothing reorders it on the way in
         // or out, and there is no ordering column to disagree with it.
         assertThat(dto.sections()).containsExactlyElementsOf(sections);
-        assertThat(dto.sections().get(0).title()).isEqualTo("Cargo");
+        assertThat(dto.sections().getFirst().title()).isEqualTo("Cargo");
     }
 
     @Test
@@ -217,7 +217,7 @@ class ShipServiceTest {
 
         assertThat(dto.hull()).isEqualTo(7);
         assertThat(dto.sections()).hasSize(1);
-        assertThat(dto.sections().get(0).body()).isEqualTo("Still here.");
+        assertThat(dto.sections().getFirst().body()).isEqualTo("Still here.");
     }
 
     @Test

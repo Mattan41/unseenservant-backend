@@ -5,7 +5,7 @@ import org.kruskopf.backend.dnd5e.dto.Dnd5eCharacterDataOutputDTO;
 import org.kruskopf.backend.offworlders.dto.OffworldersCharacterDataOutputDTO;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
 import org.kruskopf.backend.section.ContentSection;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,9 +41,9 @@ public record CharacterOutputDTO(
         @Nullable List<String> imageUrls,
         @Nullable String appearance,
         @Nullable String backstory,
-        @Nullable @JsonProperty("privateBackstory") String privateBackstory,
-        @Nullable @JsonProperty("dnd5e") Dnd5eCharacterDataOutputDTO dnd5e,
-        @Nullable @JsonProperty("offworlders") OffworldersCharacterDataOutputDTO offworlders,
+        @JsonProperty("privateBackstory") @Nullable String privateBackstory,
+        @JsonProperty("dnd5e") @Nullable Dnd5eCharacterDataOutputDTO dnd5e,
+        @JsonProperty("offworlders") @Nullable OffworldersCharacterDataOutputDTO offworlders,
         LocalDateTime createdAt,
         @Nullable LocalDateTime updatedAt) {
 }

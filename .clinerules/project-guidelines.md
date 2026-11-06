@@ -11,7 +11,11 @@
 - `docs/INTEGRATION_CONTRACT.md` — binding for the frontend. Endpoints return DTOs,
   never entities, and changes have to stay backward compatible or be coordinated.
 - `docs/API_REFERENCE.md` — the endpoint reference.
-- Update the describing document in the same change as the behaviour.
+- Update the describing document in the same change as the behaviour, but only
+  where a document already covers it. `API_REFERENCE.md` and
+  `INTEGRATION_CONTRACT.md` must reflect any change to status codes, request
+  or response shape. Do not create new docs, sections or notes for internal
+  changes, IDE settings or things the code already makes clear.
 
 ## Build and tests
 - The pom targets **Java 25** (`<java.version>25</java.version>`) but the JDK on PATH is
@@ -55,6 +59,28 @@
   published; the debug override binds JDWP to `127.0.0.1` and is reached over SSH.
 - Image tags: `latest` is production (a published release), `main` is staging. A merge
   to main must never move `latest`.
+
+## Comments and Javadoc
+- Comments explain why the code is the way it is when that is not obvious, never
+  what it does. If a name, type or annotation already says it, write no comment.
+- No change history in code ("previously", "instead of", "fixes the 500"). That
+  belongs in the commit message.
+- Default to no Javadoc, or one line saying what an endpoint DTO or class is for.
+  A multi-line comment needs a non-obvious reason, such as a framework quirk or
+  a trap for the next editor.
+
+## Nullability
+- Use `org.jspecify.annotations.Nullable` (type-use, so it sits next to the type,
+  after any `@JsonProperty`). Not `org.springframework.lang.*`, which is
+  deprecated. A class that overrides Spring/framework methods gets
+  `@org.jspecify.annotations.NullMarked` on the class, rather than `@NonNull`
+  on each parameter. DTOs that already use `jakarta.annotation.Nullable` stay as is.
+
+## Working style
+- For changes that mix behaviour and mechanical edits, keep them in separate
+  steps so they can be committed separately.
+- Design decisions (fetch strategy, schema, public API shape) are presented as
+  options with consequences. Do not pick one without confirmation.
 
 ## Language
 - Identifiers, comments and docs in English. Existing Swedish names or comments are

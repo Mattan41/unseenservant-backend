@@ -48,6 +48,14 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- Nullability annotations. Spring Framework 7 deprecated its own
+             org.springframework.lang.Nullable/NonNull in favour of JSpecify, so
+             the DTOs use org.jspecify.annotations. Boot's BOM manages the version. -->
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+        </dependency>
+
         <!-- Retry support moved into Spring Framework 7 (spring-context):
              @EnableResilientMethods + @Retryable replace spring-retry, which
              Spring Boot 4 no longer manages. See SecurityConfig. -->

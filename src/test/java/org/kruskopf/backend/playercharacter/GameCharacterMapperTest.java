@@ -59,11 +59,11 @@ class GameCharacterMapperTest {
             assertThat(offworlders.supplyMax()).isEqualTo(3);
             assertThat(offworlders.credits()).isEqualTo(10);
             assertThat(offworlders.weapons()).hasSize(1);
-            assertThat(offworlders.weapons().get(0).getType()).isEqualTo("Light");
-            assertThat(offworlders.weapons().get(0).getDescription()).isEqualTo("Snubnosed revolver");
+            assertThat(offworlders.weapons().getFirst().getType()).isEqualTo("Light");
+            assertThat(offworlders.weapons().getFirst().getDescription()).isEqualTo("Snubnosed revolver");
             assertThat(offworlders.items()).hasSize(1);
-            assertThat(offworlders.items().get(0).getName()).isEqualTo("Band t-shirts");
-            assertThat(offworlders.items().get(0).getDescription()).isEqualTo("Rotating collection.");
+            assertThat(offworlders.items().getFirst().getName()).isEqualTo("Band t-shirts");
+            assertThat(offworlders.items().getFirst().getDescription()).isEqualTo("Rotating collection.");
             assertThat(offworlders.stats().getStrength()).isEqualTo(1);
             assertThat(offworlders.stats().getAgility()).isEqualTo(2);
             assertThat(offworlders.stats().getIntelligence()).isZero();
@@ -106,7 +106,7 @@ class GameCharacterMapperTest {
             // Assert
             assertThat(dto.sections()).extracting(ContentSection::title)
                     .containsExactly("Cargo", "Leads");
-            assertThat(dto.sections().get(0).body()).isEqualTo("Two crates.");
+            assertThat(dto.sections().getFirst().body()).isEqualTo("Two crates.");
         }
 
         @Test

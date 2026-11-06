@@ -154,7 +154,7 @@ class PlannerServiceTest {
         when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.of(plan));
         when(dateRepository.findByPlanIdOrderByDateAsc(PLAN_ID)).thenReturn(dates);
-        when(dateRepository.findById(DATE_ID)).thenReturn(Optional.of(dates.get(0)));
+        when(dateRepository.findById(DATE_ID)).thenReturn(Optional.of(dates.getFirst()));
         when(campaignUserRepository.findByCampaignId(CAMPAIGN_ID))
                 .thenReturn(List.of(participantOf(campaign, user, "User7")));
         when(exclusionRepository.findByPlanId(PLAN_ID)).thenReturn(List.of());
@@ -266,7 +266,7 @@ class PlannerServiceTest {
         List<PlannerDate> dates = givenOpenPlan();
         givenSavingWorks();
         plan.setStatus(PlannerPlanStatus.DECIDED);
-        plan.setDecidedDate(dates.get(0));
+        plan.setDecidedDate(dates.getFirst());
 
         PlannerDateCreateDTO newDate = new PlannerDateCreateDTO(LocalDate.of(2026, 3, 21), null, null, null);
 
@@ -330,8 +330,8 @@ class PlannerServiceTest {
         service.updateDate(DATE_ID, new PlannerDateUpdateDTO(
                 A_DAY, LocalTime.of(18, 0), LocalTime.of(22, 0), "Bring dice", 0L), USER_ID);
 
-        assertThat(dates.get(0).getNote()).isEqualTo("Bring dice");
-        assertThat(dates.get(0).getStartTime()).isEqualTo(LocalTime.of(18, 0));
+        assertThat(dates.getFirst().getNote()).isEqualTo("Bring dice");
+        assertThat(dates.getFirst().getStartTime()).isEqualTo(LocalTime.of(18, 0));
     }
 
     @Test
@@ -380,7 +380,7 @@ class PlannerServiceTest {
     @Test
     @DisplayName("an answer is stored, changed in place, and withdrawn")
     void anAnswerIsStoredChangedAndWithdrawn() {
-        PlannerDate date = givenOpenPlan().get(0);
+        PlannerDate date = givenOpenPlan().getFirst();
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(attendanceRepository.findByPlanDateIdAndUserId(DATE_ID, USER_ID)).thenReturn(Optional.empty());
         when(attendanceRepository.saveAndFlush(any(PlannerAttendance.class)))
@@ -399,7 +399,7 @@ class PlannerServiceTest {
 
         PlannerPlanDTO changed = service.setAttendance(DATE_ID, "maybe", USER_ID);
 
-        assertThat(changed.dates().get(0).attendances()).singleElement()
+        assertThat(changed.dates().getFirst().attendances()).singleElement()
                 .satisfies(attendance -> {
                     assertThat(attendance.userId()).isEqualTo(USER_ID);
                     assertThat(attendance.state()).isEqualTo("MAYBE");
