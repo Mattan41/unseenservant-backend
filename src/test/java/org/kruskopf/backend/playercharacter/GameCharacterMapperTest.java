@@ -12,10 +12,12 @@ import org.kruskopf.backend.playercharacter.dto.CharacterInputDTO;
 import org.kruskopf.backend.playercharacter.dto.CharacterOutputDTO;
 import org.kruskopf.backend.playercharacter.entity.GameCharacter;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
+import org.kruskopf.backend.section.ContentSection;
 import org.kruskopf.backend.testsupport.TestDataFactory;
 import org.kruskopf.backend.user.entity.User;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,11 +59,11 @@ class GameCharacterMapperTest {
             assertThat(offworlders.supplyMax()).isEqualTo(3);
             assertThat(offworlders.credits()).isEqualTo(10);
             assertThat(offworlders.weapons()).hasSize(1);
-            assertThat(offworlders.weapons().get(0).getType()).isEqualTo("Light");
-            assertThat(offworlders.weapons().get(0).getDescription()).isEqualTo("Snubnosed revolver");
+            assertThat(offworlders.weapons().getFirst().getType()).isEqualTo("Light");
+            assertThat(offworlders.weapons().getFirst().getDescription()).isEqualTo("Snubnosed revolver");
             assertThat(offworlders.items()).hasSize(1);
-            assertThat(offworlders.items().get(0).getName()).isEqualTo("Band t-shirts");
-            assertThat(offworlders.items().get(0).getDescription()).isEqualTo("Rotating collection.");
+            assertThat(offworlders.items().getFirst().getName()).isEqualTo("Band t-shirts");
+            assertThat(offworlders.items().getFirst().getDescription()).isEqualTo("Rotating collection.");
             assertThat(offworlders.stats().getStrength()).isEqualTo(1);
             assertThat(offworlders.stats().getAgility()).isEqualTo(2);
             assertThat(offworlders.stats().getIntelligence()).isZero();
@@ -85,6 +87,38 @@ class GameCharacterMapperTest {
             // …but the private one only when the caller opts in.
             assertThat(mapper.toOutputDTO(character).privateBackstory()).isNull();
             assertThat(mapper.toOutputDTO(character, true).privateBackstory()).isEqualTo("Private backstory");
+        }
+
+        @Test
+        @DisplayName("Maps the sections in the order they were stored")
+        void mapsSectionsInOrder() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            ReflectionTestUtils.setField(owner, "id", 7L);
+            GameCharacter character = TestDataFactory.anOffworldersCharacter(owner);
+            character.setSections(new ArrayList<>(List.of(
+                    new ContentSection("s1", "Cargo", "Two crates."),
+                    new ContentSection("s2", "Leads", "A rumour."))));
+
+            // Act
+            CharacterOutputDTO dto = mapper.toOutputDTO(character);
+
+            // Assert
+            assertThat(dto.sections()).extracting(ContentSection::title)
+                    .containsExactly("Cargo", "Leads");
+            assertThat(dto.sections().getFirst().body()).isEqualTo("Two crates.");
+        }
+
+        @Test
+        @DisplayName("Answers an empty section list for a character that has none")
+        void defaultsToNoSections() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            ReflectionTestUtils.setField(owner, "id", 7L);
+            GameCharacter character = TestDataFactory.anOffworldersCharacter(owner);
+
+            // Assert: a character written before the column existed still maps.
+            assertThat(mapper.toOutputDTO(character).sections()).isEmpty();
         }
 
         @Test
@@ -145,6 +179,7 @@ class GameCharacterMapperTest {
                     null,
                     null,
                     null,
+                    null,
                     new OffworldersCharacterDataInputDTO(
                             "Psychic",
                             "Human",
@@ -191,7 +226,7 @@ class GameCharacterMapperTest {
             // Arrange
             User owner = TestDataFactory.aUser("player");
             CharacterInputDTO dto = new CharacterInputDTO(
-                    null, null, "Nova", GameSystem.OFFWORLDERS, null, null, null, null, null, null, null);
+                    null, null, "Nova", GameSystem.OFFWORLDERS, null, null, null, null, null, null, null, null);
 
             // Act
             GameCharacter character = mapper.toEntity(dto, owner, null);
@@ -210,7 +245,7 @@ class GameCharacterMapperTest {
             // Arrange
             User owner = TestDataFactory.aUser("player");
             CharacterInputDTO dto = new CharacterInputDTO(
-                    null, null, "Nova", GameSystem.DND5E, null, null, null, null, null, null, null);
+                    null, null, "Nova", GameSystem.DND5E, null, null, null, null, null, null, null, null);
 
             // Act
             GameCharacter character = mapper.toEntity(dto, owner, null);
@@ -233,6 +268,7 @@ class GameCharacterMapperTest {
                     null,
                     "Just some notes",
                     null,
+                    null,
                     "A dusty coat",
                     null,
                     null,
@@ -253,6 +289,24 @@ class GameCharacterMapperTest {
         }
 
         @Test
+        @DisplayName("Stores the sections a create payload carries")
+        void storesSections() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            CharacterInputDTO dto = new CharacterInputDTO(
+                    null, null, "Nova", null, null,
+                    List.of(new ContentSection("s1", "Cargo", "Two crates.")),
+                    null, null, null, null, null, null);
+
+            // Act
+            GameCharacter character = mapper.toEntity(dto, owner, null);
+
+            // Assert
+            assertThat(character.getSections()).extracting(ContentSection::title)
+                    .containsExactly("Cargo");
+        }
+
+        @Test
         @DisplayName("Still attaches D&D 5e data and ignores the offworlders block for DND5E")
         void dnd5eUnaffected() {
             // Arrange
@@ -262,6 +316,7 @@ class GameCharacterMapperTest {
                     null,
                     "Aragorn",
                     GameSystem.DND5E,
+                    null,
                     null,
                     null,
                     null,
@@ -303,6 +358,7 @@ class GameCharacterMapperTest {
                     null,
                     null,
                     null,
+                    null,
                     new OffworldersCharacterDataInputDTO(
                             null, null, 9, null, 3, null, null, null, null,
                             List.of(new OffworldersEntry("Pilot", ""), new OffworldersEntry("Sneak", ""), new OffworldersEntry("Scan", "")), null, null, null, 5, 3)
@@ -331,7 +387,7 @@ class GameCharacterMapperTest {
             User owner = TestDataFactory.aUser("player");
             GameCharacter character = TestDataFactory.aCharacter(owner);
             CharacterInputDTO dto = new CharacterInputDTO(
-                    null, null, "Renamed", null, null, null, null, null, null, null,
+                    null, null, "Renamed", null, null, null, null, null, null, null, null,
                     new OffworldersCharacterDataInputDTO(
                             "Outlaw", null, null, null, null, null, null, null, null, null, null, null, null, null, null));
 
@@ -350,7 +406,7 @@ class GameCharacterMapperTest {
             User owner = TestDataFactory.aUser("player");
             GameCharacter character = TestDataFactory.aCharacter(owner);
             CharacterInputDTO dto = new CharacterInputDTO(
-                    null, null, "Renamed", null, null, null, null, null, null, null, null);
+                    null, null, "Renamed", null, null, null, null, null, null, null, null, null);
 
             // Act
             mapper.patchEntity(character, dto);
@@ -361,13 +417,54 @@ class GameCharacterMapperTest {
         }
 
         @Test
+        @DisplayName("Replaces the sections with the list the patch carries")
+        void replacesSections() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            GameCharacter character = TestDataFactory.anOffworldersCharacter(owner);
+            character.setSections(new ArrayList<>(List.of(new ContentSection("old", "Old", "Gone."))));
+            CharacterInputDTO dto = new CharacterInputDTO(
+                    null, null, null, null, null,
+                    List.of(
+                            new ContentSection("s1", "Cargo", "Two crates."),
+                            new ContentSection("s2", "Leads", "A rumour.")),
+                    null, null, null, null, null, null);
+
+            // Act
+            mapper.patchEntity(character, dto);
+
+            // Assert: a whole-list replacement, in the order sent.
+            assertThat(character.getSections()).extracting(ContentSection::title)
+                    .containsExactly("Cargo", "Leads");
+        }
+
+        @Test
+        @DisplayName("Leaves the sections alone when the patch omits them")
+        void keepsSectionsWhenOmitted() {
+            // Arrange
+            User owner = TestDataFactory.aUser("player");
+            GameCharacter character = TestDataFactory.anOffworldersCharacter(owner);
+            character.setSections(new ArrayList<>(List.of(new ContentSection("s1", "Cargo", "Still here."))));
+            CharacterInputDTO dto = new CharacterInputDTO(
+                    null, null, "Renamed", null, null, null, null, null, null, null, null, null);
+
+            // Act
+            mapper.patchEntity(character, dto);
+
+            // Assert: a rename must not wipe the sections.
+            assertThat(character.getName()).isEqualTo("Renamed");
+            assertThat(character.getSections()).extracting(ContentSection::title)
+                    .containsExactly("Cargo");
+        }
+
+        @Test
         @DisplayName("Keeps a system-less character system-less")
         void keepsSystemlessCharacterSystemless() {
             // Arrange
             User owner = TestDataFactory.aUser("player");
             GameCharacter character = TestDataFactory.aSystemlessCharacter(owner);
             CharacterInputDTO dto = new CharacterInputDTO(
-                    null, null, null, null, "New notes", null, null, null, null, null, null);
+                    null, null, null, null, "New notes", null, null, null, null, null, null, null);
 
             // Act
             mapper.patchEntity(character, dto);

@@ -4,7 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.kruskopf.backend.dnd5e.dto.Dnd5eCharacterDataOutputDTO;
 import org.kruskopf.backend.offworlders.dto.OffworldersCharacterDataOutputDTO;
 import org.kruskopf.backend.playercharacter.entity.GameSystem;
-import org.springframework.lang.Nullable;
+import org.kruskopf.backend.section.ContentSection;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,6 +22,12 @@ import java.util.List;
  * {@code POST /api/characters/{id}/images}); in an Offworlders campaign those
  * images, together with {@code notes}, are what the ship's crew manifest shows
  * on the character's card.
+ * <p>
+ * {@code sections} are small, individually titled plain-text notes that sit
+ * beside {@code notes}. They belong to the character rather than to a campaign,
+ * so they travel with it across campaigns, exports and imports. Everyone who may
+ * see the character may read them; only the owner may write them (the PATCH is
+ * owner-only).
  */
 public record CharacterOutputDTO(
         Long id,
@@ -29,13 +36,14 @@ public record CharacterOutputDTO(
         String name,
         @Nullable GameSystem systemType,
         @Nullable String notes,
+        @Nullable List<ContentSection> sections,
         String avatarUrl,
         @Nullable List<String> imageUrls,
         @Nullable String appearance,
         @Nullable String backstory,
-        @Nullable @JsonProperty("privateBackstory") String privateBackstory,
-        @Nullable @JsonProperty("dnd5e") Dnd5eCharacterDataOutputDTO dnd5e,
-        @Nullable @JsonProperty("offworlders") OffworldersCharacterDataOutputDTO offworlders,
+        @JsonProperty("privateBackstory") @Nullable String privateBackstory,
+        @JsonProperty("dnd5e") @Nullable Dnd5eCharacterDataOutputDTO dnd5e,
+        @JsonProperty("offworlders") @Nullable OffworldersCharacterDataOutputDTO offworlders,
         LocalDateTime createdAt,
         @Nullable LocalDateTime updatedAt) {
 }

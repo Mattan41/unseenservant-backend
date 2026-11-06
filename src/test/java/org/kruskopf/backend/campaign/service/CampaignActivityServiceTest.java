@@ -135,8 +135,8 @@ class CampaignActivityServiceTest {
 
             List<CampaignActivityDTO> activity = campaignActivityService.getActivityForCurrentUser(USER_ID);
 
-            assertThat(activity.get(0).lastMessageAt()).isEqualTo(lastMessage);
-            assertThat(activity.get(0).shipUpdatedAt()).isNull();
+            assertThat(activity.getFirst().lastMessageAt()).isEqualTo(lastMessage);
+            assertThat(activity.getFirst().shipUpdatedAt()).isNull();
         }
 
         @Test

@@ -4,8 +4,10 @@ import jakarta.persistence.*;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.dnd5e.entity.Dnd5eCharacterData;
 import org.kruskopf.backend.entity.AuditedEntity;
+import org.kruskopf.backend.json.SectionListConverter;
 import org.kruskopf.backend.json.StringListConverter;
 import org.kruskopf.backend.offworlders.entity.OffworldersCharacterData;
+import org.kruskopf.backend.section.ContentSection;
 import org.kruskopf.backend.user.entity.User;
 
 import java.util.ArrayList;
@@ -48,6 +50,21 @@ public class GameCharacter extends AuditedEntity {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /**
+     * Small, individually titled notes that sit beside {@link #notes}, stored as
+     * a JSON array in a TEXT column.
+     * <p>
+     * They belong to the character, not to a campaign: they follow it across
+     * campaigns, exports and imports exactly like {@link #notes},
+     * {@link #backstory} and {@link #privateBackstory}. Deliberately additive —
+     * {@link #notes} stays a separate markdown field and is never migrated into
+     * this list. The array order is the order the owner arranged the sections
+     * in, and it is preserved as-is.
+     */
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = SectionListConverter.class)
+    private List<ContentSection> sections = new ArrayList<>();
+
     /** Public backstory — visible to all campaign members. */
     @Column(columnDefinition = "TEXT")
     private String backstory;
@@ -76,10 +93,14 @@ public class GameCharacter extends AuditedEntity {
     @Convert(converter = StringListConverter.class)
     private List<String> imageUrls = new ArrayList<>();
 
-    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // Both 1:1 blocks are eager on purpose: Hibernate does not honour
+    // FetchType.LAZY on the inverse side of a @OneToOne, and the read paths map
+    // the child outside a transaction (spring.jpa.open-in-view=false), so it is
+    // loaded with the character anyway. State that instead of implying lazy.
+    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Dnd5eCharacterData dnd5eData;
 
-    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private OffworldersCharacterData offworldersData;
 
     // Constructors
@@ -158,6 +179,14 @@ public class GameCharacter extends AuditedEntity {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public List<ContentSection> getSections() {
+        return sections;
+    }
+
+    public void setSections(List<ContentSection> sections) {
+        this.sections = sections;
     }
 
     public String getBackstory() {

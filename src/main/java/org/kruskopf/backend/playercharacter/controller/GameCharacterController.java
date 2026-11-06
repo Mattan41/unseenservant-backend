@@ -41,6 +41,7 @@ public class GameCharacterController {
                     inputDTO.name(),
                     inputDTO.systemType(),
                     inputDTO.notes(),
+                    inputDTO.sections(),
                     inputDTO.avatarUrl(),
                     inputDTO.appearance(),
                     inputDTO.backstory(),
@@ -149,7 +150,7 @@ public class GameCharacterController {
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<CharacterOutputDTO> addCharacterToCampaign(
             @PathVariable Long characterId,
-            @RequestBody CharacterCampaignUpdateDTO updateDTO,
+            @Valid @RequestBody CharacterCampaignUpdateDTO updateDTO,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
 
         Long userId = customUserDetails.user().getId();

@@ -1,6 +1,7 @@
 package org.kruskopf.backend.ship;
 
 import org.kruskopf.backend.campaign.entity.Campaign;
+import org.kruskopf.backend.section.ContentSection;
 import org.kruskopf.backend.ship.dto.ShipDTO;
 import org.kruskopf.backend.ship.dto.ShipInputDTO;
 import org.kruskopf.backend.ship.entity.Ship;
@@ -15,6 +16,7 @@ public class ShipMapper {
     public ShipDTO toDTO(Ship ship) {
         Campaign campaign = ship.getCampaign();
         List<String> upgrades = ship.getUpgrades();
+        List<ContentSection> sections = ship.getSections();
         List<String> imageUrls = ship.getImageUrls();
 
         return new ShipDTO(
@@ -30,6 +32,7 @@ public class ShipMapper {
                 ship.getCredits(),
                 upgrades != null ? List.copyOf(upgrades) : List.of(),
                 ship.getNotes(),
+                sections != null ? List.copyOf(sections) : List.of(),
                 ship.getImageUrl(),
                 imageUrls != null ? List.copyOf(imageUrls) : List.of(),
                 ship.getVersion(),
@@ -70,6 +73,11 @@ public class ShipMapper {
         }
         if (dto.notes() != null) {
             ship.setNotes(dto.notes());
+        }
+        // A whole-list replacement, in the order the client sent: the array is
+        // the user's arrangement, so nothing here reorders or merges it.
+        if (dto.sections() != null) {
+            ship.setSections(new ArrayList<>(dto.sections()));
         }
         if (dto.imageUrl() != null) {
             ship.setImageUrl(dto.imageUrl());

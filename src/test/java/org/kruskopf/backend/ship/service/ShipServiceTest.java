@@ -11,6 +11,7 @@ import org.kruskopf.backend.exception.ConcurrentUpdateException;
 import org.kruskopf.backend.exception.ResourceNotFoundException;
 import org.kruskopf.backend.exception.UnauthorizedAccessException;
 import org.kruskopf.backend.filestorage.StoredFileTransaction;
+import org.kruskopf.backend.section.ContentSection;
 import org.kruskopf.backend.ship.ShipMapper;
 import org.kruskopf.backend.ship.dto.ShipDTO;
 import org.kruskopf.backend.ship.dto.ShipInputDTO;
@@ -24,6 +25,8 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -119,7 +122,7 @@ class ShipServiceTest {
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.empty());
         when(shipRepository.saveAndFlush(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ShipInputDTO input = new ShipInputDTO("The Desert Rose", null, null, null, null, null, null, null, null, null, null, null);
+        ShipInputDTO input = new ShipInputDTO("The Desert Rose", null, null, null, null, null, null, null, null, null, null, null, null);
         ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
 
         assertThat(dto.name()).isEqualTo("The Desert Rose");
@@ -134,7 +137,7 @@ class ShipServiceTest {
         when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(existingShip(15, 3L)));
 
-        ShipInputDTO stale = new ShipInputDTO(null, 10, null, null, null, null, null, null, null, null, null, 2L);
+        ShipInputDTO stale = new ShipInputDTO(null, 10, null, null, null, null, null, null, null, null, null, null, 2L);
 
         assertThatThrownBy(() -> shipService.saveShip(CAMPAIGN_ID, stale, USER_ID))
                 .isInstanceOf(ConcurrentUpdateException.class);
@@ -149,7 +152,7 @@ class ShipServiceTest {
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(ship));
         when(shipRepository.saveAndFlush(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ShipInputDTO input = new ShipInputDTO(null, 7, null, null, null, null, null, null, null, null, null, 3L);
+        ShipInputDTO input = new ShipInputDTO(null, 7, null, null, null, null, null, null, null, null, null, null, 3L);
         ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
 
         assertThat(dto.hull()).isEqualTo(7);
@@ -167,10 +170,64 @@ class ShipServiceTest {
         when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(existingShip(15, 3L)));
         when(shipRepository.saveAndFlush(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ShipInputDTO input = new ShipInputDTO(null, null, null, null, null, null, null, 12, null, null, null, 3L);
+        ShipInputDTO input = new ShipInputDTO(null, null, null, null, null, null, null, 12, null, null, null, null, 3L);
         ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
 
         assertThat(dto.credits()).isEqualTo(12);
+    }
+
+    @Test
+    @DisplayName("saveShip stores the sections in the order they were sent")
+    void saveShip_storesSectionsInOrder() {
+        when(campaignRepository.findById(CAMPAIGN_ID)).thenReturn(Optional.of(campaign));
+        when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
+        Ship ship = existingShip(15, 3L);
+        when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(ship));
+        when(shipRepository.saveAndFlush(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<ContentSection> sections = List.of(
+                new ContentSection("s1", "Cargo", "Two crates of medical supplies."),
+                new ContentSection("s2", "Passengers", "The Voss family, three of them."),
+                new ContentSection("s3", "Leads", "A rumour about the Dry Dock."));
+
+        ShipInputDTO input = new ShipInputDTO(
+                null, null, null, null, null, null, null, null, null, null, sections, null, 3L);
+        ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
+
+        // The array is the crew's arrangement: nothing reorders it on the way in
+        // or out, and there is no ordering column to disagree with it.
+        assertThat(dto.sections()).containsExactlyElementsOf(sections);
+        assertThat(dto.sections().getFirst().title()).isEqualTo("Cargo");
+    }
+
+    @Test
+    @DisplayName("saveShip leaves the stored sections alone when the payload omits them")
+    void saveShip_keepsSectionsWhenOmitted() {
+        when(campaignRepository.findById(CAMPAIGN_ID)).thenReturn(Optional.of(campaign));
+        when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
+        Ship ship = existingShip(15, 3L);
+        ship.setSections(new ArrayList<>(List.of(new ContentSection("s1", "Cargo", "Still here."))));
+        when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(ship));
+        when(shipRepository.saveAndFlush(any(Ship.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // The sheet's own save carries no `sections`; a section edit carries only
+        // `sections`. Neither may wipe the other.
+        ShipInputDTO input = new ShipInputDTO(null, 7, null, null, null, null, null, null, null, null, null, null, 3L);
+        ShipDTO dto = shipService.saveShip(CAMPAIGN_ID, input, USER_ID);
+
+        assertThat(dto.hull()).isEqualTo(7);
+        assertThat(dto.sections()).hasSize(1);
+        assertThat(dto.sections().getFirst().body()).isEqualTo("Still here.");
+    }
+
+    @Test
+    @DisplayName("getShip answers an empty section list for a ship that has none")
+    void getShip_defaultsToNoSections() {
+        when(campaignRepository.findById(CAMPAIGN_ID)).thenReturn(Optional.of(campaign));
+        when(campaignPermissionService.isParticipant(CAMPAIGN_ID, USER_ID)).thenReturn(true);
+        when(shipRepository.findByCampaignId(CAMPAIGN_ID)).thenReturn(Optional.of(existingShip(15, 0L)));
+
+        assertThat(shipService.getShip(CAMPAIGN_ID, USER_ID).sections()).isEmpty();
     }
 
     @Test

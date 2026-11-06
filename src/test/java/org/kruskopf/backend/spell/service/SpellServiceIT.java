@@ -89,14 +89,14 @@ class SpellServiceIT extends AbstractIntegrationTest {
             assertThat(page1.get("count")).isEqualTo(3L);
             List<Map<String, Object>> results1 = (List<Map<String, Object>>) page1.get("results");
             assertThat(results1).hasSize(2);
-            assertThat(results1.get(0)).containsEntry("name", "Acid Arrow");
+            assertThat(results1.getFirst()).containsEntry("name", "Acid Arrow");
             assertThat(results1.get(1)).containsEntry("name", "Fireball");
 
             // Second page, size 2
             Map<String, Object> page2 = spellService.searchSpells("a", 1, 2);
             List<Map<String, Object>> results2 = (List<Map<String, Object>>) page2.get("results");
             assertThat(results2).hasSize(1);
-            assertThat(results2.get(0)).containsEntry("name", "Ray of Frost");
+            assertThat(results2.getFirst()).containsEntry("name", "Ray of Frost");
         }
 
         @Test

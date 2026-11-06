@@ -588,7 +588,7 @@ class JournalControllerIT extends AbstractIntegrationTest {
                 }
 
                 assertThat(journalIds).doesNotContainNull();
-                assertThat(journalIds.get(0))
+                assertThat(journalIds.getFirst())
                         .as("both writers must land on the same journal, not on two rows")
                         .isEqualTo(journalIds.get(1));
             } finally {

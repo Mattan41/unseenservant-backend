@@ -1,6 +1,7 @@
 package org.kruskopf.backend.playercharacter.dto;
 
-import org.springframework.lang.Nullable;
+import jakarta.validation.constraints.NotNull;
 
-public record CharacterCampaignUpdateDTO(@Nullable Long campaignId) {
+/** Body of {@code PATCH /api/characters/{id}/campaign}. */
+public record CharacterCampaignUpdateDTO(@NotNull Long campaignId) {
 }

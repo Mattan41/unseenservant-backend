@@ -46,6 +46,6 @@ class ImageCorsIT extends AbstractIntegrationTest {
         assertThat(allowOrigin)
                 .as("browsers reject a response with a duplicated Access-Control-Allow-Origin")
                 .hasSize(1);
-        assertThat(allowOrigin.get(0)).isEqualTo("http://localhost:5173");
+        assertThat(allowOrigin.getFirst()).isEqualTo("http://localhost:5173");
     }
 }
