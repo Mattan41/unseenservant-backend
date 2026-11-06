@@ -156,6 +156,6 @@ class ShipOptimisticLockIT extends AbstractIntegrationTest {
     }
 
     private static ShipInputDTO shipInput(String name, Integer hull, Long version) {
-        return new ShipInputDTO(name, hull, null, null, null, null, null, null, null, null, null, version);
+        return new ShipInputDTO(name, hull, null, null, null, null, null, null, null, null, null, null, version);
     }
 }

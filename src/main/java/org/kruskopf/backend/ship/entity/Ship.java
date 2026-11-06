@@ -10,7 +10,9 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import org.kruskopf.backend.campaign.entity.Campaign;
 import org.kruskopf.backend.entity.BaseEntity;
+import org.kruskopf.backend.json.SectionListConverter;
 import org.kruskopf.backend.json.StringListConverter;
+import org.kruskopf.backend.section.ContentSection;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -91,6 +93,18 @@ public class Ship extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String notes = "";
+
+    /**
+     * Small, individually titled notes that sit beside {@link #notes} — Cargo,
+     * Passengers, Leads, Log — stored as a JSON array in a TEXT column.
+     * <p>
+     * Deliberately additive: {@link #notes} stays a separate markdown field and
+     * is never migrated into this list. The array order is the order the crew
+     * arranged the sections in, and it is preserved as-is.
+     */
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = SectionListConverter.class)
+    private List<ContentSection> sections = new ArrayList<>();
 
     /** Profile image shown for the ship (defaults to the frontend's defaultShip.svg). */
     @Column(name = "image_url", length = 1024)
@@ -206,6 +220,14 @@ public class Ship extends BaseEntity {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public List<ContentSection> getSections() {
+        return sections;
+    }
+
+    public void setSections(List<ContentSection> sections) {
+        this.sections = sections;
     }
 
     public String getImageUrl() {
